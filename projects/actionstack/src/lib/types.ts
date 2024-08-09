@@ -45,7 +45,7 @@ export type ActionCreator<T = any> = ((...args: any[]) => Action<T> | AsyncActio
  * A function that takes the current state and an action, and returns
  * the updated state (excluding promises).
  */
-export type Reducer = (state: any, action: Action<any>) => Exclude<any, Promise<any>>;
+export type Reducer = (state: any, action: Action) => Exclude<any, Promise<any>>;
 
 /**
  * Type alias for an asynchronous reducer function.
@@ -57,7 +57,7 @@ export type Reducer = (state: any, action: Action<any>) => Exclude<any, Promise<
  * @param action - The action object being dispatched.
  * @returns Promise<any> - A promise that resolves to the updated state after asynchronous operations (if any).
  */
-export type AsyncReducer = (state: any, action: Action<any>) => Promise<any>;
+export type AsyncReducer = (state: any, action: Action) => Promise<any>;
 
 /**
  * Type alias for a meta-reducer function.
@@ -90,7 +90,7 @@ export type MetaReducer = (reducer: AsyncReducer) => Promise<AsyncReducer>;
  *      aiding in type checking and documentation.
  */
 export interface Middleware {
-  (store: any): (next: Function) => (action: Action<any>) => Promise<any>;
+  (store: any): (next: Function) => (action: Action) => Promise<any>;
   signature?: string;
 }
 

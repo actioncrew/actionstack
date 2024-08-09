@@ -51,12 +51,12 @@ export const createStarter = () => {
     /**
      * Handles the given action, processing it either synchronously or asynchronously.
      *
-     * @param {Action<any> | AsyncAction<any>} action - The action to be processed.
+     * @param {Action | AsyncAction} action - The action to be processed.
      * @param {Function} next - The next middleware function in the chain.
      * @param {Lock} lockInstance - The lock instance to manage concurrency for this action.
      * @returns {Promise<void> | void} - A promise if the action is asynchronous, otherwise void.
      */
-    async handleAction(action: Action<any> | AsyncAction<any>, next: Function, lockInstance: any) {
+    async handleAction(action: Action | AsyncAction, next: Function, lockInstance: any) {
 
       await lockInstance.acquire();
 
@@ -69,7 +69,7 @@ export const createStarter = () => {
           // Process async actions asynchronously and track them
           const asyncFunc = (async () => {
             await action(
-              async (syncAction: Action<any>) => {
+              async (syncAction: Action) => {
                   await this.handleAction(syncAction, next, innerLock);
               },
               this.getState,
@@ -100,7 +100,7 @@ export const createStarter = () => {
    * @param next - Function to call the next middleware in the chain.
    * @returns Function - The actual middleware function that handles actions.
    */
-  const exclusive = (config: MiddlewareConfig) => (next: Function) => async (action: Action<any> | AsyncAction<any>) => {
+  const exclusive = (config: MiddlewareConfig) => (next: Function) => async (action: Action | AsyncAction) => {
     const handler = new ActionHandler(config);
     const lockInstance = config.lock;
     await handler.handleAction(action, next, lockInstance);
@@ -115,7 +115,7 @@ export const createStarter = () => {
    * @param next - Function to call the next middleware in the chain.
    * @returns Function - The actual middleware function that handles actions.
    */
-  const concurrent = (config: MiddlewareConfig) => (next: Function) => async (action: Action<any> | AsyncAction<any>) => {
+  const concurrent = (config: MiddlewareConfig) => (next: Function) => async (action: Action | AsyncAction) => {
     let asyncActions: Promise<void>[] = [];
     const handler = new ActionHandler(config);
     const lockInstance = config.lock;
@@ -138,7 +138,7 @@ export const createStarter = () => {
   const defaultStrategy = 'concurrent';
 
   // Create a method to select the strategy
-  const selectStrategy = ({ dispatch, getState, dependencies, strategy, lock, stack }: any) => (next: Function) => async (action: Action<any>) => {
+  const selectStrategy = ({ dispatch, getState, dependencies, strategy, lock, stack }: any) => (next: Function) => async (action: Action) => {
     let strategyFunc = strategies[strategy()];
     if (!strategyFunc) {
       console.warn(`Unknown strategy: ${strategy}, default is used: ${defaultStrategy}`);

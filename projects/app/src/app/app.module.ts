@@ -19,7 +19,7 @@ import { MessagesModule } from './messages/messages.module';
       middleware: [epics, perfmon],
       reducer: (state: any = {}, action: Action<any>) => state,
       dependencies: {},
-      strategy: "concurrent"
+      strategy: "exclusive"
     }),
     MessagesModule
   ],

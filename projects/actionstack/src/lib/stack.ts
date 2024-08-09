@@ -5,15 +5,10 @@ import { Subscription } from 'rxjs/internal/Subscription';
 import { Action, AsyncAction } from './types';
 
 /**
- * Enum representing different types of operations.
- * @enum {string}
+ * Type representing different types of operations.
+ * @typedef {("action" | "async action" | "epic" | "saga")} OperationType
  */
-export enum OperationType {
-  ACTION = "action",
-  ASYNC_ACTION = "async action",
-  EPIC = "epic",
-  SAGA = "saga"
-}
+export type OperationType = "action" | "async action" | "epic" | "saga";
 
 /**
  * Class representing an operation.
@@ -21,28 +16,28 @@ export enum OperationType {
  */
 export class Operation {
   operation: OperationType;
-  instance: Function;
+  instance: any;
   source?: Operation;
 
-  constructor(operation: OperationType, instance: Function, source?: Operation) {
+  constructor(operation: OperationType, instance: any, source?: Operation) {
     this.operation = operation;
     this.instance = instance;
     this.source = source;
   }
 
-  static action(action: AsyncAction<any> | Action<any>): Operation {
-    const operationType = typeof action === 'function' ? OperationType.ASYNC_ACTION : OperationType.ACTION;
-    const instance = action as Function;
-    const source = typeof action === 'function' ? undefined : (action as any).source;
+  static action(action: Action | AsyncAction): Operation {
+    const operationType = typeof action === 'function' ? "async action" : "action";
+    const instance = action;
+    const source = (action as any).source;
     return new Operation(operationType, instance, source);
   }
 
   static saga(saga: Function): Operation {
-    return new Operation(OperationType.SAGA, saga);
+    return new Operation("saga", saga);
   }
 
-  static epic(source: Function): Operation {
-    return new Operation(OperationType.EPIC, source);
+  static epic(epic: Function): Operation {
+    return new Operation("epic", epic);
   }
 }
 
@@ -141,7 +136,7 @@ export class ExecutionStack {
    * @returns {Promise<Operation[]>} A promise that resolves with the stack when it becomes idle.
    */
   async waitForIdle(): Promise<Operation[]> {
-    return await waitFor(this.stack, value => !value.some(item => item.operation === OperationType.ACTION));
+    return await waitFor(this.stack, value => !value.some(item => item.operation === "action"));
   }
 }
 

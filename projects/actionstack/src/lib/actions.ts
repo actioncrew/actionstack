@@ -1,4 +1,4 @@
-import { Action, isAction, kindOf } from "./types";
+import { Action, isAction, kindOf } from './types';
 
 export { createAction as action };
 
@@ -18,7 +18,7 @@ export { createAction as action };
  */
 function createAction(typeOrThunk: string | Function, payloadCreator?: Function): any {
   function actionCreator(...args: any[]) {
-    let action: Action<any> = {
+    let action: Action = {
       type: typeOrThunk as string,
     };
 

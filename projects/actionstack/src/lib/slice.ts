@@ -46,7 +46,7 @@ export class Slice implements OnDestroy {
 
     this.opts = {
       slice: this.elRef ? this.elRef.nativeElement.localName : "noname",
-      reducer: (state: any = {}, action: Action<any>) => state,
+      reducer: (state: any = {}, action: Action) => state,
       dependencies: {},
       strategy: "persistent"
     };
@@ -71,7 +71,7 @@ export class Slice implements OnDestroy {
    *
    * @param action - The action to dispatch.
    */
-  dispatch(action: Action<any>): void {
+  dispatch(action: Action): void {
     this.store.dispatch(action);
   }
 

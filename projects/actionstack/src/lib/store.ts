@@ -105,7 +105,7 @@ export class Store {
   protected mainModule: MainModule = {
     slice: "main",
     middleware: [],
-    reducer: (state: any = {}, action: Action<any>) => state as Reducer,
+    reducer: (state: any = {}, action: Action) => state as Reducer,
     metaReducers: [],
     dependencies: {},
     strategy: "exclusive" as ProcessingStrategy
@@ -113,7 +113,7 @@ export class Store {
   protected modules: FeatureModule[] = [];
   protected pipeline = {
     middleware: [] as any[],
-    reducer: ((state: any = {}, action: Action<any>) => state) as AsyncReducer,
+    reducer: ((state: any = {}, action: Action) => state) as AsyncReducer,
     dependencies: {} as Tree<Type<any> | InjectionToken<any>>,
     strategy: "exclusive" as ProcessingStrategy
   };
@@ -158,7 +158,7 @@ export class Store {
       store.applyMiddleware();
 
       // Bind system actions
-      store.systemActions = bindActionCreators(systemActions, (action: Action<any>) => store.settings.dispatchSystemActions && store.dispatch(action));
+      store.systemActions = bindActionCreators(systemActions, (action: Action) => store.settings.dispatchSystemActions && store.dispatch(action));
 
       // Initialize state and mark store as initialized
       store.systemActions.initializeState();
@@ -191,10 +191,10 @@ export class Store {
 
     /**
    * Dispatches an action to be processed by the store's reducer.
-   * @param {Action<any>} action - The action to dispatch.
+   * @param {Action} action - The action to dispatch.
    * @throws {Error} Throws an error if the action is not a plain object, does not have a defined "type" property, or if the "type" property is not a string.
    */
-  async dispatch(action: Action<any> | any) {
+  async dispatch(action: Action | any) {
     if (!isPlainObject(action)) {
       console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'. You may need to add middleware to your setup to handle dispatching custom values.`);
       return;
@@ -324,12 +324,12 @@ export class Store {
    * Updates the state based on the provided slice and value, returning the updated state.
    * @param {keyof T | string[] | undefined} slice - The slice of the state to update.
    * @param {any} value - The new value to set for the specified slice.
-   * @param {Action<any>} [action=systemActions.updateState()] - The action to propagate after updating the state.
+   * @param {Action} [action=systemActions.updateState()] - The action to propagate after updating the state.
    * @returns {Promise<any>}  A promise that resolves to the updated state object.
    * @protected
    * @template T
    */
-  protected async setState<T = any>(slice: keyof T | string[] | undefined, value: any, action: Action<any> = systemActions.updateState()): Promise<any> {
+  protected async setState<T = any>(slice: keyof T | string[] | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> {
     let newState: any;
     if (slice === undefined || typeof slice === "string" && slice == "@global") {
       // Update the whole state with a shallow copy of the value
@@ -368,12 +368,12 @@ export class Store {
    * Updates the state asynchronously based on the provided slice and callback function, then propagates the action.
    * @param {keyof T | string[]} slice - The slice of the state to update.
    * @param {AnyFn} callback - The callback function to apply on the current state.
-   * @param {Action<any>} [action=systemActions.updateState()] - The action to propagate after updating the state.
+   * @param {Action} [action=systemActions.updateState()] - The action to propagate after updating the state.
    * @returns {Promise<any>} A promise that resolves to the propagated action.
    * @protected
    * @template T
    */
-  protected async updateState<T = any>(slice: keyof T | string[] | undefined, callback: AnyFn, action: Action<any> = systemActions.updateState()): Promise<any> {
+  protected async updateState<T = any>(slice: keyof T | string[] | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
       return;
@@ -418,10 +418,10 @@ export class Store {
     /**
      * Combined reducer function that applies each individual reducer to the state.
      * @param {any} [state={}] - The current state.
-     * @param {Action<any>} action - The action to process.
+     * @param {Action} action - The action to process.
      * @returns {Promise<any>} A promise that resolves to the modified state.
      */
-    const combinedReducer = async (state: any = {}, action: Action<any>) => {
+    const combinedReducer = async (state: any = {}, action: Action) => {
       // Apply every reducer to state and track changes
       let modified = {};
       for (const [reducer, path] of reducerMap) {
