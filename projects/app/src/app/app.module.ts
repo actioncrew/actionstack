@@ -1,4 +1,4 @@
-import { Action, provideStore } from '@actioncrew/actionstack';
+import { Action, StoreModule } from '@actioncrew/actionstack';
 import { EpicModule, epics } from '@actioncrew/actionstack/epics';
 import { perfmon } from '@actioncrew/actionstack/tools';
 import { NgModule } from '@angular/core';
@@ -15,7 +15,7 @@ import { MessagesModule } from './messages/messages.module';
     FormsModule,
     AppRoutingModule,
     EpicModule,
-    provideStore({
+    StoreModule.forRoot({
       middleware: [epics, perfmon],
       reducer: (state: any = {}, action: Action<any>) => state,
       dependencies: {},

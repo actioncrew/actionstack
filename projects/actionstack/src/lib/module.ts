@@ -1,4 +1,4 @@
-import { InjectionToken, Injector, ModuleWithProviders, NgModule, Optional } from '@angular/core';
+import { InjectionToken, Injector, ModuleWithProviders, NgModule, Optional, Provider } from '@angular/core';
 
 import { Store, StoreSettings } from './store';
 import { FeatureModule, MainModule, StoreEnhancer } from './types';
@@ -90,26 +90,26 @@ export class StoreModule {
 
     return {
       ngModule: StoreModule,
+      providers: []
     };
   }
 }
 
 
 /**
- * Convenience function to call StoreModule.forRoot for simpler usage.
+ * Provides the store configuration for use in standalone components or traditional modules.
  * @param module - The main application module to be used with the store.
- * @returns ModuleWithProviders - An object defining the StoreModule with its providers.
+ * @returns Array of providers - An array of providers to be used in standalone components.
  */
-export function provideStore(module: MainModule): ModuleWithProviders<StoreModule> {
-  return StoreModule.forRoot(module);
+export function provideStore(module: MainModule): Provider[] {
+  return StoreModule.forRoot(module).providers as Provider[];
 }
 
 /**
- * Convenience function to call StoreModule.forFeature for simpler usage.
+ * Provides the feature module configuration for use in standalone components or traditional modules.
  * @param module - The feature module to be used with the store.
- * @returns ModuleWithProviders - An object defining the StoreModule.
+ * @returns Array of providers - An array of providers to be used in standalone components.
  */
-export function provideModule(module: FeatureModule): ModuleWithProviders<StoreModule> {
-  return StoreModule.forFeature(module);
+export function provideModule(module: FeatureModule): Provider[] {
+  return StoreModule.forFeature(module).providers as Provider[];
 }
-
