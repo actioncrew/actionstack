@@ -29,7 +29,7 @@ function createFeatureSelector<U = any, T = any> (
     const subscription = source.subscribe((state: T) => {
       const selectedValue = (Array.isArray(slice)
       ? slice.reduce((acc, key) => (acc && Array.isArray(acc) ? acc[parseInt(key)] : (acc as any)[key]) || undefined, state)
-      : state && state[slice]) as U;
+      : state && state[slice]) as unknown as U;
       lastValue = selectedValue;
       subscriber.next(selectedValue);
     });
@@ -76,7 +76,7 @@ function createSelector<U = any, T = any>(
 
     let lastSliceState: any, emitted = false;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<U>((observer: Observer<U>) => {
+      const trackable = new Observable<U>((observer: Observer<U | undefined>) => {
         let sliceState$: Observable<U>;
         if (featureSelector$ === "@global") {
           sliceState$ = state$ as any;
@@ -86,7 +86,7 @@ function createSelector<U = any, T = any>(
 
         const subscription: Subscription = sliceState$.subscribe(sliceState => {
           if (sliceState === undefined) {
-            observer.next(undefined as U);
+            observer.next(undefined);
           } else if (lastSliceState !== sliceState) {
             lastSliceState = sliceState;
             let selectorResults: U[] | U;
@@ -97,7 +97,7 @@ function createSelector<U = any, T = any>(
                 // Check if any result is undefined and emit undefined immediately
                 if (selectorResults.some(result => result === undefined)) {
                   subscription.unsubscribe(); // Unsubscribe immediately to prevent further emissions
-                  observer.next(undefined as U);
+                  observer.next(undefined);
                 } else {
                   // If all results are defined, continue with projection or emit results directly
                   observer.next(projection ? projection(selectorResults, projectionProps) : selectorResults);
@@ -106,7 +106,7 @@ function createSelector<U = any, T = any>(
                 selectorResults = selectors && selectors(sliceState, props);
 
                 if (selectorResults === undefined) {
-                  observer.next(undefined as U);
+                  observer.next(undefined);
                 } else {
                   observer.next(projection ? projection(projectionProps) : selectorResults);
                 }
