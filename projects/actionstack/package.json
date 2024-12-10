@@ -1,6 +1,6 @@
 {
   "name": "@actioncrew/actionstack",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Asynchronous state management library",
   "license": "MIT",
   "keywords": [
