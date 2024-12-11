@@ -309,23 +309,22 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Updates a nested state object by applying a change to the specified path and value.
    * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
-   * for unchanged branches. Tracks visited nodes in the provided edges tree to avoid redundant updates.
+   * for unchanged branches. Tracks visited nodes in the provided object tree to avoid redundant updates.
    */
-  const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, edges: Tree<boolean>): any => {
-    let currentState: any = Object.keys(edges).length > 0 ? initialState: {...initialState};
+  const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, objTree: Tree<boolean>): any => {
+    let currentState: any = Object.keys(objTree).length > 0 ? initialState: {...initialState};
     let currentObj: any = currentState;
-    let currentEdges: Tree<boolean> = edges;
 
     for (let i = 0; i < path.length; i++) {
       const key = path[i];
       if (i === path.length - 1) {
         // Reached the leaf node, update its value
         currentObj[key] = value;
-        currentEdges[key] = true;
+        objTree[key] = true;
       } else {
         // Continue traversal
-        currentObj = currentObj[key] = currentEdges[key] ? currentObj[key] : { ...currentObj[key] };
-        currentEdges = (currentEdges[key] = currentEdges[key] ?? {}) as any;
+        currentObj = currentObj[key] = objTree[key] ? currentObj[key] : { ...currentObj[key] };
+        objTree = (objTree[key] = objTree[key] ?? {}) as any;
       }
     }
     return currentState;
