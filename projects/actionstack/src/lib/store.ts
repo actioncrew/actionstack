@@ -108,18 +108,6 @@ const systemActions = {
  * This function initializes a store with the provided `mainModule` configuration and optional store enhancer.
  * It also accepts store settings that define various configuration options for the store.
  * The `storeSettings` parameter defaults to `defaultStoreSettings` if not provided.
- *
- * @template T - The type of the store's state.
- *
- * @param {MainModule} mainModule - The main module configuration that defines the core behavior and structure of the store.
- * This includes settings like the reducer, dependencies, middleware, and more.
- *
- * @param {StoreEnhancer} [enhancer] - An optional store enhancer to augment the store's functionality, such as adding custom middlewares, logging, or other features.
- *
- * @param {StoreSettings} [storeSettings=defaultStoreSettings] - Optional settings to configure the store. Defaults to `defaultStoreSettings` if not provided.
- * The settings may include options like state persistence, logging preferences, etc.
- *
- * @returns {Store<T>} The newly created store instance that is initialized with the provided configurations.
  */
 export function createStore<T = any>(mainModule: MainModule, storeSettings: StoreSettings = defaultStoreSettings, enhancer?: StoreEnhancer): Store<T> {
 
@@ -194,116 +182,70 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   };
 
   /**
+   * Recursively processes a nested structure of dependencies, handling arrays,
+   * objects, and class instances appropriately. This function ensures that
+   * nested dependencies are correctly preserved or instantiated.
+   *
+   * @example
+   * const dependencies = {
+   *   a: { b: 1, c: [2, { d: 3 }] },
+   *   e: new SomeClass(),
+   * };
+   * const result = processDependencies(dependencies);
+   */
+  const processDependencies = (source: any): any => {
+    if (Array.isArray(source)) {
+      return source.map(processDependencies); // Process array elements
+    }
+    if (source && typeof source === "object") {
+      if (typeof source.constructor === "function") {
+        return source; // Assume it's a class or function instance
+      }
+      // Process object properties
+      return Object.entries(source).reduce((acc, [key, value]) => {
+        acc[key] = processDependencies(value);
+        return acc;
+      }, {} as any);
+    }
+    return source; // Return primitive values as-is
+  };
+
+  /**
    * Merges and injects dependencies from the main module and all feature modules
-   * into the pipeline's dependency object. It handles recursion for nested objects
-   * and arrays and ensures classes are instantiated correctly.
+   * into the pipeline's dependency object. Handles class instantiation.
    */
   const injectDependencies = (): void => {
-    // Initialize the new dependencies object
-    let newDependencies = {} as any;
+    // Merge all dependencies into a single object
+    const allDependencies = Object.assign(
+      {},
+      mainModule.dependencies,
+      ...modules.map(module => module.dependencies)
+    );
 
-    // Combine all dependencies into one object
-    let allDependencies = [mainModule.dependencies, ...modules.map(module => module.dependencies)].filter(Boolean);
-
-    // Recursively clone and update dependencies
-    allDependencies.forEach((dep: any) => {
-      Object.keys(dep).forEach(key => {
-        newDependencies[key] = dep[key];
-      });
-    });
-
-    // Initialize the pipeline dependencies object
-    pipeline.dependencies = {} as any;
-
-    // Create a stack for depth-first traversal of newDependencies
-    let stack: { parent: any, key: string | number, subtree: any }[] = Object.keys(newDependencies).map(key => ({ parent: newDependencies, key, subtree: pipeline.dependencies }));
-
-    while (stack.length > 0) {
-      const { parent, key, subtree } = stack.pop()!;
-      const value = parent[key];
-      if (Array.isArray(value)) {
-        // If value is an array, add its elements to the stack
-        subtree[key] = [];
-        stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
-      } else if (typeof value === 'object' && value !== null) {
-        if (value && typeof value.constructor === 'function') {
-          // If the value is a class (function with prototype), instantiate it
-          subtree[key] = value; // Assuming default constructor is suitable
-        } else {
-          // If value is an object (not a class), copy its children to the stack
-          subtree[key] = {};
-          stack.push(...Object.keys(value).map(childKey => ({
-            parent: value, key: childKey, subtree: subtree[key]
-          })));
-        }
-      } else {
-        subtree[key] = value;
-      }
-    }
-  }
+    // Initialize the pipeline dependencies
+    pipeline.dependencies = processDependencies(allDependencies);
+  };
 
   /**
    * Removes the specified module's dependencies from the pipeline and updates
-   * the global dependencies object. It merges the remaining dependencies from
-   * the main module and other feature modules, handling recursion for nested
-   * objects and arrays, and ensures classes are instantiated correctly.
+   * the global dependencies object, ensuring proper handling of nested structures.
    */
   const ejectDependencies = (module: FeatureModule): void => {
-    // Combine all dependencies into one object, excluding the specified module
-    let allDependencies = [mainModule.dependencies, ...modules.filter(m => m !== module).map(m => m.dependencies)].filter(Boolean);
+    // Merge dependencies of the main module and remaining feature modules
+    const allDependencies = Object.assign(
+      {},
+      mainModule.dependencies,
+      ...modules.filter(m => m !== module).map(m => m.dependencies)
+    );
 
-    // Initialize the new dependencies object
-    let newDependencies = {} as any;
-
-    // Recursively clone and update dependencies
-    allDependencies.forEach((dep: any) => {
-      Object.keys(dep).forEach(key => {
-        newDependencies[key] = dep[key];
-      });
-    });
-
-    // Initialize the pipeline dependencies object
-    pipeline.dependencies = {} as any;
-
-    // Create a stack for depth-first traversal of the newDependencies tree
-    let stack: { parent: any, key: string | number, subtree: any }[] = Object.keys(newDependencies).map(key => ({
-      parent: newDependencies, key, subtree: pipeline.dependencies
-    }));
-
-    // Traverse and update the pipeline.dependencies object
-    while (stack.length > 0) {
-      const { parent, key, subtree } = stack.pop()!;
-      const value = parent[key];
-
-      if (Array.isArray(value)) {
-        // If value is an array, handle its elements
-        subtree[key] = [];
-        stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
-      } else if (typeof value === 'object' && value !== null) {
-        if (value && typeof value.constructor === 'function') {
-          // If the value is a class (function with prototype), instantiate it
-          subtree[key] = value; // Assuming default constructor is suitable
-        } else {
-          // If value is an object (not a class), copy its children to the stack
-          subtree[key] = {};
-          stack.push(...Object.keys(value).map(childKey => ({
-            parent: value, key: childKey, subtree: subtree[key]
-          })));
-        }
-      } else {
-        // If value is a simple value, set it directly
-        subtree[key] = value;
-      }
-    }
+    // Update the pipeline dependencies
+    pipeline.dependencies = processDependencies(allDependencies);
   };
 
   /**
    * Loads a new feature module into the store if it isn't already loaded.
    * It ensures that dependencies are injected, the global state is updated,
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
-   *
-   * @param {FeatureModule} module - The feature module to be loaded.
-   * @returns {Promise<void>} A promise that resolves when the module is successfully loaded.
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
     // Check if the module already exists
@@ -331,10 +273,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
    * Unloads a feature module from the store, optionally clearing its state.
    * It removes the module, ejects its dependencies, and updates the global state.
    * A `moduleUnloaded` action is dispatched after the module is unloaded.
-   *
-   * @param {FeatureModule} module - The feature module to be unloaded.
-   * @param {boolean} [clearState=false] - Whether to clear the module's state from the global state.
-   * @returns {Promise<void>} A promise that resolves when the module is successfully unloaded.
    */
   const unloadModule = (module: FeatureModule, clearState: boolean = false): Promise<void> => {
     // Find the module index in the modules array
@@ -369,15 +307,9 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   }
 
   /**
-   * Applies a change to a nested state object based on a given path and value,
-   * updating the state along the path and marking the edges of the tree as visited.
-   *
-   * @param {any} initialState - The initial state object to apply changes to.
-   * @param {Object} change - The change to apply, containing a path and value.
-   * @param {string[]} change.path - The path to the property to update.
-   * @param {any} change.value - The new value to set at the specified path.
-   * @param {Tree<boolean>} edges - A tree structure representing the visited paths.
-   * @returns {any} The updated state object.
+   * Updates a nested state object by applying a change to the specified path and value.
+   * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
+   * for unchanged branches. Tracks visited nodes in the provided edges tree to avoid redundant updates.
    */
   const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, edges: Tree<boolean>): any => {
     let currentState: any = Object.keys(edges).length > 0 ? initialState: {...initialState};
@@ -402,13 +334,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Sets the state for a specified slice of the global state, updating it with the given value.
    * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
-   *
-   * @param {keyof T | string[] | "@global" | undefined} slice - The slice of the state to update.
-   * If undefined, updates the whole state, if "@global", updates the global state,
-   * or a string/array for specific paths/keys.
-   * @param {any} value - The new value to set at the specified slice or path.
-   * @param {Action} [action=systemActions.updateState()] - The action triggering the state update (optional).
-   * @returns {Promise<any>} A promise resolving to the updated state object.
    */
   const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> => {
     let newState: any;
@@ -449,13 +374,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
    * Updates the state for a specified slice by executing the provided callback function,
    * which receives the current state as its argument and returns the updated state.
    * The resulting state is then set using the `setState` function.
-   *
-   * @param {keyof T | string[] | "@global" | undefined} slice - The slice of the state to update.
-   * If undefined, updates the whole state, if "@global", updates the global state,
-   * or a string/array for specific paths/keys.
-   * @param {AnyFn} callback - The callback function that receives the current state and returns the updated state.
-   * @param {Action} [action=systemActions.updateState()] - The action triggering the state update (optional).
-   * @returns {Promise<Action>} A promise resolving to the action that triggered the state update.
    */
   const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> => {
     if(callback === undefined) {
@@ -473,9 +391,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Combines multiple reducers into a single asynchronous reducer function.
    * The combined reducer applies each individual reducer to the state based on its corresponding path.
-   *
-   * @param {Tree<Reducer>} reducers - A tree structure where each leaf is a reducer function and each node represents a nested path.
-   * @returns {AsyncReducer} A combined reducer function that applies each individual reducer to the state.
    */
   const combineReducers = (reducers: Tree<Reducer>): AsyncReducer => {
     // Create a map for reducers
@@ -483,8 +398,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
 
     /**
      * Recursively builds a map of reducers with their corresponding paths.
-     * @param {Tree<Reducer>} tree - The tree structure containing reducers.
-     * @param {string[]} [path=[]] - The current path in the tree.
      */
     const buildReducerMap = (tree: Tree<Reducer>, path: string[] = []) => {
       for (const key in tree) {
@@ -502,9 +415,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
 
     /**
      * Combined reducer function that applies each individual reducer to the state.
-     * @param {any} [state={}] - The current state.
-     * @param {Action} action - The action to process.
-     * @returns {Promise<any>} A promise that resolves to the modified state.
      */
     const combinedReducer = async (state: any = {}, action: Action) => {
       // Apply every reducer to state and track changes
@@ -526,9 +436,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
    * Optionally applies meta reducers if enabled.
-   *
-   * @param {any} [state={}] - The initial state to apply the reducers to. Defaults to an empty object.
-   * @returns {Promise<any>} A promise that resolves to the updated state after applying the reducers and meta reducers.
    */
   const setupReducer = async (state: any = {}): Promise<any> => {
 
@@ -570,10 +477,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Reads the state slice and executes the provided callback with the current state.
    * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
-   *
-   * @param {keyof T | string[]} slice - The state slice or path to retrieve.
-   * @param {(state: Readonly<T>) => void | Promise<void>} callback - The callback to execute with the state.
-   * @returns {Promise<void>} A promise that resolves once the callback has been executed with the state.
    */
   const readSafe = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
     const promise = (async () => {
@@ -591,9 +494,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
 
   /**
    * Selects a value from the store's state using the provided selector function.
-   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
-   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
-   * @returns {Observable<any>} An observable stream with the selected value.
    */
   const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
     let lastValue: any;
@@ -618,10 +518,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
    * Selects a specific value from the state using the provided selector function.
    * The function returns an observable that emits the selected value whenever the state changes.
    * Optionally, a default value can be provided if the selector returns `undefined`.
-   *
-   * @param {function} selector - The function to select a specific part of the state. It receives the state observable and an optional tracker.
-   * @param {any} [defaultValue] - The default value to emit when the selector returns `undefined`.
-   * @returns {Observable<R>} An observable that emits the selected state value or the default value.
    */
   const getState = (slice?: keyof T | string[] | "@global"): any => {
     if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
@@ -646,9 +542,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   /**
    * Creates and initializes the store with the given main module configuration.
    * The store provides methods for dispatching actions, accessing state, and managing modules.
-   *
-   * @param {MainModule} mainModule - The main module configuration, including slice, middleware, reducer, metaReducers, dependencies, and strategy.
-   * @returns {Store<any>} The initialized store object with methods like `dispatch`, `getState`, `select`, `loadModule`, `unloadModule`, `read`, and `settings`.
    */
   let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
     let defaultMainModule = {
