@@ -1,4 +1,4 @@
-import { Lock } from './lock';
+import { createLock, Lock } from './lock';
 import { ExecutionStack, Operation } from './stack';
 import { Action, AsyncAction } from './types';
 
@@ -21,73 +21,62 @@ interface MiddlewareConfig {
 }
 
 /**
+ * Functional handler for managing actions within middleware.
+ *
+ * @param {MiddlewareConfig} config - Configuration object for the middleware.
+ * @returns {Function} - A function to handle actions.
+ */
+export function createActionHandler(config: MiddlewareConfig) {
+  const stack = config.stack;
+  const getState = config.getState;
+  const dependencies = config.dependencies;
+
+  /**
+   * Handles the given action, processing it either synchronously or asynchronously.
+   *
+   * @param {Action | AsyncAction} action - The action to be processed.
+   * @param {Function} next - The next middleware function in the chain.
+   * @param {Lock} lock - The lock instance to manage concurrency for this action.
+   * @returns {Promise<void> | void} - A promise if the action is asynchronous, otherwise void.
+   */
+  const handleAction = async (action: Action | AsyncAction, next: Function, lock: Lock): Promise<void> => {
+    await lock.acquire();
+
+    const op = Operation.action(action);
+    stack.add(op);
+
+    try {
+      if (typeof action === 'function') {
+        const innerLock = createLock();
+
+        // Process async actions asynchronously and track them
+        await action(
+          async (syncAction: Action) => {
+            await handleAction(syncAction, next, innerLock);
+          },
+          getState,
+          dependencies()
+        );
+      } else {
+        // Process regular synchronous actions
+        await next(action);
+      }
+    } finally {
+      stack.remove(op);
+      lock.release();
+    }
+  };
+
+  return handleAction;
+}
+
+/**
  * Function to create the starter middleware factory.
  * This factory function returns a middleware creator that takes strategy information as arguments and returns the actual middleware function.
  *
  * @returns Function - The middleware creator function.
  */
 export const createStarter = () => {
-  let asyncActions: Promise<any>[] = [];
-
-  /**
-   * Class responsible for handling actions within the middleware.
-   */
-  class ActionHandler {
-    private stack: ExecutionStack;
-    private getState: Function;
-    private dependencies: Function;
-
-    /**
-     * Creates an instance of ActionHandler.
-     *
-     * @param {MiddlewareConfig} config - The configuration object for the middleware.
-     */
-    constructor(config: MiddlewareConfig) {
-      this.stack = config.stack;
-      this.getState = config.getState;
-      this.dependencies = config.dependencies;
-    }
-
-    /**
-     * Handles the given action, processing it either synchronously or asynchronously.
-     *
-     * @param {Action | AsyncAction} action - The action to be processed.
-     * @param {Function} next - The next middleware function in the chain.
-     * @param {Lock} lockInstance - The lock instance to manage concurrency for this action.
-     * @returns {Promise<void> | void} - A promise if the action is asynchronous, otherwise void.
-     */
-    async handleAction(action: Action | AsyncAction, next: Function, lockInstance: any) {
-
-      await lockInstance.acquire();
-
-      const op = Operation.action(action);
-      this.stack.add(op);
-
-      try {
-        if (typeof action === 'function') {
-          let innerLock = new Lock();
-          // Process async actions asynchronously and track them
-          const asyncFunc = (async () => {
-            await action(
-              async (syncAction: Action) => {
-                  await this.handleAction(syncAction, next, innerLock);
-              },
-              this.getState,
-              this.dependencies()
-            );
-          })();
-          return asyncFunc;
-        } else {
-          // Process regular synchronous actions
-          await next(action);
-        }
-      } finally {
-        this.stack.remove(op);
-        lockInstance.release();
-      }
-    }
-  }
-
   /**
    * Middleware function for handling actions exclusively.
    *
@@ -101,9 +90,9 @@ export const createStarter = () => {
    * @returns Function - The actual middleware function that handles actions.
    */
   const exclusive = (config: MiddlewareConfig) => (next: Function) => async (action: Action | AsyncAction) => {
-    const handler = new ActionHandler(config);
+    const handler = createActionHandler(config);
     const lockInstance = config.lock;
-    await handler.handleAction(action, next, lockInstance);
+    await handler(action, next, lockInstance);
   };
 
   /**
@@ -117,10 +106,10 @@ export const createStarter = () => {
    */
   const concurrent = (config: MiddlewareConfig) => (next: Function) => async (action: Action | AsyncAction) => {
     let asyncActions: Promise<void>[] = [];
-    const handler = new ActionHandler(config);
+    const handler = createActionHandler(config);
     const lockInstance = config.lock;
 
-    const asyncFunc = handler.handleAction(action, next, lockInstance);
+    const asyncFunc = handler(action, next, lockInstance);
     if (asyncFunc) {
       asyncActions.push(asyncFunc);
       asyncFunc.finally(() => {

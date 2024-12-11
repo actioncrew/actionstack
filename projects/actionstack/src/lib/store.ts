@@ -4,7 +4,7 @@ import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
-import { Lock } from './lock';
+import { createLock, Lock } from './lock';
 import { ExecutionStack } from './stack';
 import { starter } from './starter';
 import { Tracker } from './tracker';
@@ -121,7 +121,7 @@ export class Store {
   protected systemActions = { ...systemActions };
   protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
   protected tracker = new Tracker();
-  protected lock = new Lock();
+  protected lock = createLock();
   protected stack = new ExecutionStack();
 
   /**

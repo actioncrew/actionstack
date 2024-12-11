@@ -1,49 +1,35 @@
+export type Lock = {
+  acquire: () => Promise<void>;
+  release: () => void;
+};
 
-/**
- * Implements a lock using promises to ensure mutual exclusion.
- */
-export class Lock {
-  /**
-   * Flag indicating whether the lock is currently acquired by someone.
-   */
-  public isLocked: boolean = false;
+export const createLock = (): Lock => {
+  let isLocked = false; // Tracks whether the lock is held
+  const queue: Array<() => void> = []; // Queue to store waiting promise resolvers
 
-  /**
-   * Internal queue to store waiting promises when the lock is acquired.
-   */
-  private queue: Array<() => void> = [];
-
-  /**
-   * Constructor (no arguments needed for initialization).
-   */
-  constructor() {}
-
-  /**
-   * Asynchronously acquires the lock.
-   *
-   * @returns {Promise<void>}  - A promise that resolves immediately if the lock is not acquired,
-   *                             or resolves later when the lock becomes available for the caller.
-   */
-  public async acquire(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.isLocked) {
-        this.isLocked = true;
-        resolve(); // Lock acquired, resolve the promise
+  const acquire = () =>
+    new Promise<void>((resolve) => {
+      if (!isLocked) {
+        isLocked = true;
+        resolve(); // Immediately resolve if the lock is free
       } else {
-        this.queue.push(() => resolve()); // Add resolve to queue
+        queue.push(resolve); // Otherwise, queue the resolve function
       }
     });
-  }
 
-  /**
-   * Releases the lock, allowing the next waiting promise in the queue to acquire it.
-   */
-  release() {
-    this.isLocked = false;
-    // Process the waiting requests (if any)
-    if (this.queue.length > 0) {
-      const nextResolve = this.queue.shift()!;
-      nextResolve(); // Resolve the first waiting promise
-    };
-  }
-}
+  const release = () => {
+    if (!isLocked) {
+      throw new Error("Cannot release a lock that is not acquired.");
+    }
+
+    const nextResolve = queue.shift();
+    if (nextResolve) {
+      nextResolve(); // Allow the next waiting function to acquire the lock
+      // Keep `isLocked` as true because the lock is still held by the next resolver
+    } else {
+      isLocked = false; // No more waiting, so release the lock
+    }
+  };
+
+  return { acquire, release };
+};
