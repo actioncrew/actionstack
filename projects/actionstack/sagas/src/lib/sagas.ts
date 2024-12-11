@@ -118,7 +118,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
 }
 
 /**
- * An abstract class for the epic store.
+ * An abstract class for the saga store.
  *
  * @extends {Store}
  */
