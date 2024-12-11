@@ -1,5 +1,5 @@
 import { createLock, Lock } from './lock';
-import { ExecutionStack, Operation } from './stack';
+import { createInstruction, createExecutionStack, Instruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
 
 /**
@@ -42,7 +42,7 @@ export function createActionHandler(config: MiddlewareConfig) {
   const handleAction = async (action: Action | AsyncAction, next: Function, lock: Lock): Promise<void> => {
     await lock.acquire();
 
-    const op = Operation.action(action);
+    const op = createInstruction.action(action);
     stack.add(op);
 
     try {

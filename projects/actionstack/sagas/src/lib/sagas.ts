@@ -3,7 +3,7 @@ import {
   action,
   MainModule,
   Observer,
-  Operation,
+  Instruction,
   Store,
   STORE_ENHANCER,
   StoreEnhancer,
@@ -24,7 +24,7 @@ export const createSagasMiddleware = ({
   let middlewareDispatch: any;
   let middlewareGetState: any;
 
-  const customDispatch = (dispatch: any) => (sagaOp: Operation) => (action: Action<any>) => {
+  const customDispatch = (dispatch: any) => (sagaOp: Instruction) => (action: Action<any>) => {
     const actionWithSource = Object.assign({}, action, {source: sagaOp});
     dispatch(actionWithSource);
   };

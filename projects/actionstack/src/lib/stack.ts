@@ -1,178 +1,172 @@
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
-import { Subscription } from 'rxjs/internal/Subscription';
-
 import { Action, AsyncAction } from './types';
 
 /**
  * Type representing different types of operations.
- * @typedef {("action" | "async action" | "epic" | "saga")} OperationType
  */
-export type OperationType = "action" | "async action" | "epic" | "saga";
+export type InstructionType = "action" | "asyncAction" | "epic" | "saga";
 
 /**
- * Class representing an operation.
- * @interface
+ * Represents an operation with its type and instance.
  */
-export class Operation {
-  operation: OperationType;
+export interface Instruction {
+  operation: InstructionType;
   instance: any;
-  source?: Operation;
-
-  constructor(operation: OperationType, instance: any, source?: Operation) {
-    this.operation = operation;
-    this.instance = instance;
-    this.source = source;
-  }
-
-  static action(action: Action | AsyncAction): Operation {
-    const operationType = typeof action === 'function' ? "async action" : "action";
-    const instance = action;
-    const source = (action as any).source;
-    return new Operation(operationType, instance, source);
-  }
-
-  static saga(saga: Function): Operation {
-    return new Operation("saga", saga);
-  }
-
-  static epic(epic: Function): Operation {
-    return new Operation("epic", epic);
-  }
+  context?: Instruction;
 }
 
 /**
- * Checks if the given object is an Operation.
- * @param {any} obj - The object to check.
- * @returns {boolean} True if the object is an Operation, false otherwise.
+ * Factory methods for creating operations.
  */
-export const isOperation = (obj: any): boolean => {
-  return obj.operation !== undefined && obj.instance !== undefined;
+export const createInstruction = {
+  action: (action: Action | AsyncAction): Instruction => {
+    const operationType: InstructionType = typeof action === 'function' ? "asyncAction" : "action";
+    const source = (action as any).source;
+    return { operation: operationType, instance: action, context: source };
+  },
+
+  saga: (saga: Function): Instruction => ({ operation: "saga", instance: saga }),
+
+  epic: (epic: Function): Instruction => ({ operation: "epic", instance: epic }),
 };
 
 /**
- * Class representing a stack of operations with observable capabilities.
+ * Checks if the given object is an Operation.
+ * @param obj The object to check.
+ * @returns True if the object is an Operation, false otherwise.
  */
-export class ExecutionStack {
-  private stack = new BehaviorSubject<Operation[]>([]);
+export const isOperation = (obj: any): boolean => {
+  return obj?.operation !== undefined && obj?.instance !== undefined;
+};
 
-  /**
-   * Gets the current length of the stack.
-   * @returns {number} The length of the stack.
-   */
-  get length(): number {
-    return this.stack.value.length;
-  }
-
-  /**
-   * Pushes an item onto the stack.
-   * @param {Operation} item - The item to push onto the stack.
-   */
-  add(item: Operation): void {
-    this.stack.next([...this.stack.value, item]);
-  }
-
-  /**
-   * Peeks at the top item of the stack without removing it.
-   * @returns {Operation | undefined} The top item of the stack, or undefined if the stack is empty.
-   */
-  peek(): Operation | undefined {
-    return this.stack.value[this.stack.value.length - 1];
-  }
-
-  /**
-   * Pops the specified item from the stack.
-   * @param {Operation} item - The item to pop from the stack.
-   * @returns {Operation | undefined} The popped item, or undefined if the item is not found.
-   */
-  remove(item: Operation): Operation | undefined {
-    let index = this.stack.value.lastIndexOf(item);
-    if(index > -1) {
-      this.stack.next(this.stack.value.filter((_, i) => i !== index));
-      return item;
-    }
-    return undefined;
-  }
-
-  /**
-   * Clears all items from the stack.
-   */
-  clear(): void {
-    this.stack.next([]);
-  }
-
-  /**
-   * Converts the stack to an array.
-   * @returns {Operation[]} An array of operations in the stack.
-   */
-  toArray(): Operation[] {
-    return [...this.stack.value];
-  }
-
-  /**
-   * Finds the last operation in the stack that satisfies the given condition.
-   * @param {(element: Operation) => boolean} condition - The condition to match.
-   * @returns {Operation | undefined} The last matching operation, or undefined if no match is found.
-   */
-  findLast(condition: (element: Operation) => boolean): Operation | undefined {
-    for (const element of this.stack.value.slice().reverse()) {
-      if (condition(element)) {
-        return element;
-      }
-    }
-    return undefined;
-  }
-
-  /**
-   * Waits until the stack is empty.
-   * @returns {Promise<Operation[]>} A promise that resolves with the stack when it becomes empty.
-   */
-  async waitForEmpty(): Promise<Operation[]> {
-    return await waitFor(this.stack, value => value.length === 0);
-  }
-
-  /**
-   * Waits until the stack is idle (i.e., contains no ACTION operations).
-   * @returns {Promise<Operation[]>} A promise that resolves with the stack when it becomes idle.
-   */
-  async waitForIdle(): Promise<Operation[]> {
-    return await waitFor(this.stack, value => !value.some(item => item.operation === "action"));
-  }
+/**
+ * Represents a functional execution stack with observable capabilities.
+ */
+export type ExecutionStack = {
+  length: number;
+  add: (item: Instruction) => void;
+  peek: () => Instruction | undefined;
+  remove: (item: Instruction) => Instruction | undefined;
+  clear: () => void;
+  toArray: () => Instruction[];
+  findLast: (condition: (element: Instruction) => boolean) => Instruction | undefined;
+  waitForEmpty: () => Promise<Instruction[]>;
+  waitForIdle: () => Promise<Instruction[]>;
 }
+
+/**
+ * A stack for managing operations with observable capabilities.
+ */
+export const createExecutionStack = () => {
+  const stack$ = new BehaviorSubject<Instruction[]>([]);
+
+  return {
+    /**
+     * Gets the current length of the stack.
+     */
+    get length(): number {
+      return stack$.value.length;
+    },
+
+    /**
+     * Adds an operation to the stack.
+     * @param item The operation to add.
+     */
+    add(item: Instruction): void {
+      stack$.next([...stack$.value, item]);
+    },
+
+    /**
+     * Retrieves the top item of the stack without removing it.
+     * @returns The top operation or undefined if the stack is empty.
+     */
+    peek(): Instruction | undefined {
+      return stack$.value[stack$.value.length - 1];
+    },
+
+    /**
+     * Removes an operation from the stack.
+     * @param item The operation to remove.
+     * @returns The removed operation or undefined if not found.
+     */
+    remove(item: Instruction): Instruction | undefined {
+      const index = stack$.value.lastIndexOf(item);
+      if (index > -1) {
+        const newStack = stack$.value.filter((_, i) => i !== index);
+        stack$.next(newStack);
+        return item;
+      }
+      return undefined;
+    },
+
+    /**
+     * Clears the stack.
+     */
+    clear(): void {
+      stack$.next([]);
+    },
+
+    /**
+     * Converts the stack to an array.
+     * @returns An array of operations.
+     */
+    toArray(): Instruction[] {
+      return [...stack$.value];
+    },
+
+    /**
+     * Finds the last operation matching a condition.
+     * @param condition The condition to match.
+     * @returns The matching operation or undefined.
+     */
+    findLast(condition: (element: Instruction) => boolean): Instruction | undefined {
+      return stack$.value.slice().reverse().find(condition);
+    },
+
+    /**
+     * Waits for the stack to become empty.
+     * @returns A promise that resolves when the stack is empty.
+     */
+    waitForEmpty(): Promise<Instruction[]> {
+      return waitFor(stack$, stack => stack.length === 0);
+    },
+
+    /**
+     * Waits for the stack to become idle (no "action" operations).
+     * @returns A promise that resolves when the stack is idle.
+     */
+    waitForIdle(): Promise<Instruction[]> {
+      return waitFor(stack$, stack => !stack.some(item => item.operation === "action"));
+    },
+
+    /**
+     * Exposes the underlying observable for external subscription.
+     */
+    get observable(): Observable<Instruction[]> {
+      return stack$.asObservable();
+    },
+  };
+};
 
 /**
  * Waits for a condition to be met in an observable stream.
  * @template T
- * @param {Observable<T>} obs - The observable stream to wait for.
- * @param {(value: T) => boolean} predicate - The predicate function to evaluate the values emitted by the observable stream.
- * @returns {Promise<T>} A promise that resolves to the value when the predicate condition is met, or rejects if the observable completes without satisfying the predicate.
+ * @param obs The observable stream to wait for.
+ * @param predicate The predicate function to evaluate the values emitted by the observable stream.
+ * @returns A promise that resolves to the value when the predicate condition is met.
  */
 function waitFor<T>(obs: Observable<T>, predicate: (value: T) => boolean): Promise<T> {
-  let subscription: Subscription | undefined;
-
   return new Promise<T>((resolve, reject) => {
-    const checkInitialValue = (obs as BehaviorSubject<T>)?.value;
-    if (checkInitialValue !== undefined && predicate(checkInitialValue)) {
-      return resolve(checkInitialValue);
-    }
-
-    subscription = obs.subscribe({
+    const subscription = obs.subscribe({
       next: value => {
         if (predicate(value)) {
-          if (subscription) {
-            subscription.unsubscribe();
-          }
+          subscription.unsubscribe();
           resolve(value);
         }
       },
-      error: err => reject(err),
-      complete: () => {
-        reject("Method had completed before predicate condition was met");
-      },
+      error: reject,
+      complete: () => reject("Observable completed before condition was met"),
     });
-  }).finally(() => {
-    if (subscription && !subscription.closed) {
-      subscription.unsubscribe();
-    }
   });
 }

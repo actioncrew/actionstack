@@ -5,7 +5,7 @@ import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
 import { createLock, Lock } from './lock';
-import { ExecutionStack } from './stack';
+import { createExecutionStack } from './stack';
 import { starter } from './starter';
 import { createTracker, Tracker } from './tracker';
 import {
@@ -122,7 +122,7 @@ export class Store {
   protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
   protected tracker = createTracker();
   protected lock = createLock();
-  protected stack = new ExecutionStack();
+  protected stack = createExecutionStack();
 
   /**
    * Creates a new store instance with the provided mainModule and optional enhancer.
