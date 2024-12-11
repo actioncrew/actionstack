@@ -6,12 +6,9 @@ import {
   isAction,
   MainModule,
   Observer,
-  Instruction,
   Store,
-  STORE_ENHANCER,
   StoreEnhancer,
 } from '@actioncrew/actionstack';
-import { NgModule } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 import { Subscription } from 'rxjs/internal/Subscription';
@@ -300,7 +297,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  *
  * @extends {Store}
  */
-export abstract class EpicStore extends Store {
+export type EpicStore = Store & {
   /**
    * Abstract method to extend the store with epics.
    *
@@ -308,26 +305,5 @@ export abstract class EpicStore extends Store {
    * @param {...Epic[]} args - The epics to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the epics are removed.
    */
-  abstract extend<U>(...args: Epic[]): Observable<U>;
+  extend<U>(...args: Epic[]): Observable<U>;
 }
-
-/**
- * NgModule for providing the epic store and its enhancer.
- *
- * @ngModule
- */
-@NgModule({
-  providers: [
-    {
-      provide: STORE_ENHANCER,
-      useValue: storeEnhancer,
-      multi: false
-    },
-    {
-      provide: EpicStore,
-      useFactory: (store: Store) => store,
-      deps: [Store]
-    }
-  ]
-})
-export class EpicModule { }

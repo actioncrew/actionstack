@@ -1,4 +1,3 @@
-import { StoreModule } from '@actioncrew/actionstack';
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,10 +8,7 @@ import { reducer, slice } from './messages.slice';
 
 
 @NgModule({
-  imports: [CommonModule, FormsModule, RouterModule, StoreModule.forFeature({
-    slice: slice,
-    reducer: reducer
-  })],
+  imports: [CommonModule, FormsModule, RouterModule],
   declarations: [
     MessagesComponent,
   ],

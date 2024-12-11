@@ -5,10 +5,9 @@ import {
   Observer,
   Instruction,
   Store,
-  STORE_ENHANCER,
   StoreEnhancer,
+  createInstruction,
 } from '@actioncrew/actionstack';
-import { NgModule } from '@angular/core';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
 import { call, cancelled } from 'redux-saga/effects';
 import { Observable } from 'rxjs/internal/Observable';
@@ -45,7 +44,7 @@ export const createSagasMiddleware = ({
               throw new Error('saga argument must be a Generator function!');
             }
 
-            const op = Operation.saga(saga);
+            const op = createInstruction.saga(saga);
             const task: Task = runSaga({ context, channel, dispatch: customDispatch(middlewareDispatch)(op), getState: middlewareGetState }, (function*(): Generator<any, void, any> {
               try {
                 stack.push(op); Object.assign(context, dependencies());
@@ -121,7 +120,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  *
  * @extends {Store}
  */
-export abstract class SagaStore extends Store {
+export type SagaStore = Store & {
   /**
    * Abstract method to extend the store with sagas.
    *
@@ -129,26 +128,6 @@ export abstract class SagaStore extends Store {
    * @param {...Saga[]} args - The sagas to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the sagas are removed.
    */
-  abstract extend<U>(...args: Saga[]): Observable<U>;
+  extend<U>(...args: Saga[]): Observable<U>;
 }
 
-/**
- * NgModule for providing the saga store and its enhancer.
- *
- * @ngModule
- */
-@NgModule({
-  providers: [
-    {
-      provide: STORE_ENHANCER,
-      useValue: storeEnhancer,
-      multi: false
-    },
-    {
-      provide: SagaStore,
-      useValue: Store,
-      deps: [Store]
-    }
-  ]
-})
-export class SagaModule { }

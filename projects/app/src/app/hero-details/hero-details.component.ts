@@ -6,6 +6,7 @@ import { Observable, Subscription, map, tap } from 'rxjs';
 import { Store } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { heroSelector, loadHero } from './hero-details.slice';
+import { store } from '../app.module';
 
 @Component({
   selector: 'app-hero-details',
@@ -17,17 +18,16 @@ export class HeroDetailsComponent implements OnInit {
   subscription: Subscription | undefined;
 
   constructor(
-    private store: Store,
     private route: ActivatedRoute,
     private location: Location
   ) {}
 
   ngOnInit(): void {
-    this.hero$ = this.store.select(heroSelector());
+    this.hero$ = store.select(heroSelector());
 
     this.subscription = this.route.paramMap.pipe(
       map(params => Number(params.get('id'))),
-      tap(id => this.store.dispatch(loadHero(id)))
+      tap(id => store.dispatch(loadHero(id)))
     ).subscribe();
   }
 

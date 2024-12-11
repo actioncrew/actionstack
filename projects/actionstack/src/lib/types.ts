@@ -1,7 +1,7 @@
 import { InjectionToken, Type } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-
 import { Store } from './store';
+
 
 /**
  * Interface defining the structure of an action object.
@@ -217,7 +217,7 @@ export type SliceStrategy = "persistent" | "temporary";
 export interface FeatureModule {
   slice: string;
   reducer: Reducer | Tree<Reducer>;
-  dependencies?: Tree<Type<any> | InjectionToken<any>>;
+  dependencies?: Tree<any>;
 }
 
 /**
@@ -246,7 +246,7 @@ export interface MainModule {
   middleware?: Middleware[];
   reducer: Reducer | Tree<Reducer>;
   metaReducers?: MetaReducer[];
-  dependencies?: Tree<Type<any> | InjectionToken<any>>;
+  dependencies?: Tree<any>;
   strategy?: ProcessingStrategy;
 }
 
@@ -261,7 +261,7 @@ export interface MainModule {
  *                     functionality or middleware to the store creation process.
  * @returns Store - A newly created Actionstack store instance.
  */
-export type StoreCreator = (module: MainModule, enhancer?: StoreEnhancer) => Store;
+export type StoreCreator<T = any> = (module: MainModule, enhancer?: StoreEnhancer) => Store<T>;
 
 /**
  * Type alias for a store enhancer function.

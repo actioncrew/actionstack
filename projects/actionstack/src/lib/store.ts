@@ -4,7 +4,7 @@ import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
-import { createLock, Lock } from './lock';
+import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
 import { createTracker, Tracker } from './tracker';
@@ -24,18 +24,34 @@ import {
   Tree,
 } from './types';
 
-export { createStore as store };
 
 /**
  * Class representing configuration options for a store.
  *
  * This class defines properties that control various behaviors of a store for managing application state.
  */
-export class StoreSettings {
-  dispatchSystemActions = true;
-  awaitStatePropagation = true;
-  enableMetaReducers = true;
-  enableAsyncReducers = true;
+export type StoreSettings = {
+  dispatchSystemActions: boolean;
+  awaitStatePropagation: boolean;
+  enableMetaReducers: boolean;
+  enableAsyncReducers: boolean;
+};
+
+const defaultStoreSettings = {
+  dispatchSystemActions: true,
+  awaitStatePropagation: true,
+  enableMetaReducers: true,
+  enableAsyncReducers: true
+};
+
+export type Store<T = any> = {
+  dispatch: (action: Action | any) => Promise<void>;
+  select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
+  getState: (slice?: keyof T | string[] | "@global") => any;
+  loadModule: (module: FeatureModule) => Promise<void>;
+  unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
+  read: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
+  settings: StoreSettings;
 };
 
 /**
@@ -101,206 +117,216 @@ const systemActions = {
  *  * Getting the current state.
  *  * Subscribing to changes in the state.
  */
-export class Store {
-  protected mainModule: MainModule = {
-    slice: "main",
-    middleware: [],
-    reducer: (state: any = {}, action: Action) => state as Reducer,
-    metaReducers: [],
-    dependencies: {},
-    strategy: "exclusive" as ProcessingStrategy
-  };
-  protected modules: FeatureModule[] = [];
-  protected pipeline = {
+
+export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnhancer, storeSettings: StoreSettings = defaultStoreSettings): Store<T> {
+
+  let main = { ...mainModule };
+  let modules: FeatureModule[] = [];
+
+  let pipeline = {
     middleware: [] as any[],
     reducer: ((state: any = {}, action: Action) => state) as AsyncReducer,
     dependencies: {} as Tree<Type<any> | InjectionToken<any>>,
     strategy: "exclusive" as ProcessingStrategy
   };
-  protected currentState = new BehaviorSubject<any>(undefined);
-  protected systemActions = { ...systemActions };
-  protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
-  protected tracker = createTracker();
-  protected lock = createLock();
-  protected stack = createExecutionStack();
+  const currentState = new BehaviorSubject<any>(undefined);
+  const settings = { ...defaultStoreSettings, ...storeSettings };
+  const tracker = createTracker();
+  const lock = createLock();
+  const stack = createExecutionStack();
+  let sysActions = { ...systemActions };
 
-  /**
-   * Creates a new store instance with the provided mainModule and optional enhancer.
-   * @param {MainModule} mainModule - The main module containing middleware, reducer, dependencies, and strategy.
-   * @param {StoreEnhancer} [enhancer] - Optional store enhancer function.
-   * @returns {Store} The created store instance.
-   * @throws {Error} Throws an error if the enhancer is not a function.
-   */
-  static create(mainModule: MainModule, enhancer?: StoreEnhancer) {
-
-    /**
-     * Function to create a store instance.
-     * @param {MainModule} mainModule - The main module containing middleware, reducer, dependencies, and strategy.
-     * @returns {Store} The created store instance.
-     */
-    let storeCreator = (mainModule: MainModule) => {
-
-      let store = new Store();
-
-      // Assign mainModule properties to store
-      mainModule = {...store.mainModule, ...mainModule};
-      store.mainModule = mainModule;
-
-      // Configure store pipeline
-      store.pipeline = {...store.pipeline, ...{
-        middleware: Array.from(mainModule.middleware ?? []),
-        reducer: store.combineReducers({[mainModule.slice!]: mainModule.reducer}),
-        dependencies: {...mainModule.dependencies},
-        strategy: mainModule.strategy!,
-      }};
-
-      // Apply middleware
-      store.applyMiddleware();
-
-      // Bind system actions
-      store.systemActions = bindActionCreators(systemActions, (action: Action) => store.settings.dispatchSystemActions && store.dispatch(action));
-
-      // Initialize state and mark store as initialized
-      store.systemActions.initializeState();
-
-      console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
-
-      store.lock.acquire()
-        .then(() => store.setupReducer())
-        .then(state => store.setState("@global", state))
-        .finally(() => store.lock.release());
-
-      store.systemActions.storeInitialized();
-
-      return store;
-    }
-
-    // Apply enhancer if provided
-    if (typeof enhancer !== "undefined") {
-      if (typeof enhancer !== "function") {
-        console.warn(`Expected the enhancer to be a function. Instead, received: '${kindOf(enhancer)}'`);
-        return;
-      }
-      // Apply the enhancer to the storeCreator function
-      return enhancer(storeCreator)(mainModule);
-    }
-
-    // If no enhancer provided, return the result of calling storeCreator
-    return storeCreator(mainModule);
-  }
-
-    /**
-   * Dispatches an action to be processed by the store's reducer.
-   * @param {Action} action - The action to dispatch.
-   * @throws {Error} Throws an error if the action is not a plain object, does not have a defined "type" property, or if the "type" property is not a string.
-   */
-  async dispatch(action: Action | any) {
+  const dispatch = async (action: Action | any) => {
     if (!isPlainObject(action)) {
-      console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'. You may need to add middleware to your setup to handle dispatching custom values.`);
+      console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'.`);
       return;
     }
-    if (typeof action.type === "undefined") {
-      console.warn('Actions may not have an undefined "type" property. You may have misspelled an action type string constant.');
+    if (typeof action.type === 'undefined') {
+      console.warn('Actions may not have an undefined "type" property.');
       return;
     }
-    if (typeof action.type !== "string") {
-      console.warn(`Action "type" property must be a string. Instead, the actual type was: '${kindOf(action.type)}'. Value was: '${action.type}' (stringified)`);
+    if (typeof action.type !== 'string') {
+      console.warn(`Action "type" property must be a string. Instead, the actual type was: '${kindOf(action.type)}'.`);
       return;
     }
 
     try {
-      await this.updateState("@global", async (state) => await this.pipeline.reducer(state, action), action);
+      await updateState('@global', async (state: any) => await pipeline.reducer(state, action), action);
     } catch {
-      console.warn("Error during processing the action");
+      console.warn('Error during processing the action');
+    }
+  };
+
+  const applyMiddleware = () => {
+    let dispatch = async (action: any) => {
+      console.warn("Dispatching while constructing your middleware is not allowed. Other middleware would not be applied to this dispatch.");
+      return;
+    };
+
+    // Define starter and middleware APIs
+    const middlewareAPI = {
+      getState: () => getState(),
+      dispatch: async (action: any) => await dispatch(action),
+      dependencies: () => pipeline.dependencies,
+      strategy: () => pipeline.strategy,
+      lock: lock,
+      stack: stack
+    };
+
+    // Build middleware chain
+    const chain = [starter(middlewareAPI), ...pipeline.middleware.map(middleware => middleware(middlewareAPI))] as any[];
+    // Compose middleware chain with dispatch function
+    dispatch = (chain.length === 1 ? chain[0] : chain.reduce((a, b) => (...args: any[]) => a(b(...args))))(dispatch);
+  };
+
+  const injectDependencies = (): void => {
+    // Initialize the new dependencies object
+    let newDependencies = {} as any;
+
+    // Combine all dependencies into one object
+    let allDependencies = [mainModule.dependencies, ...modules.map(module => module.dependencies)].filter(Boolean);
+
+    // Recursively clone and update dependencies
+    allDependencies.forEach((dep: any) => {
+      Object.keys(dep).forEach(key => {
+        newDependencies[key] = dep[key];
+      });
+    });
+
+    // Initialize the pipeline dependencies object
+    pipeline.dependencies = {} as any;
+
+    // Create a stack for depth-first traversal of newDependencies
+    let stack: { parent: any, key: string | number, subtree: any }[] = Object.keys(newDependencies).map(key => ({ parent: newDependencies, key, subtree: pipeline.dependencies }));
+
+    while (stack.length > 0) {
+      const { parent, key, subtree } = stack.pop()!;
+      const value = parent[key];
+      if (Array.isArray(value)) {
+        // If value is an array, add its elements to the stack
+        subtree[key] = [];
+        stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
+      } else if (typeof value === 'object' && value !== null) {
+        // If value is an object, add its children to the stack
+        subtree[key] = {};
+        stack.push(...Object.keys(value).map(childKey => ({ parent: value, key: childKey, subtree: subtree[key] })));
+      } else {
+        subtree[key] = value;
+      }
     }
   }
 
-  /**
-   * Executes a callback function after acquiring a lock and ensuring the system is idle.
-   * @param {keyof T | string[]} slice - The slice of state to execute the callback on.
-   * @param {(readonly state: ) => void} callback - The callback function to execute with the state.
-   * @returns {Promise<void>} A promise that resolves after executing the callback.
-   * @template T
-   */
-  read<T = any>(slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> {
-    const promise = (async () => {
-      try {
-        await this.lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const state = await this.getState(slice); // Get state after acquiring lock
-        callback(state);
-      } finally {
-        this.lock.release(); // Release lock regardless of success or failure
-      }
-    })();
+  const ejectDependencies = (module: FeatureModule): void => {
+    // Combine all dependencies into one object, excluding the specified module
+    let allDependencies = [mainModule.dependencies, ...modules.filter(m => m !== module).map(m => m.dependencies)].filter(Boolean);
 
+    // Initialize the new dependencies object
+    let newDependencies = {} as any;
+
+    // Recursively clone and update dependencies
+    allDependencies.forEach((dep: any) => {
+      Object.keys(dep).forEach(key => {
+        newDependencies[key] = dep[key];
+      });
+    });
+
+    // Initialize the pipeline dependencies object
+    pipeline.dependencies = {} as any;
+
+    // Create a stack for depth-first traversal of the newDependencies tree
+    let stack: { parent: any, key: string | number, subtree: any }[] = Object.keys(newDependencies).map(key => ({
+      parent: newDependencies, key, subtree: pipeline.dependencies
+    }));
+
+    // Traverse and update the pipeline.dependencies object
+    while (stack.length > 0) {
+      const { parent, key, subtree } = stack.pop()!;
+      const value = parent[key];
+
+      if (Array.isArray(value)) {
+        // If value is an array, handle its elements
+        subtree[key] = [];
+        stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
+      } else if (typeof value === 'object' && value !== null) {
+        // If value is an object, recurse to handle its children
+        subtree[key] = {};
+        stack.push(...Object.keys(value).map(childKey => ({
+          parent: value, key: childKey, subtree: subtree[key]
+        })));
+      } else {
+        // If value is a simple value, set it directly
+        subtree[key] = value;
+      }
+    }
+  };
+
+  /**
+   * Loads a feature module into the store.
+   * @param {FeatureModule} module - The feature module to load.
+   * @param {Injector} injector - The injector to use for dependency injection.
+   * @returns {Promise<void>}
+   */
+  const loadModule = (module: FeatureModule, injector: Injector): Promise<void> => {
+    // Check if the module already exists
+    if (modules.some(m => m.slice === module.slice)) {
+      return Promise.resolve(); // Module already exists, return without changes
+    }
+
+    const promise = lock.acquire()
+      .then(() => {
+        // Create a new array with the module added
+        modules = [...modules, module];
+
+        // Inject dependencies
+        return injectDependencies();
+      })
+      .then(() => updateState("@global", state => setupReducer(state)))
+      .finally(() => lock.release());
+
+    // Dispatch module loaded action
+    systemActions.moduleLoaded(module);
     return promise;
   }
 
   /**
-   * Selects a value from the store's state using the provided selector function.
-   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
-   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
-   * @returns {Observable<any>} An observable stream with the selected value.
+   * Unloads a feature module from the store.
+   * @param {FeatureModule} module - The feature module to unload.
+   * @param {boolean} [clearState=false] - A flag indicating whether to clear the module's state.
+   * @returns {Promise<void>}
    */
-  select<T = any, R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> {
-    let lastValue: any;
-    let selected$: Observable<R> | undefined;
-    return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = this.currentState.pipe((state) => (selected$ = selector(state, this.tracker) as Observable<R>)).subscribe(selectedValue => {
-        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
-        if(filteredValue !== lastValue) {
-          Promise.resolve(subscriber.next(filteredValue))
-            .then(() => lastValue = filteredValue)
-            .finally(() => this.tracker.setStatus(selected$!, true));
-        } else {
-          this.tracker.setStatus(selected$!, true);
-        }
-      });
+  const unloadModule = (module: FeatureModule, clearState: boolean = false): Promise<void> => {
+    // Find the module index in the modules array
+    const moduleIndex = modules.findIndex(m => m.slice === module.slice);
 
-      return () => subscription.unsubscribe();
-    });
-  }
-
-
-
-  /**
-   * Gets the current state or a slice of the state from the store.
-   * @param {keyof T | string[]} [slice] - The slice of the state to retrieve.
-   * @returns {T | any} The current state or the selected slice of the state.
-   * @throws {Error} Throws an error if the slice parameter is of unsupported type.
-   * @template T
-   */
-  protected getState<T = any>(slice?: keyof T | string[]): any {
-    if (this.currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
-      return this.currentState.value as T;
-    } else if (typeof slice === "string") {
-      return this.currentState.value[slice] as T;
-    } else if (Array.isArray(slice)) {
-      return slice.reduce((acc, key) => {
-        if (acc === undefined || acc === null) {
-          return undefined;
-        } else if (Array.isArray(acc)) {
-          return acc[parseInt(key)];
-        } else {
-          return acc[key];
-        }
-      }, this.currentState.value) as T;
-    } else {
-      console.warn("Unsupported type of slice parameter");
+    // Check if the module exists
+    if (moduleIndex === -1) {
+      console.warn(`Module ${module.slice} not found, cannot unload.`);
+      return Promise.resolve(); // Module not found, nothing to unload
     }
+
+    const promise = lock.acquire()
+      .then(() => {
+        // Remove the module from the internal state
+        modules.splice(moduleIndex, 1);
+
+        // Eject dependencies
+        return ejectDependencies(module);
+      })
+      .then(() => updateState("@global", async (state) => {
+        if (clearState) {
+          state = { ...state };
+          delete state[module.slice];
+        }
+        return await setupReducer(state);
+      }))
+      .finally(() => lock.release());
+
+    // Dispatch module unloaded action
+    systemActions.moduleUnloaded(module);
+    return promise;
   }
 
-  /**
-   * Applies a change to the initial state based on the provided path and value, updating the state and tracking changes.
-   * @param {any} initialState - The initial state object.
-   * @param {Object} change - The change object containing the path and value to update.
-   * @param {string[]} change.path - The path to the value to be updated.
-   * @param {any} change.value - The new value to set at the specified path.
-   * @param {Tree<boolean>} edges - The tree structure representing the tracked changes.
-   * @returns {any} The updated state object after applying the change.
-   * @protected
-   */
-  protected applyChange(initialState: any, {path, value}: {path: string[], value: any}, edges: Tree<boolean>): any {
+  const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, edges: Tree<boolean>): any => {
     let currentState: any = Object.keys(edges).length > 0 ? initialState: {...initialState};
     let currentObj: any = currentState;
     let currentEdges: Tree<boolean> = edges;
@@ -329,24 +355,24 @@ export class Store {
    * @protected
    * @template T
    */
-  protected async setState<T = any>(slice: keyof T | string[] | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> {
+  const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> => {
     let newState: any;
     if (slice === undefined || typeof slice === "string" && slice == "@global") {
       // Update the whole state with a shallow copy of the value
       newState = ({...value});
     } else if (typeof slice === "string") {
       // Update the state property with the given key with a shallow copy of the value
-      newState = {...this.currentState.value, [slice]: { ...value }};
+      newState = {...currentState.value, [slice]: { ...value }};
     } else if (Array.isArray(slice)) {
       // Apply change to the state based on the provided path and value
-      newState = this.applyChange(this.currentState.value, {path: slice, value}, {});
+      newState = applyChange(currentState.value, {path: slice, value}, {});
     } else {
       // Unsupported type of slice parameter
       console.warn("Unsupported type of slice parameter");
       return;
     }
 
-    this.tracker.reset();
+    tracker.reset();
 
     const next = async <T>(subject: Subject<T>, value: T): Promise<void> => {
       return new Promise<void>(async (resolve) => {
@@ -355,44 +381,29 @@ export class Store {
       });
     };
 
-    let stateUpdated = next(this.currentState, newState);
+    let stateUpdated = next(currentState, newState);
 
-    if (this.settings.awaitStatePropagation) {
+    if (settings.awaitStatePropagation) {
       await Promise.allSettled([stateUpdated]);
     }
 
     return newState;
   }
 
-  /**
-   * Updates the state asynchronously based on the provided slice and callback function, then propagates the action.
-   * @param {keyof T | string[]} slice - The slice of the state to update.
-   * @param {AnyFn} callback - The callback function to apply on the current state.
-   * @param {Action} [action=systemActions.updateState()] - The action to propagate after updating the state.
-   * @returns {Promise<any>} A promise that resolves to the propagated action.
-   * @protected
-   * @template T
-   */
-  protected async updateState<T = any>(slice: keyof T | string[] | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> {
+  const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> => {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
       return;
     }
 
-    let state = await this.getState(slice);
+    let state = await getState(slice);
     let result = await callback(state);
-    await this.setState(slice, result, action);
+    await setState(slice, result, action);
 
     return action;
-  }
+  };
 
-  /**
-   * Combines multiple reducers into a single asynchronous reducer function.
-   * @param {Tree<Reducer>} reducers - The tree structure containing reducers.
-   * @returns {AsyncReducer} An asynchronous reducer function.
-   * @protected
-   */
-  protected combineReducers(reducers: Tree<Reducer>): AsyncReducer {
+  const combineReducers = (reducers: Tree<Reducer>): AsyncReducer => {
     // Create a map for reducers
     const reducerMap = new Map<Reducer, string[]>();
 
@@ -426,9 +437,9 @@ export class Store {
       let modified = {};
       for (const [reducer, path] of reducerMap) {
         try {
-          const currentState = await this.getState(path);
+          const currentState = await getState(path);
           const updatedState = await reducer(currentState, action);
-          if(currentState !== updatedState) { state = await this.applyChange(state, {path, value: updatedState}, modified); }
+          if(currentState !== updatedState) { state = await applyChange(state, {path, value: updatedState}, modified); }
         } catch (error: any) {
           console.warn(`Error occurred while processing an action ${action.type} for ${path.join('.')}: ${error.message}`);
         }
@@ -444,15 +455,15 @@ export class Store {
    * @returns {Promise<any>} A promise that resolves to the updated state after setting up the reducer.
    * @protected
    */
-  protected async setupReducer(state: any = {}): Promise<any> {
+  const setupReducer = async (state: any = {}): Promise<any> => {
 
-    let featureReducers = [{slice: this.mainModule.slice!, reducer: this.mainModule.reducer}, ...this.modules].reduce((reducers, module) => {
+    let featureReducers = [{slice: mainModule.slice!, reducer: mainModule.reducer}, ...modules].reduce((reducers, module) => {
       let moduleReducer: any = module.reducer instanceof Function ? module.reducer : {...module.reducer};
       reducers = {...reducers, [module.slice]: moduleReducer};
       return reducers;
     }, {} as Tree<Reducer>);
 
-    let reducer = this.combineReducers(featureReducers);
+    let reducer = combineReducers(featureReducers);
 
     // Define async compose function to apply meta reducers
     const asyncCompose = (...fns: MetaReducer[]) => async (reducer: AsyncReducer) => {
@@ -467,220 +478,158 @@ export class Store {
     };
 
     // Apply meta reducers if enabled
-    if (this.settings.enableMetaReducers && this.mainModule.metaReducers && this.mainModule.metaReducers.length) {
+    if (settings.enableMetaReducers && mainModule.metaReducers && mainModule.metaReducers.length) {
       try {
-        reducer = await asyncCompose(...this.mainModule.metaReducers)(reducer);
+        reducer = await asyncCompose(...mainModule.metaReducers)(reducer);
       } catch (error: any) {
         console.warn('Error applying meta reducers:', error.message);
       }
     }
 
-    this.pipeline.reducer = reducer;
+    pipeline.reducer = reducer;
 
     // Update store state
     return await reducer(state, systemActions.updateState());
   }
 
   /**
-   * Injects dependencies into the store using the provided injector.
-   * @param {Injector} injector - The injector to use for dependency injection.
-   * @returns {Store} The store instance with injected dependencies.
-   * @protected
+   * Executes a callback function after acquiring a lock and ensuring the system is idle.
+   * @param {keyof T | string[]} slice - The slice of state to execute the callback on.
+   * @param {(readonly state: ) => void} callback - The callback function to execute with the state.
+   * @returns {Promise<void>} A promise that resolves after executing the callback.
+   * @template T
    */
-  protected injectDependencies(injector: Injector): Store {
-    // Initialize the new dependencies object
-    let newDependencies = {} as any;
-
-    // Combine all dependencies into one object
-    let allDependencies = [this.mainModule.dependencies, ...this.modules.map(module => module.dependencies)].filter(Boolean);
-
-    // Recursively clone and update dependencies
-    allDependencies.forEach((dep: any) => {
-      Object.keys(dep).forEach(key => {
-        newDependencies[key] = dep[key];
-      });
-    });
-
-    // Initialize the pipeline dependencies object
-    this.pipeline.dependencies = {} as any;
-
-    // Create a stack for depth-first traversal of newDependencies
-    let stack: { parent: any, key: string | number, subtree: any }[] = Object.keys(newDependencies).map(key => ({ parent: newDependencies, key, subtree: this.pipeline.dependencies }));
-
-    while (stack.length > 0) {
-      const { parent, key, subtree } = stack.pop()!;
-      const value = parent[key];
-      if (Array.isArray(value)) {
-        // If value is an array, add its elements to the stack
-        subtree[key] = [];
-        stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
-      } else if (typeof value === 'object' && value !== null) {
-        // If value is an object, add its children to the stack
-        subtree[key] = {};
-        stack.push(...Object.keys(value).map(childKey => ({ parent: value, key: childKey, subtree: subtree[key] })));
-      } else if (typeof value === 'function' || value instanceof InjectionToken) {
-        // If value is a function or an instance of InjectionToken, get the dependency from the injector
-        const Dependency = value as Type<any> | InjectionToken<any>;
-        subtree[key] = injector.get(Dependency);
+  const read = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
+    const promise = (async () => {
+      try {
+        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+        const state = await getState(slice); // Get state after acquiring lock
+        callback(state);
+      } finally {
+        lock.release(); // Release lock regardless of success or failure
       }
-    }
+    })();
 
-    return this;
+    return promise;
   }
 
-    /**
-   * Ejects dependencies associated with the specified module from the store.
-   * @param {FeatureModule} module - The module whose dependencies should be ejected.
-   * @returns {Store} The store instance with ejected dependencies.
-   * @protected
+  /**
+   * Selects a value from the store's state using the provided selector function.
+   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
+   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
+   * @returns {Observable<any>} An observable stream with the selected value.
    */
-  protected ejectDependencies(module: FeatureModule): Store {
-    // Combine all dependencies into one object, excluding the module to eject
-    let allDependencies = [this.mainModule.dependencies, ...this.modules.filter(m => m !== module).map(m => m.dependencies)].filter(Boolean);
-
-    // Initialize the new dependencies object
-    let newDependencies = {} as any;
-
-    // Recursively clone and update dependencies
-    allDependencies.forEach((dep: any) => {
-      Object.keys(dep).forEach(key => {
-        newDependencies[key] = dep[key];
-      });
-    });
-
-    // Create a stack for the DFS traversal
-    let stack = [{ source: this.pipeline.dependencies as any, target: newDependencies }];
-
-    while (stack.length > 0) {
-      const { source, target } = stack.pop()!;
-      for (const key in target) {
-        if (Array.isArray(target[key])) {
-          // If target[key] is an array, iterate over its elements
-          for (let i = 0; i < target[key].length; i++) {
-            if (typeof target[key][i] !== 'function' && !(target[key][i] instanceof InjectionToken)) {
-              stack.push({ source: source[key][i], target: target[key][i] });
-            } else {
-              target[key][i] = source[key][i];
-            }
-          }
-        } else if (typeof target[key] !== 'function' && !(target[key] instanceof InjectionToken)) {
-          stack.push({ source: source[key], target: target[key] });
+  const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
+    let lastValue: any;
+    let selected$: Observable<R> | undefined;
+    return new Observable<R>((subscriber: Observer<R>) => {
+      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
+        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
+        if(filteredValue !== lastValue) {
+          Promise.resolve(subscriber.next(filteredValue))
+            .then(() => lastValue = filteredValue)
+            .finally(() => tracker.setStatus(selected$!, true));
         } else {
-          target[key] = source[key];
+          tracker.setStatus(selected$!, true);
         }
-      }
-    }
+      });
 
-    // Assign the newly formed dependencies object
-    this.pipeline.dependencies = newDependencies;
-
-    return this;
+      return () => subscription.unsubscribe();
+    });
   }
 
   /**
-   * Applies middleware to the store's dispatch method.
-   * @returns {Store} The store instance with applied middleware.
-   * @protected
+   * Gets the current state or a slice of the state from the store.
+   * @param {keyof T | string[]} [slice] - The slice of the state to retrieve.
+   * @returns {T | any} The current state or the selected slice of the state.
+   * @throws {Error} Throws an error if the slice parameter is of unsupported type.
+   * @template T
    */
-  protected applyMiddleware(): Store {
+  const getState = (slice?: keyof T | string[] | "@global"): any => {
+    if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
+      return currentState.value as T;
+    } else if (typeof slice === "string") {
+      return currentState.value[slice] as T;
+    } else if (Array.isArray(slice)) {
+      return slice.reduce((acc, key) => {
+        if (acc === undefined || acc === null) {
+          return undefined;
+        } else if (Array.isArray(acc)) {
+          return acc[parseInt(key)];
+        } else {
+          return acc[key];
+        }
+      }, currentState.value) as T;
+    } else {
+      console.warn("Unsupported type of slice parameter");
+    }
+  }
 
-    let dispatch = async (action: any) => {
-      console.warn("Dispatching while constructing your middleware is not allowed. Other middleware would not be applied to this dispatch.");
-      return;
+  /**
+   * Function to create a store instance.
+   * @param {MainModule} mainModule - The main module containing middleware, reducer, dependencies, and strategy.
+   * @returns {Store} The created store instance.
+   */
+  let storeCreator = (mainModule: MainModule) => {
+    let defaultMainModule = {
+      slice: "main",
+      middleware: [],
+      reducer: (state: any = {}, action: Action) => state as Reducer,
+      metaReducers: [],
+      dependencies: {},
+      strategy: "exclusive" as ProcessingStrategy
     };
 
-    // Define starter and middleware APIs
-    const middlewareAPI = {
-      getState: () => this.getState(),
-      dispatch: async (action: any) => await dispatch(action),
-      dependencies: () => this.pipeline.dependencies,
-      strategy: () => this.pipeline.strategy,
-      lock: this.lock,
-      stack: this.stack
-    };
+    // Assign mainModule properties to store
+    main = { ...defaultMainModule, ...mainModule };
 
-    // Build middleware chain
-    const chain = [starter(middlewareAPI), ...this.pipeline.middleware.map(middleware => middleware(middlewareAPI))];
-    // Compose middleware chain with dispatch function
-    dispatch = (chain.length === 1 ? chain[0] : chain.reduce((a, b) => (...args: any[]) => a(b(...args))))(this.dispatch.bind(this));
+    // Configure store pipeline
+    pipeline = {...pipeline, ...{
+      middleware: Array.from(mainModule.middleware ?? []),
+      reducer: combineReducers({[mainModule.slice!]: mainModule.reducer}),
+      dependencies: {...mainModule.dependencies},
+      strategy: mainModule.strategy!,
+    }};
 
-    this.dispatch = dispatch;
-    return this;
+    // Apply middleware
+    applyMiddleware();
+
+    // Bind system actions
+    sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
+
+    // Initialize state and mark store as initialized
+    sysActions.initializeState();
+
+    console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
+
+    lock.acquire()
+      .then(() => setupReducer())
+      .then(state => setState("@global", state))
+      .finally(() => lock.release());
+
+    sysActions.storeInitialized();
+
+    return {
+      dispatch,
+      getState,
+      select,
+      loadModule,
+      unloadModule,
+      read,
+      settings,
+    } as Store<any>;
   }
 
-  /**
-   * Loads a feature module into the store.
-   * @param {FeatureModule} module - The feature module to load.
-   * @param {Injector} injector - The injector to use for dependency injection.
-   * @returns {Promise<void>}
-   */
-  loadModule(module: FeatureModule, injector: Injector): Promise<void> {
-    // Check if the module already exists
-    if (this.modules.some(m => m.slice === module.slice)) {
-      return Promise.resolve(); // Module already exists, return without changes
+  // Apply enhancer if provided
+  if (typeof enhancer !== "undefined") {
+    if (typeof enhancer !== "function") {
+      console.warn(`Expected the enhancer to be a function. Instead, received: '${kindOf(enhancer)}'`);
+    } else {
+      // Apply the enhancer to the storeCreator function
+      return enhancer(storeCreator)(main);
     }
-
-    const promise = this.lock.acquire()
-      .then(() => {
-        // Create a new array with the module added
-        this.modules = [...this.modules, module];
-
-        // Inject dependencies
-        return this.injectDependencies(injector);
-      })
-      .then(() => this.updateState("@global", state => this.setupReducer(state)))
-      .finally(() => this.lock.release());
-
-    // Dispatch module loaded action
-    this.systemActions.moduleLoaded(module);
-    return promise;
   }
 
-  /**
-   * Unloads a feature module from the store.
-   * @param {FeatureModule} module - The feature module to unload.
-   * @param {boolean} [clearState=false] - A flag indicating whether to clear the module's state.
-   * @returns {Promise<void>}
-   */
-  unloadModule(module: FeatureModule, clearState: boolean = false): Promise<void> {
-    // Find the module index in the modules array
-    const moduleIndex = this.modules.findIndex(m => m.slice === module.slice);
-
-    // Check if the module exists
-    if (moduleIndex === -1) {
-      console.warn(`Module ${module.slice} not found, cannot unload.`);
-      return Promise.resolve(); // Module not found, nothing to unload
-    }
-
-    const promise = this.lock.acquire()
-      .then(() => {
-        // Remove the module from the internal state
-        this.modules.splice(moduleIndex, 1);
-
-        // Eject dependencies
-        return this.ejectDependencies(module);
-      })
-      .then(() => this.updateState("@global", async (state) => {
-        if (clearState) {
-          state = { ...state };
-          delete state[module.slice];
-        }
-        return await this.setupReducer(state);
-      }))
-      .finally(() => this.lock.release());
-
-    // Dispatch module unloaded action
-    this.systemActions.moduleUnloaded(module);
-    return promise;
-  }
-}
-
-/**
- * Creates a store instance with the specified main module and optional enhancer.
- * @param {MainModule} mainModule - The main module of the store.
- * @param {StoreEnhancer} [enhancer] - An optional enhancer for the store.
- * @returns {Store} The created store instance.
- */
-export function createStore(mainModule: MainModule, enhancer?: StoreEnhancer) {
-  return Store.create(mainModule, enhancer);
+  // If no enhancer provided, return the result of calling storeCreator
+  return storeCreator(main);
 }

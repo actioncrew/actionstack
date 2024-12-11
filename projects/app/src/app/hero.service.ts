@@ -1,4 +1,3 @@
-import { Store } from '@actioncrew/actionstack';
 import { Injectable } from '@angular/core';
 import { from, Observable } from 'rxjs';
 
@@ -9,7 +8,7 @@ import { HEROES } from './mock-heroes';
 export class HeroService {
   timeout = 200;
 
-  constructor(private store: Store) { }
+  constructor() { }
 
   getHeroes(): Observable<Hero[]> {
     return from(new Promise<Hero[]>((resolve) => {

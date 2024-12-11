@@ -20,7 +20,7 @@ function* watchHelloSaga() {
 export class AppComponent implements OnInit, OnDestroy {
   title = 'Tour of Heroes';
   subscription!: Subscription;
-  constructor(private store: EpicStore) {
+  constructor() {
   }
 
   ngOnInit() {
