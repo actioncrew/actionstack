@@ -1,3 +1,4 @@
+import { StoreSettings } from './../../../src/lib/store';
 import {
   Action,
   action,
@@ -263,13 +264,14 @@ export const addEpics = action("ADD_EPICS", (...epics: Epic[]) => ({ epics }));
 export const removeEpics = action("REMOVE_EPICS", (...epics: Epic[]) => ({ epics }));
 
 /**
- * A store enhancer to extend the store with epics.
+ * A store enhancer that extends the store with support for epics.
  *
- * @param {Function} createStore - The function to create the store.
- * @returns {Function} - A function that accepts the main module and optional enhancer to create an epic store.
+ * @param {Function} createStore - A function used to create the base store.
+ * @returns {Function} - A function that takes the main module, optional settings, and an optional enhancer,
+ * and returns an enhanced store with epic capabilities.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, enhancer?: StoreEnhancer): EpicStore => {
-  const store = createStore(module, enhancer) as EpicStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
+  const store = createStore(module, settings, enhancer) as EpicStore;
 
   /**
    * Extends the store with the given epics.

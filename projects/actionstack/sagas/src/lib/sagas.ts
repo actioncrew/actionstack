@@ -1,3 +1,4 @@
+import { StoreSettings } from './../../../src/lib/store';
 import {
   Action,
   action,
@@ -86,13 +87,14 @@ export const addSagas = action('ADD_SAGAS', (...sagas: any[]) => ({sagas}));
 export const removeSagas = action('REMOVE_SAGAS', (...sagas: any[]) => ({sagas}));
 
 /**
- * A store enhancer to extend the store with sagas.
+ * A store enhancer that extends the store with support for sagas.
  *
- * @param {Function} createStore - The function to create the store.
- * @returns {Function} - A function that accepts the main module and optional enhancer to create an saga store.
+ * @param {Function} createStore - A function used to create the base store.
+ * @returns {Function} - A function that takes the main module, settings, and an optional enhancer,
+ * and returns an enhanced store with saga management capabilities.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, enhancer?: StoreEnhancer): SagaStore => {
-  const store = createStore(module, enhancer) as SagaStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): SagaStore => {
+  const store = createStore(module, settings, enhancer) as SagaStore;
 
   /**
    * Extends the store with the given sagas.
