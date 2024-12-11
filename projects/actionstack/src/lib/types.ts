@@ -1,6 +1,5 @@
-import { InjectionToken, Type } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-import { Store, StoreSettings } from './store';
+import { Store, StoreSettings } from '../lib';
 
 
 /**

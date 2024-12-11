@@ -1,14 +1,12 @@
 {
   "name": "@actioncrew/actionstack",
-  "version": "1.3.3",
+  "version": "2.0.0",
   "description": "Asynchronous state management library",
   "license": "MIT",
   "keywords": [
     "RxJS",
     "ActionStack",
-    "NgRx",
     "Redux",
-    "Angular",
     "state management",
     "store",
     "minified",
@@ -16,7 +14,6 @@
     "asynchronous"
   ],
   "peerDependencies": {
-    "@angular/core": ">=14.0.0",
     "rxjs": "^6.5.3 || ^7.4.0"
   },
   "devDependencies": {

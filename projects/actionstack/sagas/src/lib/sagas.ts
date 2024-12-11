@@ -1,4 +1,3 @@
-import { StoreSettings } from './../../../src/lib/store';
 import {
   Action,
   action,
@@ -6,6 +5,7 @@ import {
   Observer,
   Instruction,
   Store,
+  StoreSettings,
   StoreEnhancer,
   createInstruction,
 } from '@actioncrew/actionstack';

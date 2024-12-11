@@ -1,4 +1,3 @@
-import { StoreSettings } from './../../../src/lib/store';
 import {
   Action,
   action,
@@ -8,6 +7,7 @@ import {
   MainModule,
   Observer,
   Store,
+  StoreSettings,
   StoreEnhancer,
 } from '@actioncrew/actionstack';
 import { Observable } from 'rxjs/internal/Observable';
