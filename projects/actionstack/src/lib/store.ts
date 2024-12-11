@@ -1,4 +1,3 @@
-import { inject, InjectionToken, Injector, Type } from '@angular/core';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
@@ -126,17 +125,17 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   let pipeline = {
     middleware: [] as any[],
     reducer: ((state: any = {}, action: Action) => state) as AsyncReducer,
-    dependencies: {} as Tree<Type<any> | InjectionToken<any>>,
+    dependencies: {} as Tree<any>,
     strategy: "exclusive" as ProcessingStrategy
   };
-  const currentState = new BehaviorSubject<any>(undefined);
+  const currentState = new BehaviorSubject<any>({});
   const settings = { ...defaultStoreSettings, ...storeSettings };
   const tracker = createTracker();
   const lock = createLock();
   const stack = createExecutionStack();
   let sysActions = { ...systemActions };
 
-  const dispatch = async (action: Action | any) => {
+  let dispatch = async (action: Action | any) => {
     if (!isPlainObject(action)) {
       console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'.`);
       return;
@@ -158,11 +157,6 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   };
 
   const applyMiddleware = () => {
-    let dispatch = async (action: any) => {
-      console.warn("Dispatching while constructing your middleware is not allowed. Other middleware would not be applied to this dispatch.");
-      return;
-    };
-
     // Define starter and middleware APIs
     const middlewareAPI = {
       getState: () => getState(),
@@ -207,9 +201,16 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
         subtree[key] = [];
         stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
       } else if (typeof value === 'object' && value !== null) {
-        // If value is an object, add its children to the stack
-        subtree[key] = {};
-        stack.push(...Object.keys(value).map(childKey => ({ parent: value, key: childKey, subtree: subtree[key] })));
+        if (value && typeof value.constructor === 'function') {
+          // If the value is a class (function with prototype), instantiate it
+          subtree[key] = value; // Assuming default constructor is suitable
+        } else {
+          // If value is an object (not a class), copy its children to the stack
+          subtree[key] = {};
+          stack.push(...Object.keys(value).map(childKey => ({
+            parent: value, key: childKey, subtree: subtree[key]
+          })));
+        }
       } else {
         subtree[key] = value;
       }
@@ -248,11 +249,16 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
         subtree[key] = [];
         stack.push(...value.map((v, i) => ({ parent: value, key: i, subtree: subtree[key] })));
       } else if (typeof value === 'object' && value !== null) {
-        // If value is an object, recurse to handle its children
-        subtree[key] = {};
-        stack.push(...Object.keys(value).map(childKey => ({
-          parent: value, key: childKey, subtree: subtree[key]
-        })));
+        if (value && typeof value.constructor === 'function') {
+          // If the value is a class (function with prototype), instantiate it
+          subtree[key] = value; // Assuming default constructor is suitable
+        } else {
+          // If value is an object (not a class), copy its children to the stack
+          subtree[key] = {};
+          stack.push(...Object.keys(value).map(childKey => ({
+            parent: value, key: childKey, subtree: subtree[key]
+          })));
+        }
       } else {
         // If value is a simple value, set it directly
         subtree[key] = value;
@@ -266,7 +272,7 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
    * @param {Injector} injector - The injector to use for dependency injection.
    * @returns {Promise<void>}
    */
-  const loadModule = (module: FeatureModule, injector: Injector): Promise<void> => {
+  const loadModule = (module: FeatureModule): Promise<void> => {
     // Check if the module already exists
     if (modules.some(m => m.slice === module.slice)) {
       return Promise.resolve(); // Module already exists, return without changes
@@ -585,10 +591,10 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
 
     // Configure store pipeline
     pipeline = {...pipeline, ...{
-      middleware: Array.from(mainModule.middleware ?? []),
-      reducer: combineReducers({[mainModule.slice!]: mainModule.reducer}),
-      dependencies: {...mainModule.dependencies},
-      strategy: mainModule.strategy!,
+      middleware: Array.from(main.middleware ?? []),
+      reducer: combineReducers({[main.slice!]: main.reducer}),
+      dependencies: {...main.dependencies},
+      strategy: main.strategy!,
     }};
 
     // Apply middleware
