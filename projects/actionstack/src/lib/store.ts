@@ -7,7 +7,7 @@ import { action, bindActionCreators } from './actions';
 import { createLock, Lock } from './lock';
 import { ExecutionStack } from './stack';
 import { starter } from './starter';
-import { Tracker } from './tracker';
+import { createTracker, Tracker } from './tracker';
 import {
   Action,
   AnyFn,
@@ -120,7 +120,7 @@ export class Store {
   protected currentState = new BehaviorSubject<any>(undefined);
   protected systemActions = { ...systemActions };
   protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
-  protected tracker = new Tracker();
+  protected tracker = createTracker();
   protected lock = createLock();
   protected stack = new ExecutionStack();
 

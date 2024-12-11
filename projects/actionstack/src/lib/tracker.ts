@@ -2,98 +2,137 @@ import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 
 /**
- * A utility class for tracking the execution status of Observables.
+ * A utility type for tracking the execution status of Observables.
  */
-export class Tracker {
+export type Tracker = {
   /**
-   * Execution timeout in ms.
+   * Execution timeout in milliseconds.
    */
-  timeout = 30000;
-  /**
-   * Map to store the relationship between Observables and their corresponding BehaviorSubjects.
-   * @type {Map<Observable<any>, BehaviorSubject<boolean>>}
-   * @private
-   */
-  private entries = new Map<Observable<any>, BehaviorSubject<boolean>>();
+  timeout: number;
 
   /**
-   * Returns the execution status of the provided Observable.
-   * @param {Observable<any>} entry - The Observable to check the execution status for.
-   * @returns {boolean} The execution status of the provided Observable. Returns `true` if executed, `false` otherwise.
+   * Gets the execution status of a tracked Observable.
+   *
+   * @param {Observable<any>} entry - The Observable to check the status for.
+   * @returns {boolean} - `true` if the Observable is executing, `false` otherwise.
    */
-  getStatus(entry: Observable<any>) {
-    return this.entries.get(entry)?.value === true;
-  }
+  getStatus: (entry: Observable<any>) => boolean;
 
   /**
-   * Sets the execution status of the provided Observable.
-   * @param {Observable<any>} entry - The Observable to set the execution status for.
-   * @param {boolean} value - The execution status to set.
-   * @returns {void} This method does not return a value.
+   * Sets the execution status of a tracked Observable.
+   *
+   * @param {Observable<any>} entry - The Observable to update the status for.
+   * @param {boolean} value - The new execution status.
    */
-  setStatus(entry: Observable<any>, value: boolean) {
-    this.entries.get(entry)?.next(value);
-  }
+  setStatus: (entry: Observable<any>, value: boolean) => void;
 
   /**
-   * Sets the execution status to complete.
-   * @param {Observable<any>} entry - The Observable to set the execution status for.
-   * @returns {void} This method does not return a value.
+   * Marks a tracked Observable as completed.
+   *
+   * @param {Observable<any>} entry - The Observable to mark as completed.
    */
-  setCompletion(entry: Observable<any>) {
-    this.entries.get(entry)?.complete();
-  }
+  setCompletion: (entry: Observable<any>) => void;
 
   /**
-   * Tracks the execution status of the provided Observable.
-   * @param {Observable<any>} observable - The Observable to track.
-   * @returns {void} This method does not return a value.
+   * Tracks a new Observable.
+   *
+   * @param {Observable<any>} observable - The Observable to start tracking.
    */
-  track(observable: Observable<any>): void {
-    if (!this.entries.has(observable)) {
+  track: (observable: Observable<any>) => void;
+
+  /**
+   * Removes a tracked Observable and unsubscribes its BehaviorSubject.
+   *
+   * @param {Observable<any>} observable - The Observable to stop tracking.
+   */
+  remove: (observable: Observable<any>) => void;
+
+  /**
+   * Resets the execution status of all tracked Observables to `false`.
+   */
+  reset: () => void;
+
+  /**
+   * Asynchronously checks if all tracked Observables have completed within a timeout period.
+   *
+   * @returns {Promise<void>} - Resolves if all Observables complete within the timeout, rejects otherwise.
+   */
+  allExecuted: () => Promise<void>;
+};
+
+/**
+ * Creates a new functional Tracker for managing the execution status of Observables.
+ *
+ * @returns {Tracker} - A Tracker instance.
+ */
+export const createTracker = (): Tracker => {
+  const entries = new Map<Observable<any>, BehaviorSubject<boolean>>();
+  const timeout = 30000;
+
+  /**
+   * Gets the execution status of a tracked Observable.
+   */
+  const getStatus: Tracker['getStatus'] = (entry) =>
+    entries.get(entry)?.value === true;
+
+  /**
+   * Sets the execution status of a tracked Observable.
+   */
+  const setStatus: Tracker['setStatus'] = (entry, value) =>
+    entries.get(entry)?.next(value);
+
+  /**
+   * Marks a tracked Observable as completed.
+   */
+  const setCompletion: Tracker['setCompletion'] = (entry) =>
+    entries.get(entry)?.complete();
+
+  /**
+   * Tracks a new Observable.
+   */
+  const track: Tracker['track'] = (observable) => {
+    if (!entries.has(observable)) {
       const subject = new BehaviorSubject<boolean>(false);
-      this.entries.set(observable, subject);
+      entries.set(observable, subject);
     }
-  }
+  };
 
   /**
-   * Removes a tracked observable and unsubscribes from it.
-   * @param observable The observable to remove.
+   * Removes a tracked Observable and unsubscribes its BehaviorSubject.
    */
-  remove(observable: Observable<any>) {
-    const subject = this.entries.get(observable);
+  const remove: Tracker['remove'] = (observable) => {
+    const subject = entries.get(observable);
     if (subject) {
-      this.entries.delete(observable);
-      subject.complete(); // Complete the subject to trigger unsubscription
+      entries.delete(observable);
+      subject.complete();
     }
-  }
+  };
+
   /**
-   * Resets the execution status of all tracked Observables to false.
+   * Resets the execution status of all tracked Observables to `false`.
    */
-  reset() {
-    for (const [key, value] of [...this.entries.entries()]) {
+  const reset: Tracker['reset'] = () => {
+    for (const [key, value] of [...entries.entries()]) {
       if (value.closed) {
-        this.entries.delete(key); // Remove the entry if its value is true
+        entries.delete(key);
       } else {
-        value.next(false); // Reset the subject to false
+        value.next(false);
       }
     }
-  }
+  };
 
   /**
-   * Asynchronously checks if all tracked Observables have been executed within a specified timeout period.
-   * @returns {Promise<void>} A Promise that resolves when all tracked Observables have been executed within the timeout period, or rejects if the timeout is reached.
+   * Asynchronously checks if all tracked Observables have completed within a timeout period.
    */
-  get allExecuted(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      if (![...this.entries.values()].length) {
-        // No subjects, resolve immediately
+  const allExecuted: Tracker['allExecuted'] = () =>
+    new Promise<void>((resolve, reject) => {
+      if ([...entries.values()].length === 0) {
         resolve();
         return;
       }
 
-      const timeoutId = setTimeout(() => reject('Timeout reached'), this.timeout);
-      let numPending = [...this.entries.values()].length; // Track pending subscriptions
+      const timeoutId = setTimeout(() => reject('Timeout reached'), timeout);
+      let numPending = [...entries.values()].length;
 
       const handleCompletion = () => {
         numPending--;
@@ -108,13 +147,23 @@ export class Tracker {
         reject(error);
       };
 
-      [...this.entries.values()].forEach(subject => {
+      [...entries.values()].forEach((subject) => {
         subject.subscribe({
           next: handleCompletion,
           error: handleError,
-          complete: handleCompletion, // Call handleCompletion on complete as well
+          complete: handleCompletion,
         });
       });
     });
-  }
-}
+
+  return {
+    timeout,
+    getStatus,
+    setStatus,
+    setCompletion,
+    track,
+    remove,
+    reset,
+    allExecuted,
+  };
+};
