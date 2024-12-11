@@ -1,4 +1,4 @@
-import { createLock, Lock } from './lock';
+import { createLock, SimpleLock } from './lock';
 import { createInstruction, createExecutionStack, Instruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
 
@@ -9,14 +9,14 @@ import { Action, AsyncAction } from './types';
  * @property {Function} dispatch - Function to dispatch actions.
  * @property {Function} getState - Function to get the current state.
  * @property {Function} dependencies - Function to get dependencies.
- * @property {Lock} lock - Lock instance to manage action processing concurrency.
+ * @property {SimpleLock} lock - Lock instance to manage action processing concurrency.
  * @property {ExecutionStack} stack - Stack instance to track action execution.
  */
 interface MiddlewareConfig {
   dispatch: Function;
   getState: Function;
   dependencies: Function;
-  lock: Lock;
+  lock: SimpleLock;
   stack: ExecutionStack;
 }
 
@@ -36,10 +36,10 @@ export function createActionHandler(config: MiddlewareConfig) {
    *
    * @param {Action | AsyncAction} action - The action to be processed.
    * @param {Function} next - The next middleware function in the chain.
-   * @param {Lock} lock - The lock instance to manage concurrency for this action.
+   * @param {SimpleLock} lock - The lock instance to manage concurrency for this action.
    * @returns {Promise<void> | void} - A promise if the action is asynchronous, otherwise void.
    */
-  const handleAction = async (action: Action | AsyncAction, next: Function, lock: Lock): Promise<void> => {
+  const handleAction = async (action: Action | AsyncAction, next: Function, lock: SimpleLock): Promise<void> => {
     await lock.acquire();
 
     const op = createInstruction.action(action);

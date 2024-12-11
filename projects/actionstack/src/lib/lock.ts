@@ -1,9 +1,9 @@
-export type Lock = {
+export type SimpleLock = {
   acquire: () => Promise<void>;
   release: () => void;
 };
 
-export const createLock = (): Lock => {
+export const createLock = (): SimpleLock => {
   let isLocked = false; // Tracks whether the lock is held
   const queue: Array<() => void> = []; // Queue to store waiting promise resolvers
 
