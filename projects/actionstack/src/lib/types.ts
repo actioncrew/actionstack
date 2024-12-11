@@ -1,6 +1,6 @@
 import { InjectionToken, Type } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-import { Store } from './store';
+import { Store, StoreSettings } from './store';
 
 
 /**
@@ -251,17 +251,15 @@ export interface MainModule {
 }
 
 /**
- * Type alias for a store creation function.
+ * Type definition for a function that creates a store instance.
  *
- * This type represents a function that takes the main application module configuration and an optional store enhancer,
- * and returns a newly created Actionstack store instance.
- *
- * @param module - The main application module object containing the store configuration.
- * @param enhancer?: StoreEnhancer (optional) - A store enhancer function that can be used to apply additional
- *                     functionality or middleware to the store creation process.
- * @returns Store - A newly created Actionstack store instance.
+ * @template T - The type of the state managed by the store.
+ * @param {MainModule} module - The main module configuration, defining the initial state, reducers, middleware, and other store properties.
+ * @param {StoreSettings} [settings] - Optional settings for the store, such as dispatch behavior or feature toggles.
+ * @param {StoreEnhancer} [enhancer] - Optional enhancer function to extend or modify the store's functionality.
+ * @returns {Store<T>} The created store instance with methods for managing state and actions.
  */
-export type StoreCreator<T = any> = (module: MainModule, enhancer?: StoreEnhancer) => Store<T>;
+export type StoreCreator<T = any> = (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer) => Store<T>;
 
 /**
  * Type alias for a store enhancer function.

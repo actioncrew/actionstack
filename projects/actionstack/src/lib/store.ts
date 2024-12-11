@@ -23,10 +23,8 @@ import {
   Tree,
 } from './types';
 
-
 /**
  * Class representing configuration options for a store.
- *
  * This class defines properties that control various behaviors of a store for managing application state.
  */
 export type StoreSettings = {
@@ -36,6 +34,10 @@ export type StoreSettings = {
   enableAsyncReducers: boolean;
 };
 
+/**
+ * The default settings for the store that configure various behaviors such as action dispatch,
+ * state propagation, and reducer handling.
+ */
 const defaultStoreSettings = {
   dispatchSystemActions: true,
   awaitStatePropagation: true,
@@ -43,19 +45,21 @@ const defaultStoreSettings = {
   enableAsyncReducers: true
 };
 
+/**
+ * The `Store` type represents the core store object that manages state, actions, and modules.
+ * It provides methods to interact with the store's state, dispatch actions, load/unload modules, and more.
+ */
 export type Store<T = any> = {
   dispatch: (action: Action | any) => Promise<void>;
-  select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
   getState: (slice?: keyof T | string[] | "@global") => any;
+  readSafe: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
+  select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
-  read: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
-  settings: StoreSettings;
 };
 
 /**
  * Constant array containing system action types as strings.
- *
  * These action types are likely used internally for system events.
  */
 const SYSTEM_ACTION_TYPES = [
@@ -68,16 +72,12 @@ const SYSTEM_ACTION_TYPES = [
 
 /**
  * Type alias representing all possible system action types.
- *
  * This type is derived from the `SYSTEM_ACTION_TYPES` array using the `typeof` operator and ensures the type is also a string.
  */
 export type SystemActionTypes = typeof SYSTEM_ACTION_TYPES[number] & string;
 
 /**
  * Function to check if a given string is a system action type.
- *
- * @param type - The string to check.
- * @returns boolean - True if the type is a system action type, false otherwise.
  */
 export function isSystemActionType(type: string): type is SystemActionTypes {
   return SYSTEM_ACTION_TYPES.includes(type as SystemActionTypes);
@@ -85,10 +85,6 @@ export function isSystemActionType(type: string): type is SystemActionTypes {
 
 /**
  * Private function to create a system action.
- *
- * @param type - The system action type (string).
- * @param payload - Optional function or value to be attached as the payload.
- * @returns object - The created system action object.
  */
 function systemAction<T extends SystemActionTypes>(type: T, payload?: Function) {
   return action(type, payload);
@@ -96,7 +92,6 @@ function systemAction<T extends SystemActionTypes>(type: T, payload?: Function) 
 
 /**
  * Object containing action creator functions for all system action types.
- *
  * Each property name corresponds to a system action type, and the function creates an action object with that type and optional payload.
  */
 const systemActions = {
@@ -108,33 +103,51 @@ const systemActions = {
 };
 
 /**
- * Class representing a state management store.
+ * Creates a new store instance.
  *
- * This class provides functionalities for managing application state, including:
- *  * Storing the current state.
- *  * Dispatching actions to update the state.
- *  * Getting the current state.
- *  * Subscribing to changes in the state.
+ * This function initializes a store with the provided `mainModule` configuration and optional store enhancer.
+ * It also accepts store settings that define various configuration options for the store.
+ * The `storeSettings` parameter defaults to `defaultStoreSettings` if not provided.
+ *
+ * @template T - The type of the store's state.
+ *
+ * @param {MainModule} mainModule - The main module configuration that defines the core behavior and structure of the store.
+ * This includes settings like the reducer, dependencies, middleware, and more.
+ *
+ * @param {StoreEnhancer} [enhancer] - An optional store enhancer to augment the store's functionality, such as adding custom middlewares, logging, or other features.
+ *
+ * @param {StoreSettings} [storeSettings=defaultStoreSettings] - Optional settings to configure the store. Defaults to `defaultStoreSettings` if not provided.
+ * The settings may include options like state persistence, logging preferences, etc.
+ *
+ * @returns {Store<T>} The newly created store instance that is initialized with the provided configurations.
  */
-
-export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnhancer, storeSettings: StoreSettings = defaultStoreSettings): Store<T> {
+export function createStore<T = any>(mainModule: MainModule, storeSettings: StoreSettings = defaultStoreSettings, enhancer?: StoreEnhancer): Store<T> {
 
   let main = { ...mainModule };
   let modules: FeatureModule[] = [];
 
   let pipeline = {
     middleware: [] as any[],
-    reducer: ((state: any = {}, action: Action) => state) as AsyncReducer,
+    reducer: ((state: any = {}) => state) as AsyncReducer,
     dependencies: {} as Tree<any>,
     strategy: "exclusive" as ProcessingStrategy
   };
+
+  let sysActions = { ...systemActions };
+
   const currentState = new BehaviorSubject<any>({});
   const settings = { ...defaultStoreSettings, ...storeSettings };
   const tracker = createTracker();
   const lock = createLock();
   const stack = createExecutionStack();
-  let sysActions = { ...systemActions };
 
+  /**
+   * Dispatches an action to update the global state.
+   *
+   * The function validates the action to ensure it is a plain object with a defined and string type property.
+   * If any validation fails, a warning is logged to the console and the action is not dispatched.
+   * After validation, the action is processed by the reducer, and the global state is updated accordingly.
+   */
   let dispatch = async (action: Action | any) => {
     if (!isPlainObject(action)) {
       console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'.`);
@@ -156,6 +169,13 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     }
   };
 
+  /**
+   * Applies middleware to the dispatch function to modify its behavior.
+   *
+   * This function sets up a middleware chain by combining the starter middleware with other middleware
+   * functions provided in the pipeline. It modifies the dispatch function by wrapping it in the middleware
+   * chain, allowing the action to be intercepted and potentially modified before it reaches the reducer.
+   */
   const applyMiddleware = () => {
     // Define starter and middleware APIs
     const middlewareAPI = {
@@ -173,6 +193,11 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     dispatch = (chain.length === 1 ? chain[0] : chain.reduce((a, b) => (...args: any[]) => a(b(...args))))(dispatch);
   };
 
+  /**
+   * Merges and injects dependencies from the main module and all feature modules
+   * into the pipeline's dependency object. It handles recursion for nested objects
+   * and arrays and ensures classes are instantiated correctly.
+   */
   const injectDependencies = (): void => {
     // Initialize the new dependencies object
     let newDependencies = {} as any;
@@ -217,6 +242,12 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     }
   }
 
+  /**
+   * Removes the specified module's dependencies from the pipeline and updates
+   * the global dependencies object. It merges the remaining dependencies from
+   * the main module and other feature modules, handling recursion for nested
+   * objects and arrays, and ensures classes are instantiated correctly.
+   */
   const ejectDependencies = (module: FeatureModule): void => {
     // Combine all dependencies into one object, excluding the specified module
     let allDependencies = [mainModule.dependencies, ...modules.filter(m => m !== module).map(m => m.dependencies)].filter(Boolean);
@@ -267,10 +298,12 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   };
 
   /**
-   * Loads a feature module into the store.
-   * @param {FeatureModule} module - The feature module to load.
-   * @param {Injector} injector - The injector to use for dependency injection.
-   * @returns {Promise<void>}
+   * Loads a new feature module into the store if it isn't already loaded.
+   * It ensures that dependencies are injected, the global state is updated,
+   * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
+   *
+   * @param {FeatureModule} module - The feature module to be loaded.
+   * @returns {Promise<void>} A promise that resolves when the module is successfully loaded.
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
     // Check if the module already exists
@@ -295,10 +328,13 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   }
 
   /**
-   * Unloads a feature module from the store.
-   * @param {FeatureModule} module - The feature module to unload.
-   * @param {boolean} [clearState=false] - A flag indicating whether to clear the module's state.
-   * @returns {Promise<void>}
+   * Unloads a feature module from the store, optionally clearing its state.
+   * It removes the module, ejects its dependencies, and updates the global state.
+   * A `moduleUnloaded` action is dispatched after the module is unloaded.
+   *
+   * @param {FeatureModule} module - The feature module to be unloaded.
+   * @param {boolean} [clearState=false] - Whether to clear the module's state from the global state.
+   * @returns {Promise<void>} A promise that resolves when the module is successfully unloaded.
    */
   const unloadModule = (module: FeatureModule, clearState: boolean = false): Promise<void> => {
     // Find the module index in the modules array
@@ -332,6 +368,17 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     return promise;
   }
 
+  /**
+   * Applies a change to a nested state object based on a given path and value,
+   * updating the state along the path and marking the edges of the tree as visited.
+   *
+   * @param {any} initialState - The initial state object to apply changes to.
+   * @param {Object} change - The change to apply, containing a path and value.
+   * @param {string[]} change.path - The path to the property to update.
+   * @param {any} change.value - The new value to set at the specified path.
+   * @param {Tree<boolean>} edges - A tree structure representing the visited paths.
+   * @returns {any} The updated state object.
+   */
   const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, edges: Tree<boolean>): any => {
     let currentState: any = Object.keys(edges).length > 0 ? initialState: {...initialState};
     let currentObj: any = currentState;
@@ -353,13 +400,15 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   }
 
   /**
-   * Updates the state based on the provided slice and value, returning the updated state.
-   * @param {keyof T | string[] | undefined} slice - The slice of the state to update.
-   * @param {any} value - The new value to set for the specified slice.
-   * @param {Action} [action=systemActions.updateState()] - The action to propagate after updating the state.
-   * @returns {Promise<any>}  A promise that resolves to the updated state object.
-   * @protected
-   * @template T
+   * Sets the state for a specified slice of the global state, updating it with the given value.
+   * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
+   *
+   * @param {keyof T | string[] | "@global" | undefined} slice - The slice of the state to update.
+   * If undefined, updates the whole state, if "@global", updates the global state,
+   * or a string/array for specific paths/keys.
+   * @param {any} value - The new value to set at the specified slice or path.
+   * @param {Action} [action=systemActions.updateState()] - The action triggering the state update (optional).
+   * @returns {Promise<any>} A promise resolving to the updated state object.
    */
   const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> => {
     let newState: any;
@@ -396,6 +445,18 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     return newState;
   }
 
+  /**
+   * Updates the state for a specified slice by executing the provided callback function,
+   * which receives the current state as its argument and returns the updated state.
+   * The resulting state is then set using the `setState` function.
+   *
+   * @param {keyof T | string[] | "@global" | undefined} slice - The slice of the state to update.
+   * If undefined, updates the whole state, if "@global", updates the global state,
+   * or a string/array for specific paths/keys.
+   * @param {AnyFn} callback - The callback function that receives the current state and returns the updated state.
+   * @param {Action} [action=systemActions.updateState()] - The action triggering the state update (optional).
+   * @returns {Promise<Action>} A promise resolving to the action that triggered the state update.
+   */
   const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> => {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
@@ -409,6 +470,13 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     return action;
   };
 
+  /**
+   * Combines multiple reducers into a single asynchronous reducer function.
+   * The combined reducer applies each individual reducer to the state based on its corresponding path.
+   *
+   * @param {Tree<Reducer>} reducers - A tree structure where each leaf is a reducer function and each node represents a nested path.
+   * @returns {AsyncReducer} A combined reducer function that applies each individual reducer to the state.
+   */
   const combineReducers = (reducers: Tree<Reducer>): AsyncReducer => {
     // Create a map for reducers
     const reducerMap = new Map<Reducer, string[]>();
@@ -455,11 +523,12 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     return combinedReducer;
   }
 
-    /**
-   * Sets up the reducer function by combining feature reducers and applying meta reducers.
-   * @param {any} [state={}] - The initial state.
-   * @returns {Promise<any>} A promise that resolves to the updated state after setting up the reducer.
-   * @protected
+  /**
+   * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
+   * Optionally applies meta reducers if enabled.
+   *
+   * @param {any} [state={}] - The initial state to apply the reducers to. Defaults to an empty object.
+   * @returns {Promise<any>} A promise that resolves to the updated state after applying the reducers and meta reducers.
    */
   const setupReducer = async (state: any = {}): Promise<any> => {
 
@@ -499,13 +568,14 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   }
 
   /**
-   * Executes a callback function after acquiring a lock and ensuring the system is idle.
-   * @param {keyof T | string[]} slice - The slice of state to execute the callback on.
-   * @param {(readonly state: ) => void} callback - The callback function to execute with the state.
-   * @returns {Promise<void>} A promise that resolves after executing the callback.
-   * @template T
+   * Reads the state slice and executes the provided callback with the current state.
+   * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
+   *
+   * @param {keyof T | string[]} slice - The state slice or path to retrieve.
+   * @param {(state: Readonly<T>) => void | Promise<void>} callback - The callback to execute with the state.
+   * @returns {Promise<void>} A promise that resolves once the callback has been executed with the state.
    */
-  const read = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
+  const readSafe = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
@@ -545,11 +615,13 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   }
 
   /**
-   * Gets the current state or a slice of the state from the store.
-   * @param {keyof T | string[]} [slice] - The slice of the state to retrieve.
-   * @returns {T | any} The current state or the selected slice of the state.
-   * @throws {Error} Throws an error if the slice parameter is of unsupported type.
-   * @template T
+   * Selects a specific value from the state using the provided selector function.
+   * The function returns an observable that emits the selected value whenever the state changes.
+   * Optionally, a default value can be provided if the selector returns `undefined`.
+   *
+   * @param {function} selector - The function to select a specific part of the state. It receives the state observable and an optional tracker.
+   * @param {any} [defaultValue] - The default value to emit when the selector returns `undefined`.
+   * @returns {Observable<R>} An observable that emits the selected state value or the default value.
    */
   const getState = (slice?: keyof T | string[] | "@global"): any => {
     if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
@@ -572,15 +644,17 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
   }
 
   /**
-   * Function to create a store instance.
-   * @param {MainModule} mainModule - The main module containing middleware, reducer, dependencies, and strategy.
-   * @returns {Store} The created store instance.
+   * Creates and initializes the store with the given main module configuration.
+   * The store provides methods for dispatching actions, accessing state, and managing modules.
+   *
+   * @param {MainModule} mainModule - The main module configuration, including slice, middleware, reducer, metaReducers, dependencies, and strategy.
+   * @returns {Store<any>} The initialized store object with methods like `dispatch`, `getState`, `select`, `loadModule`, `unloadModule`, `read`, and `settings`.
    */
-  let storeCreator = (mainModule: MainModule) => {
+  let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
     let defaultMainModule = {
       slice: "main",
       middleware: [],
-      reducer: (state: any = {}, action: Action) => state as Reducer,
+      reducer: (state: any = {}) => state as Reducer,
       metaReducers: [],
       dependencies: {},
       strategy: "exclusive" as ProcessingStrategy
@@ -618,11 +692,10 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
     return {
       dispatch,
       getState,
+      readSafe,
       select,
       loadModule,
-      unloadModule,
-      read,
-      settings,
+      unloadModule
     } as Store<any>;
   }
 
@@ -632,10 +705,10 @@ export function createStore<T = any>(mainModule: MainModule, enhancer?: StoreEnh
       console.warn(`Expected the enhancer to be a function. Instead, received: '${kindOf(enhancer)}'`);
     } else {
       // Apply the enhancer to the storeCreator function
-      return enhancer(storeCreator)(main);
+      return enhancer(storeCreator)(main, settings);
     }
   }
 
   // If no enhancer provided, return the result of calling storeCreator
-  return storeCreator(main);
+  return storeCreator(main, settings);
 }
