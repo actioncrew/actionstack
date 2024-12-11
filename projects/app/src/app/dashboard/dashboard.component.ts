@@ -8,12 +8,6 @@ import { HeroService } from './../hero.service';
 import { loadHeroes, reducer, selectTopHeroes, slice } from './dashboard.slice';
 import { store } from '../app.module';
 
-store.loadModule({
-  slice: slice,
-  reducer: reducer,
-  dependencies: { heroService: new HeroService() },
-});
-
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -25,6 +19,11 @@ export class DashboardComponent implements OnInit {
   heroes$: Observable<Hero[]> = store.select(selectTopHeroes());
 
   constructor() {
+    store.loadModule({
+      slice: slice,
+      reducer: reducer,
+      dependencies: { heroService: new HeroService() },
+    });
   }
 
   ngOnInit(): void {

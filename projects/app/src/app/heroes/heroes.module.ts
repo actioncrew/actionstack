@@ -12,12 +12,6 @@ const routes: Routes = [
   { path: '', component: HeroesComponent, pathMatch: 'full' },
 ];
 
-store.loadModule({
-  slice: slice,
-  reducer: reducer,
-  dependencies: { heroService: new HeroService() }
-});
-
 @NgModule({
   imports: [CommonModule, FormsModule, RouterModule.forChild(routes)],
   declarations: [
@@ -27,5 +21,13 @@ store.loadModule({
     HeroesComponent
   ]
 })
-export class HeroesModule {}
+export class HeroesModule {
+  constructor() {
+    store.loadModule({
+      slice: slice,
+      reducer: reducer,
+      dependencies: { heroService: new HeroService() }
+    });
+  }
+}
 

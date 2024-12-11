@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 
 import { MessagesComponent } from './messages.component';
 import { reducer, slice } from './messages.slice';
-
+import { store } from '../app.module';
 
 @NgModule({
   imports: [CommonModule, FormsModule, RouterModule],
@@ -16,5 +16,12 @@ import { reducer, slice } from './messages.slice';
     MessagesComponent
   ]
 })
-export class MessagesModule {}
+export class MessagesModule {
+  constructor() {
+    store.loadModule({
+      slice: slice,
+      reducer: reducer
+    });
+  }
+}
 

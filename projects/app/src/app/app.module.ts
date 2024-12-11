@@ -11,7 +11,7 @@ import { MessagesModule } from './messages/messages.module';
 
 export const store = createStore({
   middleware: [epics, perfmon],
-  reducer: (state: any = {}, action: Action<any>) => state,
+  reducer: (state: any = {}) => state,
   dependencies: {},
   strategy: "exclusive"
 });
