@@ -36,7 +36,7 @@ export class DefaultStoreSettings extends StoreSettings {
 export class Store<T = any> {
   private stream: StoreType;
 
-  constructor(mainModule: MainModule, storeSettings: StoreSettings, enhancer?: StoreEnhancer) {
+  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancer) {
     const settings = { ...new DefaultStoreSettings(), ...storeSettings } as Settings;
     this.stream = createStore(mainModule, settings, enhancer);
   }

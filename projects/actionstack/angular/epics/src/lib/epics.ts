@@ -6,11 +6,10 @@ import {
   MainModule,
   Observer,
   createInstruction,
-  Store,
   StoreEnhancer,
 } from '@actionstack/store';
 
-import { STORE_ENHANCER } from '@actionstack/angular';
+import { Store, STORE_ENHANCER, StoreSettings } from '@actionstack/angular';
 
 import { NgModule } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
@@ -54,7 +53,7 @@ function concat(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<
 
         if (index < sources.length) {
           const source = sources[index++];
-          let effect = Operation.epic(source);
+          let effect = createInstruction.epic(source);
           stack.add(effect);
           subscription = source(action$, state$, dependencies).subscribe({
             next: value => subscriber.next(Object.assign({}, value, { source: effect })),
@@ -106,7 +105,7 @@ function merge(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<A
       };
 
       sources.forEach(source => {
-        let effect = Operation.epic(source);
+        let effect = createInstruction.epic(source);
         stack.add(effect);
         const subscription = source(action$, state$, dependencies).subscribe({
           next: value => subscriber.next(Object.assign({}, value, { source: effect })),
@@ -272,8 +271,8 @@ export const removeEpics = action("REMOVE_EPICS", (...epics: Epic[]) => ({ epics
  * @param {Function} createStore - The function to create the store.
  * @returns {Function} - A function that accepts the main module and optional enhancer to create an epic store.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, enhancer?: StoreEnhancer): EpicStore => {
-  const store = createStore(module, enhancer) as EpicStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
+  const store = new Store(module, settings!, enhancer) as EpicStore;
 
   /**
    * Extends the store with the given epics.
