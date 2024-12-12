@@ -9,7 +9,7 @@ import {
   Store,
   StoreSettings,
   StoreEnhancer,
-} from '@actioncrew/actionstack';
+} from '@actionstack/store';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 import { Subscription } from 'rxjs/internal/Subscription';

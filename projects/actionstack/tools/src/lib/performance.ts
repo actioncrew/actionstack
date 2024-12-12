@@ -1,4 +1,4 @@
-import { Action, isSystemActionType, salt } from '@actioncrew/actionstack';
+import { Action, isSystemActionType, salt } from '@actionstack/store';
 
 /**
  * Creates a middleware function for logging action performance data.

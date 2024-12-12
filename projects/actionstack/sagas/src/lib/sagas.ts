@@ -8,7 +8,7 @@ import {
   StoreSettings,
   StoreEnhancer,
   createInstruction,
-} from '@actioncrew/actionstack';
+} from '@actionstack/store';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
 import { call, cancelled } from 'redux-saga/effects';
 import { Observable } from 'rxjs/internal/Observable';
