@@ -1,16 +1,15 @@
 import {
   Action,
   action,
+  createInstruction,
   ExecutionStack,
   isAction,
   MainModule,
   Observer,
-  Operation,
   Store,
-  STORE_ENHANCER,
+  StoreSettings,
   StoreEnhancer,
-} from '@actioncrew/actionstack';
-import { NgModule } from '@angular/core';
+} from '@actionstack/store';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 import { Subscription } from 'rxjs/internal/Subscription';
@@ -52,7 +51,7 @@ function concat(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<
 
         if (index < sources.length) {
           const source = sources[index++];
-          let effect = Operation.epic(source);
+          let effect = createInstruction.epic(source);
           stack.add(effect);
           subscription = source(action$, state$, dependencies).subscribe({
             next: value => subscriber.next(Object.assign({}, value, { source: effect })),
@@ -104,7 +103,7 @@ function merge(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<A
       };
 
       sources.forEach(source => {
-        let effect = Operation.epic(source);
+        let effect = createInstruction.epic(source);
         stack.add(effect);
         const subscription = source(action$, state$, dependencies).subscribe({
           next: value => subscriber.next(Object.assign({}, value, { source: effect })),
@@ -265,13 +264,14 @@ export const addEpics = action("ADD_EPICS", (...epics: Epic[]) => ({ epics }));
 export const removeEpics = action("REMOVE_EPICS", (...epics: Epic[]) => ({ epics }));
 
 /**
- * A store enhancer to extend the store with epics.
+ * A store enhancer that extends the store with support for epics.
  *
- * @param {Function} createStore - The function to create the store.
- * @returns {Function} - A function that accepts the main module and optional enhancer to create an epic store.
+ * @param {Function} createStore - A function used to create the base store.
+ * @returns {Function} - A function that takes the main module, optional settings, and an optional enhancer,
+ * and returns an enhanced store with epic capabilities.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, enhancer?: StoreEnhancer): EpicStore => {
-  const store = createStore(module, enhancer) as EpicStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
+  const store = createStore(module, settings, enhancer) as EpicStore;
 
   /**
    * Extends the store with the given epics.
@@ -299,7 +299,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  *
  * @extends {Store}
  */
-export abstract class EpicStore extends Store {
+export type EpicStore = Store & {
   /**
    * Abstract method to extend the store with epics.
    *
@@ -307,26 +307,5 @@ export abstract class EpicStore extends Store {
    * @param {...Epic[]} args - The epics to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the epics are removed.
    */
-  abstract extend<U>(...args: Epic[]): Observable<U>;
+  extend<U>(...args: Epic[]): Observable<U>;
 }
-
-/**
- * NgModule for providing the epic store and its enhancer.
- *
- * @ngModule
- */
-@NgModule({
-  providers: [
-    {
-      provide: STORE_ENHANCER,
-      useValue: storeEnhancer,
-      multi: false
-    },
-    {
-      provide: EpicStore,
-      useFactory: (store: Store) => store,
-      deps: [Store]
-    }
-  ]
-})
-export class EpicModule { }

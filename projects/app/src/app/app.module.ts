@@ -1,6 +1,6 @@
-import { Action, StoreModule } from '@actioncrew/actionstack';
-import { EpicModule, epics } from '@actioncrew/actionstack/epics';
-import { perfmon } from '@actioncrew/actionstack/tools';
+import { Action, createStore } from '@actionstack/store';
+import { epics } from '@actionstack/epics';
+import { perfmon } from '@actionstack/tools';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
@@ -9,18 +9,18 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
 
+export const store = createStore({
+  middleware: [epics, perfmon],
+  reducer: (state: any = {}) => state,
+  dependencies: {},
+  strategy: "exclusive"
+});
+
 @NgModule({
   imports: [
     BrowserModule,
     FormsModule,
     AppRoutingModule,
-    EpicModule,
-    StoreModule.forRoot({
-      middleware: [epics, perfmon],
-      reducer: (state: any = {}, action: Action<any>) => state,
-      dependencies: {},
-      strategy: "exclusive"
-    }),
     MessagesModule
   ],
   declarations: [

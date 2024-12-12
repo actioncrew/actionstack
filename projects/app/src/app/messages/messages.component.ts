@@ -1,6 +1,7 @@
-import { Store } from '@actioncrew/actionstack';
+import { Store } from '@actionstack/store';
 import { Component } from '@angular/core';
 import { addMessage, clearMessages, selectMessages } from './messages.slice';
+import { store } from '../app.module';
 
 @Component({
   selector: 'app-messages',
@@ -8,15 +9,15 @@ import { addMessage, clearMessages, selectMessages } from './messages.slice';
   styleUrls: ['./messages.component.css']
 })
 export class MessagesComponent {
-  messages$ = this.store.select(selectMessages());
+  messages$ = store.select(selectMessages());
 
-  constructor(private store: Store) {}
+  constructor() {}
 
   addMessage(message: string) {
-    this.store.dispatch(addMessage(message));
+    store.dispatch(addMessage(message));
   }
 
   clearMessages() {
-    this.store.dispatch(clearMessages());
+    store.dispatch(clearMessages());
   }
 }

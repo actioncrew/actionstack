@@ -20,22 +20,26 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@actioncrew/actionstack": [
-        "./dist/actionstack",
-        "./projects/actionstack/src/public-api.ts"
+      "@actionstack/store": [
+        "./dist/actionstack/store",
+        "./projects/actionstack/store/src/public-api.ts"
       ],
-      "@actioncrew/actionstack/tools": [
+      "@actionstack/epics": [
+        "dist/actionstack/epics",
+        "./projects/actionstack/epics/src/public-api.ts"
+      ],
+      "@actionstack/sagas": [
+        "dist/actionstack/sagas",
+        "./projects/actionstack/sagas/src/public-api.ts"
+      ],
+      "@actionstack/tools": [
         "./dist/actionstack/tools",
-        "projects/actionstack/tools/src/public-api.ts"
+        "./projects/actionstack/tools/src/public-api.ts"
       ],
-      "@actioncrew/actionstack/sagas": [
-        "./dist/actionstack/sagas",
-        "projects/actionstack/sagas/src/public-api.ts"
+      "@actionstack/angular": [
+        "dist/actionstack/angular",
+        "./projects/actionstack/angular/src/public-api.ts"
       ],
-      "@actioncrew/actionstack/epics": [
-        "./dist/actionstack/epics",
-        "projects/actionstack/epics/src/public-api.ts"
-      ]
     },
     "useDefineForClassFields": false,
     "lib": [
@@ -44,6 +48,7 @@
     ]
   },
   "angularCompilerOptions": {
+    "allowedNonPeerDependencies": true,
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,

@@ -1,11 +1,12 @@
-import { Store } from '@actioncrew/actionstack';
-import { addEpics, removeEpics } from '@actioncrew/actionstack/epics';
+import { Store } from '@actionstack/store';
+import { addEpics, removeEpics } from '@actionstack/epics';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 
 import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
 import { getHeroesRequest, loadHeroes, selectHeroes } from './heroes.slice';
+import { store } from '../app.module';
 
 @Component({
   selector: 'app-heroes',
@@ -16,12 +17,12 @@ export class HeroesComponent implements OnInit, OnDestroy {
   heroes: Hero[] = [];
   subscription!: Subscription;
 
-  constructor(private store: Store, private heroService: HeroService) { }
+  constructor(private heroService: HeroService) { }
 
   ngOnInit(): void {
-    this.store.dispatch(addEpics(loadHeroes));
+    store.dispatch(addEpics(loadHeroes));
 
-    this.subscription = this.store.select(selectHeroes()).subscribe(value => {
+    this.subscription = store.select(selectHeroes()).subscribe(value => {
       this.heroes = value;
     });
 
@@ -29,12 +30,12 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   getHeroes(): void {
-    this.store.dispatch(getHeroesRequest(this.heroes));
+    store.dispatch(getHeroesRequest(this.heroes));
   }
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
 
-    this.store.dispatch(removeEpics(loadHeroes));
+    store.dispatch(removeEpics(loadHeroes));
   }
 }
