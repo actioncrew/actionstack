@@ -8,6 +8,9 @@ import {
   StoreEnhancer,
   Instruction,
 } from '@actionstack/store';
+
+export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
+
 import { NgModule } from '@angular/core';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
 import { call, cancelled } from 'redux-saga/effects';

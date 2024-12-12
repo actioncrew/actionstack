@@ -9,6 +9,8 @@ import {
   StoreEnhancer,
 } from '@actionstack/store';
 
+export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
+
 import { Store, STORE_ENHANCER, StoreSettings } from '@actionstack/angular';
 
 import { NgModule } from '@angular/core';

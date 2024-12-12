@@ -1,6 +1,6 @@
-
-import { Action, createStore, Store as StoreType, FeatureModule, MainModule, StoreEnhancer, Tracker, StoreSettings as Settings } from '@actionstack/store';
+import { Action, createStore, Store as StoreType, StoreEnhancer as StoreEnhancerType, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
 import { Observable } from 'rxjs/internal/Observable';
+export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
 
 /**
  * Configuration settings for the store.
@@ -36,7 +36,7 @@ export class DefaultStoreSettings extends StoreSettings {
 export class Store<T = any> {
   private stream: StoreType;
 
-  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancer) {
+  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancerType) {
     const settings = { ...new DefaultStoreSettings(), ...storeSettings } as Settings;
     this.stream = createStore(mainModule, settings, enhancer);
   }
