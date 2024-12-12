@@ -1,24 +1,71 @@
-# Epics
+# ActionStack Epics
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.2.0.
+## Overview
 
-## Code scaffolding
+Actionstack Epics is a middleware package that enables handling asynchronous operations and side effects in a reactive manner using RxJS. With support for streams, it is ideal for applications requiring complex event-driven logic.
 
-Run `ng generate component component-name --project epics` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project epics`.
-> Note: Don't forget to add `--project epics` or else it will be added to the default project in your `angular.json` file. 
+## Installation
 
-## Build
+Install Actionstack Epics using:
 
-Run `ng build epics` to build the project. The build artifacts will be stored in the `dist/` directory.
+    npm install @actionstack/epics
 
-## Publishing
+## Features
 
-After building your library with `ng build epics`, go to the dist folder `cd dist/epics` and run `npm publish`.
+- Reactive side effect management using RxJS
+- Concurrent and sequential processing of streams
+- Supports dynamic addition and removal of epics
+- Integrates seamlessly with the Actionstack store
 
-## Running unit tests
+## Usage
 
-Run `ng test epics` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Setting Up Epics Middleware
 
-## Further help
+Configure the epics middleware in your store:
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+    import { createStore } from '@actionstack/store';
+    import { epics, addEpics } from '@actionstack/epics';
+    import rootEpic from './epics';
+
+    const store = createStore({
+      middleware: [epics],
+      reducer: (state: any = {}) => state,
+      dependencies: {},
+      strategy: "exclusive"
+    });
+
+    // Register the root epic
+    store.dispatch(addEpics(rootEpic));
+
+Writing an Epic
+
+Epics are functions that transform action streams into other streams:
+
+    import { ofType } from '@actionstack/epics';
+    import { map } from 'rxjs/operators';
+    import { fetchSuccess } from './actions';
+
+    const fetchEpic = (action$) =>
+      action$.pipe(
+        ofType('FETCH_REQUEST'),
+        map(() => fetchSuccess())
+      );
+
+    export default fetchEpic;
+
+## API Reference
+
+### Middleware
+
+- epicsMiddleware: Middleware to handle epics.
+
+### Utilities
+
+- addEpics: Action to dynamically add epics.
+- removeEpics: Action to dynamically remove epics.
+- ofType: RxJS operator to filter actions by type.
+
+## Contribution
+
+For bug reports or feature requests, please open an issue or submit a pull request on [GitHub](https://github.com/actioncrew/actionstack).
+

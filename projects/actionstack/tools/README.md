@@ -1,24 +1,50 @@
-# Tools
+# ActionStack Tools
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 14.2.0.
+ActionStack comes with a set of built-in tools that help developers with debugging, performance monitoring, and ensuring state immutability in your application. These tools are designed to provide deeper insights into the state and actions of your application, making it easier to track changes, optimize performance, and maintain clean, immutable state.
 
-## Code scaffolding
+## Tools Overview
 
-Run `ng generate component component-name --project tools` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project tools`.
-> Note: Don't forget to add `--project tools` or else it will be added to the default project in your `angular.json` file. 
+### 1. Logger
+The Logger tool tracks all state changes and actions in your application. It provides detailed logs to the console, helping you trace the flow of state and debug any issues more efficiently.
 
-## Build
+#### Features:
+- Logs state before and after actions.
+- Displays the action name, type, and payload.
+- Helps in identifying side effects and unwanted mutations.
+- Supports custom log levels (e.g., info, warn, error).
 
-Run `ng build tools` to build the project. The build artifacts will be stored in the `dist/` directory.
+### 2. Performance Monitor
+The Performance Monitor measures the time taken for state changes and actions. It helps you pinpoint any performance bottlenecks by logging the time each action or state change takes to execute.
 
-## Publishing
+#### Features:
+- Logs performance metrics for each state change or action.
+- Measures time taken for state updates.
+- Provides an overview of slow actions, aiding in optimization.
 
-After building your library with `ng build tools`, go to the dist folder `cd dist/tools` and run `npm publish`.
+### 3. State Freezer
+The State Freezer ensures that your application’s state remains immutable. It prevents accidental mutations of the state, helping to maintain a predictable, reliable application.
 
-## Running unit tests
+#### Features:
+- Prevents direct state mutations.
+- Throws warnings or errors if state is mutated directly.
+- Ensures state is updated only through actions, preserving immutability.
 
-Run `ng test tools` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Installation
+To use ActionStack tools, install the ActionStack package (if not already installed):
 
-## Further help
+    npm install @actionstack/tools
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+Then, import the necessary tools in your application:
+
+    import { createStore } from '@actionstack/store';
+    import { logger, perfmon, storeFreeze } from '@actionstack/tools';
+    export const store = createStore({
+      middleware: [logger, perfmon, storeFreeze],
+      reducer: (state: any = {}) => state,
+      dependencies: {},
+      strategy: "exclusive"
+    });
+
+## Conclusion
+
+These tools are essential for development and debugging in ActionStack, making it easier to manage and monitor state, track performance, and enforce best practices like immutability. Use them to make your application more robust, efficient, and maintainable.
