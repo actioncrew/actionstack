@@ -1,10 +1,9 @@
 import { ElementRef, inject, Injectable, OnDestroy } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-import { Subscription } from 'rxjs/internal/Subscription';
 
 import { StoreModule } from './module';
 import { Store } from './store';
-import { Action, Reducer, SliceStrategy } from './types';
+import { Action, Reducer, SliceStrategy } from '@actionstack/store';
 
 /**
  * Interface defining configuration options for a Slice.
@@ -29,7 +28,6 @@ export interface SliceOptions {
 @Injectable()
 export class Slice implements OnDestroy {
   private opts: SliceOptions;
-  private subscription = Subscription.EMPTY;
   private elRef!: ElementRef<HTMLElement>;
 
   /**
@@ -46,7 +44,7 @@ export class Slice implements OnDestroy {
 
     this.opts = {
       slice: this.elRef ? this.elRef.nativeElement.localName : "noname",
-      reducer: (state: any = {}, action: Action) => state,
+      reducer: (state: any = {}) => state,
       dependencies: {},
       strategy: "persistent"
     };
@@ -63,7 +61,7 @@ export class Slice implements OnDestroy {
       slice: this.opts.slice,
       dependencies: this.opts.dependencies,
       reducer: this.opts.reducer
-    }, StoreModule.injector);
+    });
   }
 
   /**

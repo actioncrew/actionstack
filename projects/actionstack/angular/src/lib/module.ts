@@ -1,10 +1,13 @@
 import { InjectionToken, Injector, ModuleWithProviders, NgModule, Optional, Provider } from '@angular/core';
 
-import { Store, StoreSettings } from './store';
-import { FeatureModule, MainModule, StoreEnhancer } from './types';
+import { DefaultStoreSettings, Store, StoreSettings } from './store';
+import { FeatureModule, MainModule, StoreEnhancer } from '@actionstack/store';
 
+// Injection token for store settings
+export const STORE_SETTINGS = new InjectionToken<StoreSettings>("STORE_SETTINGS");
 
-export const STORE_ENHANCER = new InjectionToken<StoreEnhancer>("Store Enhancer");
+// Injection token for optional store enhancer
+export const STORE_ENHANCER = new InjectionToken<StoreEnhancer>("STORE_ENHANCER");
 
 /**
  * This module provides a centralized mechanism for managing application state
@@ -52,15 +55,18 @@ export class StoreModule {
       providers: [
         {
           provide: StoreSettings,
-          useClass: StoreSettings
+          useFactory: (customSettings: StoreSettings | null) => {
+            return { ...new DefaultStoreSettings(), ...customSettings };
+          },
+          deps: [[new Optional(), STORE_SETTINGS]],
         },
         {
           provide: Store,
           useFactory: (settings: StoreSettings, enhancer: StoreEnhancer) => {
               if (!StoreModule.store) {
                 StoreModule.store = enhancer
-                  ? (Store.create(module, enhancer))
-                  : Store.create(module);
+                  ? (new Store(module, settings, enhancer))
+                  : new Store(module, settings);
               }
 
             queueMicrotask(() => StoreModule.modulesFn.forEach(fn => fn()));
@@ -79,7 +85,7 @@ export class StoreModule {
    */
   static forFeature(module: FeatureModule): ModuleWithProviders<StoreModule> {
     const loadFeatureModule = () => {
-      StoreModule.store!.loadModule(module, StoreModule.injector);
+      StoreModule.store!.loadModule(module);
     };
 
     if (!StoreModule.store) {
