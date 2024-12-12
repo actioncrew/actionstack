@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, Subscription, map, tap } from 'rxjs';
 
-import { Store } from '@actioncrew/actionstack';
+import { Store } from '@actionstack/store';
 import { Hero } from '../hero';
 import { heroSelector, loadHero } from './hero-details.slice';
 import { store } from '../app.module';

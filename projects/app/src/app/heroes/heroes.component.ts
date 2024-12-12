@@ -1,5 +1,5 @@
-import { Store } from '@actioncrew/actionstack';
-import { addEpics, removeEpics } from '@actioncrew/actionstack/epics';
+import { Store } from '@actionstack/store';
+import { addEpics, removeEpics } from '@actionstack/epics';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 

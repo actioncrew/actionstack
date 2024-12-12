@@ -1,4 +1,4 @@
-import { Store } from '@actioncrew/actionstack';
+import { Store } from '@actionstack/store';
 import { Component } from '@angular/core';
 import { addMessage, clearMessages, selectMessages } from './messages.slice';
 import { store } from '../app.module';

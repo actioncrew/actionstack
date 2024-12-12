@@ -1,6 +1,6 @@
-import { Action, createStore } from '@actioncrew/actionstack';
-import { epics } from '@actioncrew/actionstack/epics';
-import { perfmon } from '@actioncrew/actionstack/tools';
+import { Action, createStore } from '@actionstack/store';
+import { epics } from '@actionstack/epics';
+import { perfmon } from '@actionstack/tools';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';

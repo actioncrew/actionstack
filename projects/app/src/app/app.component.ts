@@ -1,4 +1,4 @@
-import { EpicStore } from '@actioncrew/actionstack/epics';
+import { EpicStore } from '@actionstack/epics';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { takeEvery } from 'redux-saga/effects';
 import { Subscription } from 'rxjs/internal/Subscription';

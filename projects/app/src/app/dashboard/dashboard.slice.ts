@@ -1,4 +1,4 @@
-import { action, featureSelector, selector } from '@actioncrew/actionstack';
+import { action, featureSelector, selector } from '@actionstack/store';
 import { firstValueFrom } from 'rxjs';
 
 import { Hero } from '../hero';
