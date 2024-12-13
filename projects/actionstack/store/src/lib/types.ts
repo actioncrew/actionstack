@@ -56,7 +56,7 @@ export type Reducer = (state: any, action: Action) => Exclude<any, Promise<any>>
  * @param action - The action object being dispatched.
  * @returns Promise<any> - A promise that resolves to the updated state after asynchronous operations (if any).
  */
-export type AsyncReducer = (state: any, action: Action) => Promise<any>;
+export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
 
 /**
  * Type alias for a meta-reducer function.
@@ -242,7 +242,6 @@ export interface FeatureModule {
  */
 export interface MainModule {
   slice?: string;
-  middleware?: Middleware[];
   reducer: Reducer | Tree<Reducer>;
   metaReducers?: MetaReducer[];
   dependencies?: Tree<any>;

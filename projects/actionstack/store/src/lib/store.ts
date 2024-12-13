@@ -3,6 +3,7 @@ import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
+import { applyMiddleware, combineEnhancers, combineReducers } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -16,6 +17,7 @@ import {
   kindOf,
   MainModule,
   MetaReducer,
+  Middleware,
   Observer,
   ProcessingStrategy,
   Reducer,
@@ -23,15 +25,16 @@ import {
   Tree,
 } from './types';
 
+
 /**
  * Class representing configuration options for a store.
  * This class defines properties that control various behaviors of a store for managing application state.
  */
 export type StoreSettings = {
-  dispatchSystemActions: boolean;
-  awaitStatePropagation: boolean;
-  enableMetaReducers: boolean;
-  enableAsyncReducers: boolean;
+  dispatchSystemActions?: boolean;
+  awaitStatePropagation?: boolean;
+  enableMetaReducers?: boolean;
+  enableAsyncReducers?: boolean;
 };
 
 /**
@@ -56,6 +59,8 @@ export type Store<T = any> = {
   select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
+  getMiddlewareAPI: () => any;
+  starter: Middleware;
 };
 
 /**
@@ -109,13 +114,15 @@ const systemActions = {
  * It also accepts store settings that define various configuration options for the store.
  * The `storeSettings` parameter defaults to `defaultStoreSettings` if not provided.
  */
-export function createStore<T = any>(mainModule: MainModule, storeSettings: StoreSettings = defaultStoreSettings, enhancer?: StoreEnhancer): Store<T> {
-
+export function createStore<T = any>(
+  mainModule: MainModule,
+  storeSettingsOrEnhancer?: StoreSettings | StoreEnhancer,
+  enhancer?: StoreEnhancer
+): Store<T> {
   let main = { ...mainModule };
   let modules: FeatureModule[] = [];
 
   let pipeline = {
-    middleware: [] as any[],
     reducer: ((state: any = {}) => state) as AsyncReducer,
     dependencies: {} as Tree<any>,
     strategy: "exclusive" as ProcessingStrategy
@@ -123,8 +130,18 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
 
   let sysActions = { ...systemActions };
 
+  // Determine if the second argument is storeSettings or enhancer
+  let settings: StoreSettings;
+  if (typeof storeSettingsOrEnhancer === "function") {
+    // If it's a function, it's the enhancer
+    enhancer = storeSettingsOrEnhancer;
+    settings = defaultStoreSettings; // Use default settings if not provided
+  } else {
+    // Otherwise, it's storeSettings
+    settings = { ...storeSettingsOrEnhancer, ...defaultStoreSettings };
+  }
+
   const currentState = new BehaviorSubject<any>({});
-  const settings = { ...defaultStoreSettings, ...storeSettings };
   const tracker = createTracker();
   const lock = createLock();
   const stack = createExecutionStack();
@@ -155,30 +172,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
     } catch {
       console.warn('Error during processing the action');
     }
-  };
-
-  /**
-   * Applies middleware to the dispatch function to modify its behavior.
-   *
-   * This function sets up a middleware chain by combining the starter middleware with other middleware
-   * functions provided in the pipeline. It modifies the dispatch function by wrapping it in the middleware
-   * chain, allowing the action to be intercepted and potentially modified before it reaches the reducer.
-   */
-  const applyMiddleware = () => {
-    // Define starter and middleware APIs
-    const middlewareAPI = {
-      getState: () => getState(),
-      dispatch: async (action: any) => await dispatch(action),
-      dependencies: () => pipeline.dependencies,
-      strategy: () => pipeline.strategy,
-      lock: lock,
-      stack: stack
-    };
-
-    // Build middleware chain
-    const chain = [starter(middlewareAPI), ...pipeline.middleware.map(middleware => middleware(middlewareAPI))] as any[];
-    // Compose middleware chain with dispatch function
-    dispatch = (chain.length === 1 ? chain[0] : chain.reduce((a, b) => (...args: any[]) => a(b(...args))))(dispatch);
   };
 
   /**
@@ -331,6 +324,31 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   }
 
   /**
+   * Selects a specific value from the state using the provided selector function.
+   * The function returns an observable that emits the selected value whenever the state changes.
+   * Optionally, a default value can be provided if the selector returns `undefined`.
+   */
+  const getState = (slice?: keyof T | string[] | "@global"): any => {
+    if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
+      return currentState.value as T;
+    } else if (typeof slice === "string") {
+      return currentState.value[slice] as T;
+    } else if (Array.isArray(slice)) {
+      return slice.reduce((acc, key) => {
+        if (acc === undefined || acc === null) {
+          return undefined;
+        } else if (Array.isArray(acc)) {
+          return acc[parseInt(key)];
+        } else {
+          return acc[key];
+        }
+      }, currentState.value) as T;
+    } else {
+      console.warn("Unsupported type of slice parameter");
+    }
+  }
+
+  /**
    * Sets the state for a specified slice of the global state, updating it with the given value.
    * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
    */
@@ -388,48 +406,43 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   };
 
   /**
-   * Combines multiple reducers into a single asynchronous reducer function.
-   * The combined reducer applies each individual reducer to the state based on its corresponding path.
+   * Reads the state slice and executes the provided callback with the current state.
+   * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
    */
-  const combineReducers = (reducers: Tree<Reducer>): AsyncReducer => {
-    // Create a map for reducers
-    const reducerMap = new Map<Reducer, string[]>();
-
-    /**
-     * Recursively builds a map of reducers with their corresponding paths.
-     */
-    const buildReducerMap = (tree: Tree<Reducer>, path: string[] = []) => {
-      for (const key in tree) {
-        const reducer = tree[key]; const newPath = [...path, key]; // Add current key to the path
-        if(reducer instanceof Function) {
-          reducerMap.set(reducer, newPath);
-        }
-        else if (typeof reducer === 'object') {
-          buildReducerMap(reducer, newPath);
-        }
+  const readSafe = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
+    const promise = (async () => {
+      try {
+        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+        const state = await getState(slice); // Get state after acquiring lock
+        callback(state);
+      } finally {
+        lock.release(); // Release lock regardless of success or failure
       }
-    };
+    })();
 
-    buildReducerMap(reducers);
+    return promise;
+  }
 
-    /**
-     * Combined reducer function that applies each individual reducer to the state.
-     */
-    const combinedReducer = async (state: any = {}, action: Action) => {
-      // Apply every reducer to state and track changes
-      let modified = {};
-      for (const [reducer, path] of reducerMap) {
-        try {
-          const currentState = await getState(path);
-          const updatedState = await reducer(currentState, action);
-          if(currentState !== updatedState) { state = await applyChange(state, {path, value: updatedState}, modified); }
-        } catch (error: any) {
-          console.warn(`Error occurred while processing an action ${action.type} for ${path.join('.')}: ${error.message}`);
+  /**
+   * Selects a value from the store's state using the provided selector function.
+   */
+  const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
+    let lastValue: any;
+    let selected$: Observable<R> | undefined;
+    return new Observable<R>((subscriber: Observer<R>) => {
+      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
+        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
+        if(filteredValue !== lastValue) {
+          Promise.resolve(subscriber.next(filteredValue))
+            .then(() => lastValue = filteredValue)
+            .finally(() => tracker.setStatus(selected$!, true));
+        } else {
+          tracker.setStatus(selected$!, true);
         }
-      }
-      return state;
-    };
-    return combinedReducer;
+      });
+
+      return () => subscription.unsubscribe();
+    });
   }
 
   /**
@@ -474,69 +487,16 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   }
 
   /**
-   * Reads the state slice and executes the provided callback with the current state.
-   * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
+   * Creates the middleware API object for use in the middleware pipeline.
    */
-  const readSafe = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
-    const promise = (async () => {
-      try {
-        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const state = await getState(slice); // Get state after acquiring lock
-        callback(state);
-      } finally {
-        lock.release(); // Release lock regardless of success or failure
-      }
-    })();
-
-    return promise;
-  }
-
-  /**
-   * Selects a value from the store's state using the provided selector function.
-   */
-  const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
-    let lastValue: any;
-    let selected$: Observable<R> | undefined;
-    return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
-        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
-        if(filteredValue !== lastValue) {
-          Promise.resolve(subscriber.next(filteredValue))
-            .then(() => lastValue = filteredValue)
-            .finally(() => tracker.setStatus(selected$!, true));
-        } else {
-          tracker.setStatus(selected$!, true);
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    });
-  }
-
-  /**
-   * Selects a specific value from the state using the provided selector function.
-   * The function returns an observable that emits the selected value whenever the state changes.
-   * Optionally, a default value can be provided if the selector returns `undefined`.
-   */
-  const getState = (slice?: keyof T | string[] | "@global"): any => {
-    if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
-      return currentState.value as T;
-    } else if (typeof slice === "string") {
-      return currentState.value[slice] as T;
-    } else if (Array.isArray(slice)) {
-      return slice.reduce((acc, key) => {
-        if (acc === undefined || acc === null) {
-          return undefined;
-        } else if (Array.isArray(acc)) {
-          return acc[parseInt(key)];
-        } else {
-          return acc[key];
-        }
-      }, currentState.value) as T;
-    } else {
-      console.warn("Unsupported type of slice parameter");
-    }
-  }
+  const getMiddlewareAPI = () => ({
+    getState: () => getState(),
+    dispatch: async (action: any) => await dispatch(action),
+    dependencies: () => pipeline.dependencies,
+    strategy: () => pipeline.strategy,
+    lock: lock,
+    stack: stack,
+  });
 
   /**
    * Creates and initializes the store with the given main module configuration.
@@ -545,7 +505,6 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
   let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
     let defaultMainModule = {
       slice: "main",
-      middleware: [],
       reducer: (state: any = {}) => state as Reducer,
       metaReducers: [],
       dependencies: {},
@@ -557,14 +516,10 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
 
     // Configure store pipeline
     pipeline = {...pipeline, ...{
-      middleware: Array.from(main.middleware ?? []),
       reducer: combineReducers({[main.slice!]: main.reducer}),
       dependencies: {...main.dependencies},
       strategy: main.strategy!,
     }};
-
-    // Apply middleware
-    applyMiddleware();
 
     // Bind system actions
     sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
@@ -582,25 +537,30 @@ export function createStore<T = any>(mainModule: MainModule, storeSettings: Stor
     sysActions.storeInitialized();
 
     return {
+      starter,
       dispatch,
       getState,
       readSafe,
       select,
       loadModule,
-      unloadModule
+      unloadModule,
+      getMiddlewareAPI,
     } as Store<any>;
   }
 
   // Apply enhancer if provided
-  if (typeof enhancer !== "undefined") {
-    if (typeof enhancer !== "function") {
-      console.warn(`Expected the enhancer to be a function. Instead, received: '${kindOf(enhancer)}'`);
-    } else {
-      // Apply the enhancer to the storeCreator function
-      return enhancer(storeCreator)(main, settings);
+  if (typeof enhancer === "function") {
+    // Check if the enhancer contains applyMiddleware
+    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
+
+    // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
+    if (!hasMiddlewareEnhancer) {
+      return combineEnhancers(enhancer, applyMiddleware())(storeCreator)(main, settings); // Ensure starter is included
     }
+
+    return enhancer(storeCreator)(main, settings);
   }
 
-  // If no enhancer provided, return the result of calling storeCreator
-  return storeCreator(main, settings);
+  // If no enhancer provided, ensure starter is included by applying applyMiddleware with an empty array
+  return applyMiddleware()(storeCreator)(main, settings); // Call applyMiddleware to include starter
 }

@@ -27,12 +27,11 @@ Configure the epics middleware in your store:
     import { epics, addEpics } from '@actionstack/epics';
     import rootEpic from './epics';
 
-    const store = createStore({
-      middleware: [epics],
+    export const store = createStore({
       reducer: (state: any = {}) => state,
       dependencies: {},
       strategy: "exclusive"
-    });
+    }, applyMiddleware(logger, epics));
 
     // Register the root epic
     store.dispatch(addEpics(rootEpic));
@@ -57,7 +56,7 @@ Epics are functions that transform action streams into other streams:
 
 ### Middleware
 
-- epicsMiddleware: Middleware to handle epics.
+- epics: Middleware to handle epics.
 
 ### Utilities
 

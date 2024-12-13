@@ -27,12 +27,11 @@ Import and configure the middleware in your store setup:
     import { sagas, addSagas } from '@actionstack/sagas';
     import rootSaga from './sagas';
 
-    const store = createStore({
-      middleware: [sagas],
+    export const store = createStore({
       reducer: (state: any = {}) => state,
       dependencies: {},
       strategy: "exclusive"
-    });
+    }, applyMiddleware(logger, sagas));
 
     // Register the root epic
     store.dispatch(addSagas(rootSaga));
@@ -62,7 +61,7 @@ Sagas are generator functions that describe side effects in a declarative way. U
 
 ### Middleware
 
-- sagaMiddleware: Middleware to connect sagas to the store. Use sagaMiddleware.run to start the root saga.
+- sagas: Middleware to connect sagas to the store.
 
 ### Effects
 
