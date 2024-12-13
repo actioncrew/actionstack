@@ -64,4 +64,12 @@ export class Store<T = any> {
   unloadModule(module: FeatureModule, clearState: boolean): Promise<void> {
     return this.stream.unloadModule(module, clearState);
   }
+
+  getMiddlewareAPI() {
+    return this.stream.getMiddlewareAPI();
+  }
+
+  get starter() {
+    return this.stream.starter;
+  }
 };

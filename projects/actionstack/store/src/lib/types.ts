@@ -215,7 +215,7 @@ export type SliceStrategy = "persistent" | "temporary";
  */
 export interface FeatureModule {
   slice: string;
-  reducer: Reducer | Tree<Reducer>;
+  reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
   dependencies?: Tree<any>;
 }
 
@@ -242,7 +242,7 @@ export interface FeatureModule {
  */
 export interface MainModule {
   slice?: string;
-  reducer: Reducer | Tree<Reducer>;
+  reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
   metaReducers?: MetaReducer[];
   dependencies?: Tree<any>;
   strategy?: ProcessingStrategy;

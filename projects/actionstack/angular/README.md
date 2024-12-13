@@ -16,7 +16,8 @@ ActionStack Angular is an Angular wrapper for the ActionStack state management l
 - Slice: A class for managing a specific slice of state within the store. It provides methods for configuring the slice, dispatching actions, and selecting state.
 
 ## Usage
-StoreModule: Registers the store at the root level or for feature modules.
+### StoreModule:
+Registers the store at the root level or for feature modules.
 
     import { StoreModule } from '@actionstack/angular';
 
@@ -24,7 +25,6 @@ StoreModule: Registers the store at the root level or for feature modules.
       imports: [
         ...,
         StoreModule.forRoot({
-          middleware: [epics, perfmon],
           reducer: (state: any = {}) => state,
           dependencies: {},
           strategy: "concurrent"
@@ -41,7 +41,6 @@ StoreModule: Registers the store at the root level or for feature modules.
 or instead of use StoreModule use helper functions:
 
     provideStore({
-      middleware: [epics, perfmon],
       reducer: (state: any = {}, action: Action<any>) => state,
       dependencies: {},
       strategy: "exclusive"
@@ -52,10 +51,11 @@ for feature module:
     provideModule({
       slice: slice,
       reducer: reducer,
-      dependencies: {heroService: HeroService}
+      dependencies: { heroService: new HeroService() }
     })
 
-Slice: Defines slices of state for specific parts of the application, allowing for modular state management.
+### Slice:
+Defines slices of state for specific parts of the application, allowing for modular state management.
 
     import { Slice } from '@actionstack/angular';
 
@@ -77,7 +77,7 @@ Slice: Defines slices of state for specific parts of the application, allowing f
         this.slice.setup({
           slice: slice,
           reducer: reducer,
-          dependencies: { heroService: HeroService },
+          dependencies: { heroService: new HeroService() },
           strategy: "persistent"
         });
 
@@ -88,7 +88,8 @@ Slice: Defines slices of state for specific parts of the application, allowing f
       }
     }
 
-Store: Acts as the single source of truth for application state, providing a unified place to manage, update, and access state across the entire application.
+### Store: 
+Acts as the single source of truth for application state, providing a unified place to manage, update, and access state across the entire application.
     
     import { Component, OnInit } from '@angular/core';
     import { Observable, Subscription, map, tap } from 'rxjs';
