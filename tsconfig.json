@@ -25,11 +25,11 @@
         "./projects/actionstack/store/src/public-api.ts"
       ],
       "@actionstack/epics": [
-        "dist/actionstack/epics",
+        "./dist/actionstack/epics",
         "./projects/actionstack/epics/src/public-api.ts"
       ],
       "@actionstack/sagas": [
-        "dist/actionstack/sagas",
+        "./dist/actionstack/sagas",
         "./projects/actionstack/sagas/src/public-api.ts"
       ],
       "@actionstack/tools": [
@@ -37,7 +37,7 @@
         "./projects/actionstack/tools/src/public-api.ts"
       ],
       "@actionstack/angular": [
-        "dist/actionstack/angular",
+        "./dist/actionstack/angular",
         "./projects/actionstack/angular/src/public-api.ts"
       ],
     },
