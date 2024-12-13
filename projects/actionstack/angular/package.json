@@ -1,12 +1,12 @@
 {
   "name": "@actionstack/angular",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "peerDependencies": {
     "@angular/common": "^14.2.0",
     "@angular/core": "^14.2.0"
   },
   "dependencies": {
-    "@actionstack/store": "^2.0.1",
+    "@actionstack/store": "^2.0.2",
     "tslib": "^2.3.0"
   },
   "license": "MIT",

@@ -1,6 +1,6 @@
 {
   "name": "actionstack",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "minify": "node terser.mjs",
-    "bundle": "dts-bundle-generator --o ./dist/actionstack/store/actionstack.d.ts ./dist/actionstack/store/index.d.ts"
+    "bundle": "dts-bundle-generator --o ./dist/actionstack/angular/actionstack.d.ts ./dist/actionstack/angular/index.d.ts"
   },
   "dependencies": {
     "@angular/animations": "^14.0.0",
