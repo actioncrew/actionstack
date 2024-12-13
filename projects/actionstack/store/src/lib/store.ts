@@ -555,12 +555,12 @@ export function createStore<T = any>(
 
     // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
     if (!hasMiddlewareEnhancer) {
-      return combineEnhancers(enhancer, applyMiddleware())(storeCreator)(main, settings); // Ensure starter is included
+      return combineEnhancers(enhancer, applyMiddleware())(storeCreator)(main, settings);
     }
 
     return enhancer(storeCreator)(main, settings);
   }
 
   // If no enhancer provided, ensure starter is included by applying applyMiddleware with an empty array
-  return applyMiddleware()(storeCreator)(main, settings); // Call applyMiddleware to include starter
+  return applyMiddleware()(storeCreator)(main, settings);
 }
