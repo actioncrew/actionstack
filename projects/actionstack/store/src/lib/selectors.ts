@@ -74,7 +74,7 @@ function createSelector<U = any, T = any>(
       return () => EMPTY;
     }
 
-    let lastSliceState: any, emitted = false;
+    let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
       const trackable = new Observable<U>((observer: Observer<U | undefined>) => {
         let sliceState$: Observable<U>;
@@ -115,7 +115,7 @@ function createSelector<U = any, T = any>(
               console.warn("Error during selector execution:", error.message);
             }
           }
-        }, error => tracker?.setStatus(trackable, true), () => tracker?.setCompletion(trackable));
+        }, error => tracker?.setStatus(trackable, true), () => tracker?.complete(trackable));
 
         return () => subscription.unsubscribe();
       });
@@ -243,7 +243,7 @@ function createSelectorAsync<U = any, T = any>(
           },
           complete: () => {
             if (!unsubscribed && !didCancel) {
-              tracker?.setCompletion(trackable);
+              tracker?.complete(trackable);
               observer.complete();
             }
           },

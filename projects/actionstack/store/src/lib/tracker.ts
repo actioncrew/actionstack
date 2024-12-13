@@ -31,7 +31,7 @@ export type Tracker = {
    *
    * @param {Observable<any>} entry - The Observable to mark as completed.
    */
-  setCompletion: (entry: Observable<any>) => void;
+  complete: (entry: Observable<any>) => void;
 
   /**
    * Tracks a new Observable.
@@ -84,7 +84,7 @@ export const createTracker = (): Tracker => {
   /**
    * Marks a tracked Observable as completed.
    */
-  const setCompletion: Tracker['setCompletion'] = (entry) =>
+  const setCompletion: Tracker['complete'] = (entry) =>
     entries.get(entry)?.complete();
 
   /**
@@ -160,7 +160,7 @@ export const createTracker = (): Tracker => {
     timeout,
     getStatus,
     setStatus,
-    setCompletion,
+    complete: setCompletion,
     track,
     remove,
     reset,

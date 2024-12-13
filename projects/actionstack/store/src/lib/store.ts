@@ -3,7 +3,7 @@ import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
-import { applyMiddleware, combineEnhancers, combineReducers } from './utils';
+import { applyChange, applyMiddleware, combineEnhancers, combineReducers } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -297,30 +297,6 @@ export function createStore<T = any>(
     // Dispatch module unloaded action
     systemActions.moduleUnloaded(module);
     return promise;
-  }
-
-  /**
-   * Updates a nested state object by applying a change to the specified path and value.
-   * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
-   * for unchanged branches. Tracks visited nodes in the provided object tree to avoid redundant updates.
-   */
-  const applyChange = (initialState: any, {path, value}: {path: string[], value: any}, objTree: Tree<boolean>): any => {
-    let currentState: any = Object.keys(objTree).length > 0 ? initialState: {...initialState};
-    let currentObj: any = currentState;
-
-    for (let i = 0; i < path.length; i++) {
-      const key = path[i];
-      if (i === path.length - 1) {
-        // Reached the leaf node, update its value
-        currentObj[key] = value;
-        objTree[key] = true;
-      } else {
-        // Continue traversal
-        currentObj = currentObj[key] = objTree[key] ? currentObj[key] : { ...currentObj[key] };
-        objTree = (objTree[key] = objTree[key] ?? {}) as any;
-      }
-    }
-    return currentState;
   }
 
   /**

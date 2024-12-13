@@ -1,7 +1,29 @@
-import { Action } from "redux-saga";
-import { AsyncReducer, StoreCreator, StoreEnhancer, Tree } from "./types";
-import { starter } from "./starter";
+import { Action, AsyncReducer, StoreCreator, StoreEnhancer, Tree } from "./types";
 
+
+/**
+   * Updates a nested state object by applying a change to the specified path and value.
+   * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
+   * for unchanged branches. Tracks visited nodes in the provided object tree to avoid redundant updates.
+   */
+function applyChange(initialState: any, {path, value}: {path: string[], value: any}, objTree: Tree<boolean>): any {
+  let currentState: any = Object.keys(objTree).length > 0 ? initialState: {...initialState};
+  let currentObj: any = currentState;
+
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i];
+    if (i === path.length - 1) {
+      // Reached the leaf node, update its value
+      currentObj[key] = value;
+      objTree[key] = true;
+    } else {
+      // Continue traversal
+      currentObj = currentObj[key] = objTree[key] ? currentObj[key] : { ...currentObj[key] };
+      objTree = (objTree[key] = objTree[key] ?? {}) as any;
+    }
+  }
+  return currentState;
+}
 
 /**
  * Combines multiple store enhancers into a single enhancer function.
@@ -11,7 +33,7 @@ import { starter } from "./starter";
  * @param enhancers - An array of store enhancers to be combined.
  * @returns A single store enhancer that applies all provided enhancers.
  */
-export function combineEnhancers(...enhancers: StoreEnhancer[]): StoreEnhancer {
+function combineEnhancers(...enhancers: StoreEnhancer[]): StoreEnhancer {
   // Collect the names of the enhancers for later access
   const methodNames = enhancers.map(enhancer => enhancer.name);
 
@@ -77,8 +99,6 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
     return initialState;
   };
 
-
-
   /**
    * Combined reducer function.
    */
@@ -87,6 +107,7 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
       state = await gatherInitialState();
     }
     let hasChanged = false;
+    const modified: any = {}; // To track the modifications
     const nextState = { ...state };
 
     for (const { reducer, path } of reducerMap.values()) {
@@ -96,12 +117,8 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
         const updatedState = await reducer(currentState, action);
         if (currentState !== updatedState) {
           hasChanged = true;
-          let cursor = nextState;
-          for (let i = 0; i < path.length - 1; i++) {
-            cursor[path[i]] = { ...cursor[path[i]] }; // Clone intermediate objects
-            cursor = cursor[path[i]];
-          }
-          cursor[key] = updatedState;
+          // Apply the change to the state using applyChange
+          state = await applyChange(state, { path, value: updatedState }, modified);
         }
       } catch (error: any) {
         console.error(
@@ -110,7 +127,8 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
       }
     }
 
-    return hasChanged ? nextState : state;
+    // Return the state only if it has changed
+    return hasChanged ? state : nextState;
   };
 };
 
@@ -151,6 +169,8 @@ const applyMiddleware = (...middlewares: Function[]): StoreEnhancer => {
 };
 
 export {
+  applyChange,
+  applyMiddleware,
+  combineEnhancers,
   combineReducers,
-  applyMiddleware
 }
