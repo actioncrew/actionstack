@@ -38,6 +38,73 @@ Epics, inspired by Redux-Observable, use RxJS to handle side effects in a reacti
 ### Sagas
 Sagas, inspired by Redux-Saga, use generator functions to manage side effects. They provide a powerful way to handle complex workflows, including concurrent tasks and long-running processes.
 
+## Usage
+
+### Creating a Store
+To create a store, use the createStore function, which initializes the store with the provided main module and optional settings or enhancers.
+
+    import { createStore } from '@actionstack/store';
+    import { someMainModule } from './modules';
+
+    // Optional: Define store settings to customize behavior
+    const storeSettings = {
+      dispatchSystemActions: false,
+      enableMetaReducers: false,
+      awaitStatePropagation: true,
+      enableAsyncReducers: false
+    };
+
+    // Create the store instance
+    const store = export const store = createStore({
+      reducer: (state: any = {}) => state,
+      dependencies: {},
+      strategy: "exclusive"
+    }, storeSettings, applyMiddleware(logger, epics));
+
+### Loading and Unloading Modules
+Modules can be loaded or unloaded dynamically. The loadModule and unloadModule methods manage this process, ensuring that the store’s dependencies are correctly updated.
+
+    const featureModule = {
+      slice: 'superModule',
+      reducer: superReducer,
+      dependencies: { heroService: new HeroService() }
+    };
+
+    // Load a feature module
+    store.loadModule(featureModule);
+
+    // Unload a feature module (with optional state clearing)
+    store.unloadModule(featureModule, true);
+
+### Reading State Safely
+To read a slice of the state in a safe manner (e.g., avoiding race conditions), use readSafe. This method ensures the state is accessed while locking the pipeline.
+
+    store.readSafe('@global', (state) => {
+      console.log('Global state:', state);
+    });
+
+### Dispatching Actions
+You can dispatch actions to add or clear messages in the store. Here's how to do it:
+
+    import { addMessage, clearMessages } from "./messagesSlice";
+
+    // Dispatching an action to add a message
+    store.dispatch(addMessage("Hello, world!"));
+
+    // Dispatching an action to add another message
+    store.dispatch(addMessage("This is a second message!"));
+
+    // Dispatching an action to clear all messages
+    store.dispatch(clearMessages());
+
+### Subscribing to State Changes
+You can also subscribe to changes in the state, so that when messages are added or cleared, you can react to those changes:
+
+    // Subscribe to state changes
+    this.subscription = store.select(selectHeroes()).subscribe(value => {
+      this.heroes = value;
+    });
+
 ## Tools
 ActionStack includes several tools to aid development and debugging:
 

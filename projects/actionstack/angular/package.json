@@ -6,7 +6,18 @@
     "@angular/core": "^14.2.0"
   },
   "dependencies": {
-    "@actionstack/store": "^2.0.0",
+    "@actionstack/store": "^2.0.1",
     "tslib": "^2.3.0"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "RxJS",
+    "ActionStack",
+    "NgRx",
+    "Redux",
+    "Angular",
+    "state management",
+    "asynchronous store",
+    "reactive state"
+  ]
 }

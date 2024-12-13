@@ -6,5 +6,15 @@
   },
   "peerDependencies": {
     "rxjs": "^6.5.3 || ^7.4.0"
-  }
+  },
+  "license": "MIT",
+  "keywords": [
+    "RxJS",
+    "ActionStack",
+    "NgRx",
+    "Redux",
+    "state management",
+    "asynchronous store",
+    "reactive state"
+  ]
 }
