@@ -1,4 +1,6 @@
-import { STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
+import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
+import { combineEnhancers } from 'projects/actionstack/store/src/lib/utils';
+import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
 import { epics } from '@actionstack/epics';
 import { perfmon } from '@actionstack/tools';
 import { NgModule } from '@angular/core';
@@ -32,7 +34,8 @@ import { HeroService } from './hero.service';
                                            enableMetaReducers: false,
                                            enableAsyncReducers: true }
     },
-    { provide: STORE_ENHANCER, useValue: applyMiddleware(epics, perfmon) } // Provide custom enhancer
+    { provide: EpicStore, useValue: Store },
+    { provide: STORE_ENHANCER, useValue: combineEnhancers(storeEnhancer, applyMiddleware(epics, perfmon)) } // Provide custom enhancer
   ],
   bootstrap: [AppComponent],
 })

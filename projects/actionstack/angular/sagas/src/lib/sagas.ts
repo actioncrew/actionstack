@@ -96,7 +96,7 @@ export const removeSagas = action('REMOVE_SAGAS', (...sagas: any[]) => ({sagas})
  * @returns {Function} - A function that accepts the main module and optional enhancer to create an saga store.
  */
 export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): SagaStore => {
-  const store = new Store(module, settings, enhancer) as SagaStore;
+  const store = createStore(module, settings, enhancer) as SagaStore;
 
   /**
    * Extends the store with the given sagas.

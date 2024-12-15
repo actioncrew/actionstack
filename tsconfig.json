@@ -36,10 +36,18 @@
         "./dist/actionstack/tools",
         "./projects/actionstack/tools/src/public-api.ts"
       ],
+      "@actionstack/angular/epics": [
+        "./dist/actionstack/angular/epics",
+        "./projects/actionstack/angular/epics/src/public-api.ts"
+      ],
+      "@actionstack/angular/sagas": [
+        "./dist/actionstack/angular/sagas",
+        "./projects/actionstack/angular/sagas/src/public-api.ts"
+      ],
       "@actionstack/angular": [
         "./dist/actionstack/angular",
         "./projects/actionstack/angular/src/public-api.ts"
-      ],
+      ]
     },
     "useDefineForClassFields": false,
     "lib": [

@@ -13,7 +13,7 @@ export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actions
 
 import { Store, STORE_ENHANCER, StoreSettings } from '@actionstack/angular';
 
-import { NgModule } from '@angular/core';
+import { Injector, NgModule } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 import { Subscription } from 'rxjs/internal/Subscription';
@@ -274,7 +274,7 @@ export const removeEpics = action("REMOVE_EPICS", (...epics: Epic[]) => ({ epics
  * @returns {Function} - A function that accepts the main module and optional enhancer to create an epic store.
  */
 export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
-  const store = new Store(module, settings!, enhancer) as EpicStore;
+  const store = createStore(module, settings!, enhancer) as EpicStore;
 
   /**
    * Extends the store with the given epics.
