@@ -51,14 +51,14 @@ To create a store, use the createStore function, which initializes the store wit
       dispatchSystemActions: false,
       enableMetaReducers: false,
       awaitStatePropagation: true,
-      enableAsyncReducers: false
+      enableAsyncReducers: false,
+      exclusiveActionProcessing: false
     };
 
     // Create the store instance
     const store = export const store = createStore({
-      reducer: (state: any = {}) => state,
-      dependencies: {},
-      strategy: "exclusive"
+      reducer: rootReducer,
+      dependencies: {}
     }, storeSettings, applyMiddleware(logger, epics));
 
 ### Loading and Unloading Modules
@@ -86,7 +86,12 @@ To read a slice of the state in a safe manner (e.g., avoiding race conditions), 
 ### Dispatching Actions
 You can dispatch actions to add or clear messages in the store. Here's how to do it:
 
-    import { addMessage, clearMessages } from "./messagesSlice";
+    import { Action, action, featureSelector, selector } from '@actionstack/store';
+
+    export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
+    export const clearMessages = action('CLEAR_MESSAGES');
+    
+    ...
 
     // Dispatching an action to add a message
     store.dispatch(addMessage("Hello, world!"));
@@ -100,6 +105,13 @@ You can dispatch actions to add or clear messages in the store. Here's how to do
 ### Subscribing to State Changes
 You can also subscribe to changes in the state, so that when messages are added or cleared, you can react to those changes:
 
+    import { Action, action, featureSelector, selector } from '@actionstack/store';
+    
+    export const feature = featureSelector(slice);
+    export const selectHeroes = selector(feature, state => state.heroes);
+    
+    ...
+    
     // Subscribe to state changes
     this.subscription = store.select(selectHeroes()).subscribe(value => {
       this.heroes = value;
