@@ -348,17 +348,10 @@ export function createStore<T = any>(
 
     tracker.reset();
 
-    const next = async <T>(subject: Subject<T>, value: T): Promise<void> => {
-      return new Promise<void>(async (resolve) => {
-        await subject.next(value);
-        resolve();
-      });
-    };
-
-    let stateUpdated = next(currentState, newState);
+    currentState.next(newState);
 
     if (settings.awaitStatePropagation) {
-      await Promise.allSettled([stateUpdated]);
+      await tracker.allExecuted;
     }
 
     return newState;
@@ -375,7 +368,7 @@ export function createStore<T = any>(
       return;
     }
 
-    let state = await getState(slice);
+    let state = getState(slice);
     let result = await callback(state);
     await setState(slice, result, action);
 
@@ -467,8 +460,8 @@ export function createStore<T = any>(
    * Creates the middleware API object for use in the middleware pipeline.
    */
   const getMiddlewareAPI = () => ({
-    getState: () => getState(),
-    dispatch: async (action: any) => await dispatch(action),
+    getState: (slice?: any) => getState(slice),
+    dispatch: (action: any) => dispatch(action),
     dependencies: () => pipeline.dependencies,
     strategy: () => pipeline.strategy,
     lock: lock,
