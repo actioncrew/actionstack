@@ -82,21 +82,24 @@ export class Store<T = any> {
     return this.stream.starter;
   }
 
-  private resolveDependencies<T>(dependencies: Tree<Type<any> | InjectionToken<any> | any>): Tree<any> {
-    const resolveNode = (node: any): any => {
-      if (node && typeof node === 'object' && !Array.isArray(node)) {
-        // Recursively resolve objects
-        return Object.fromEntries(
-          Object.entries(node).map(([key, value]) => [key, resolveNode(value)])
-        );
-      } else if (typeof node === 'function' || node instanceof InjectionToken) {
-        // Resolve Type or InjectionToken
-        return this.injector!.get(node as Type<any> | InjectionToken<any>);
-      }
-      // Return primitive values or unhandled types as-is
-      return node;
+  resolveDependencies(dependencies) {
+    const resolveNode = (node) => {
+        if (node && typeof node === 'object' && !Array.isArray(node)) {
+            // Skip objects whose constructor is a method (class instances)
+            if (typeof node.constructor === 'function') {
+                return node; // Return the class instance as-is
+            }
+            // Recursively resolve plain objects
+            return Object.fromEntries(
+                Object.entries(node).map(([key, value]) => [key, resolveNode(value)])
+            );
+        } else if (typeof node === 'function' || node instanceof InjectionToken) {
+            // Resolve Type or InjectionToken
+            return this.injector.get(node);
+        }
+        // Return primitive values or unhandled types as-is
+        return node;
     };
-
     return resolveNode(dependencies);
   }
 };
