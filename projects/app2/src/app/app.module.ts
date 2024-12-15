@@ -1,4 +1,4 @@
-import { Action, STORE_ENHANCER, StoreModule } from '@actionstack/angular';
+import { Action, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
 import { epics } from '@actionstack/epics';
 import { perfmon } from '@actionstack/tools';
 import { NgModule } from '@angular/core';
@@ -26,6 +26,11 @@ import { applyMiddleware } from '@actionstack/store';
     AppComponent
   ],
   providers: [
+    { provide: STORE_SETTINGS, useValue: { dispatchSystemActions: true,
+                                           awaitStatePropagation: false,
+                                           enableMetaReducers: false,
+                                           enableAsyncReducers: true }
+    },
     { provide: STORE_ENHANCER, useValue: applyMiddleware(epics, perfmon) } // Provide custom enhancer
   ],
   bootstrap: [AppComponent],
