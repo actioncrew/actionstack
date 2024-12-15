@@ -17,41 +17,65 @@ ActionStack Angular is an Angular wrapper for the ActionStack state management l
 
 ## Usage
 ### StoreModule:
-Registers the store at the root level or for feature modules.
+Registers the store at the root level and for feature modules.
 
-    import { StoreModule } from '@actionstack/angular';
+    import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
+    import { combineEnhancers } from '@actionstack/store';
+    import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
+    import { epics } from '@actionstack/epics';
+    import { perfmon } from '@actionstack/tools';
+    import { NgModule } from '@angular/core';
+    import { FormsModule } from '@angular/forms';
+    import { BrowserModule } from '@angular/platform-browser';
+
+    import { AppRoutingModule } from './app-routing.module';
+    import { AppComponent } from './app.component';
+    import { MessagesModule } from './messages/messages.module';
+    import { Action, applyMiddleware } from '@actionstack/store';
+    import { HeroService } from './hero.service';
 
     @NgModule({
       imports: [
-        ...,
+        BrowserModule,
+        FormsModule,
         StoreModule.forRoot({
-          reducer: (state: any = {}) => state,
-          dependencies: {},
-          strategy: "concurrent"
+          reducer: rootReducer,
+          dependencies: { heroService: HeroService },
         }),
         MessagesModule
       ],
       declarations: [
         AppComponent
       ],
+      providers: [
+        { provide: STORE_SETTINGS, useValue: { dispatchSystemActions: true,
+                                              awaitStatePropagation: false,
+                                              enableMetaReducers: false,
+                                              enableAsyncReducers: true,
+                                              exclusiveActionProcessing: false }
+        },
+        { provide: EpicStore, useValue: Store },
+        { provide: STORE_ENHANCER, useValue: 
+            combineEnhancers(storeEnhancer, applyMiddleware(epics, perfmon)) }
+      ],
       bootstrap: [AppComponent],
     })
     export class AppModule {}
 
+
 or instead of use StoreModule use helper functions:
 
     provideStore({
-      reducer: (state: any = {}, action: Action<any>) => state,
-      dependencies: {},
-      strategy: "exclusive"
+      reducer: rootReducer,
+      dependencies: rootDependencies,
+      metaReducers: [formsMetaReducer]
     })
 
 for feature module:
     
     provideModule({
-      slice: slice,
-      reducer: reducer,
-      dependencies: { heroService: new HeroService() }
+      slice: sliceName,
+      reducer: reducer
     })
 
 ### Slice:

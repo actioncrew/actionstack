@@ -1,5 +1,5 @@
 import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
-import { combineEnhancers } from 'projects/actionstack/store/src/lib/utils';
+import { combineEnhancers } from '@actionstack/store';
 import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
 import { epics } from '@actionstack/epics';
 import { perfmon } from '@actionstack/tools';
