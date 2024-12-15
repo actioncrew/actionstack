@@ -1,8 +1,8 @@
 {
   "name": "@actionstack/sagas",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "peerDependencies": {
-    "@actionstack/store": "^2.0.3"
+    "@actionstack/store": "^2.0.4"
   },
   "dependencies": {
     "tslib": "^2.3.0"
