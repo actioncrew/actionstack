@@ -30,7 +30,6 @@ Configure the epics middleware in your store:
     export const store = createStore({
       reducer: (state: any = {}) => state,
       dependencies: {},
-      strategy: "exclusive"
     }, applyMiddleware(logger, epics));
 
     // Register the root epic

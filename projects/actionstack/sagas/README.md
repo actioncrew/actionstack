@@ -30,7 +30,6 @@ Import and configure the middleware in your store setup:
     export const store = createStore({
       reducer: (state: any = {}) => state,
       dependencies: {},
-      strategy: "exclusive"
     }, applyMiddleware(logger, sagas));
 
     // Register the root epic
