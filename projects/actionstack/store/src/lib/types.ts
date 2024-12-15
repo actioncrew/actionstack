@@ -236,9 +236,6 @@ export interface FeatureModule {
  *                   An optional tree representing the dependencies required by the main application.
  *                   - These dependencies can be types or injection tokens used for dependency injection.
  *                   - The tree structure allows for specifying nested dependencies.
- * @property strategy?: ProcessingStrategy (optional) - The processing strategy for side epics within the application.
- *                  - This defines how side epics (functions performing actions outside the dispatch cycle) are executed.
- *                  - Possible strategies are "exclusive" (run one at a time) or "concurrent" (run in parallel).
  */
 export interface MainModule {
   slice?: string;
