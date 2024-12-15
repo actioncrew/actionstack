@@ -39,11 +39,9 @@ Then, import the necessary tools in your application:
     import { createStore } from '@actionstack/store';
     import { logger, perfmon, storeFreeze } from '@actionstack/tools';
     export const store = createStore({
-      middleware: [logger, perfmon, storeFreeze],
-      reducer: (state: any = {}) => state,
-      dependencies: {},
-      strategy: "exclusive"
-    });
+      reducer: rootReducer,
+      dependencies: {}
+    }, applyMiddleware(logger, perfmon, storeFreeze));
 
 ## Conclusion
 
