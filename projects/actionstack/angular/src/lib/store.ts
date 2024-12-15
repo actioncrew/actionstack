@@ -82,8 +82,8 @@ export class Store<T = any> {
     return this.stream.starter;
   }
 
-  resolveDependencies(dependencies) {
-    const resolveNode = (node) => {
+  resolveDependencies(dependencies: Tree<any>): Tree<any> {
+    const resolveNode = (node: Tree<any>) => {
         if (node && typeof node === 'object' && !Array.isArray(node)) {
             // Skip objects whose constructor is a method (class instances)
             if (typeof node.constructor === 'function') {
