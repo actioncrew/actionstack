@@ -1,6 +1,6 @@
-import { StoreModule } from '@actionstack/angular';
+import { Store, StoreModule } from '@actionstack/angular';
 import { CommonModule } from '@angular/common';
-import { NgModule } from '@angular/core';
+import { inject, NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
@@ -16,7 +16,7 @@ const routes: Routes = [
   imports: [CommonModule, FormsModule, RouterModule.forChild(routes), StoreModule.forFeature({
     slice: slice,
     reducer: reducer,
-    dependencies: {heroService: HeroService}
+    dependencies: { heroService: StoreModule.injector.get(HeroService) }
   })],
   declarations: [
     HeroDetailsComponent,
