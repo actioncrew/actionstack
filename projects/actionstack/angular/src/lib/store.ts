@@ -1,4 +1,6 @@
+import { Tree } from '@actionstack/store';
 import { Action, createStore, Store as StoreType, StoreEnhancer as StoreEnhancerType, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
+import { InjectionToken, Injector, Type } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
 export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
 
@@ -36,7 +38,7 @@ export class DefaultStoreSettings extends StoreSettings {
 export class Store<T = any> {
   private stream: StoreType;
 
-  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancerType) {
+  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancerType, private injector?: Injector) {
     const settings = { ...new DefaultStoreSettings(), ...storeSettings } as Settings;
     this.stream = createStore(mainModule, settings, enhancer);
   }
@@ -58,7 +60,12 @@ export class Store<T = any> {
   }
 
   loadModule(module: FeatureModule): Promise<void> {
-    return this.stream.loadModule(module);
+    let featureModule = module;
+    if (this.injector && module.dependencies) {
+      const dependencies = this.resolveDependencies(module.dependencies);
+      featureModule = { ...module, dependencies };
+    }
+    return this.stream.loadModule(featureModule);
   }
 
   unloadModule(module: FeatureModule, clearState: boolean): Promise<void> {
@@ -71,5 +78,23 @@ export class Store<T = any> {
 
   get starter() {
     return this.stream.starter;
+  }
+
+  private resolveDependencies<T>(dependencies: Tree<Type<any> | InjectionToken<any> | any>): Tree<any> {
+    const resolveNode = (node: any): any => {
+      if (node && typeof node === 'object' && !Array.isArray(node)) {
+        // Recursively resolve objects
+        return Object.fromEntries(
+          Object.entries(node).map(([key, value]) => [key, resolveNode(value)])
+        );
+      } else if (typeof node === 'function' || node instanceof InjectionToken) {
+        // Resolve Type or InjectionToken
+        return this.injector!.get(node as Type<any> | InjectionToken<any>);
+      }
+      // Return primitive values or unhandled types as-is
+      return node;
+    };
+
+    return resolveNode(dependencies);
   }
 };

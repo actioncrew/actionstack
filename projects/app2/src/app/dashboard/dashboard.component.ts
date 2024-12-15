@@ -18,14 +18,14 @@ import { loadHeroes, reducer, selectTopHeroes, slice } from './dashboard.slice';
 export class DashboardComponent implements OnInit {
   heroes$: Observable<Hero[]> = this.slice.select(selectTopHeroes());
 
-  constructor(private slice: Slice, private injector: Injector) {
+  constructor(private slice: Slice) {
   }
 
   ngOnInit(): void {
     this.slice.setup({
       slice: slice,
       reducer: reducer,
-      dependencies: { heroService: () => this.injector.get(HeroService) },
+      dependencies: { heroService: HeroService },
       strategy: "persistent"
     });
 

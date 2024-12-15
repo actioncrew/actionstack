@@ -65,8 +65,8 @@ export class StoreModule {
           useFactory: (settings: StoreSettings, enhancer: StoreEnhancer) => {
               if (!StoreModule.store) {
                 StoreModule.store = enhancer
-                  ? (new Store(module, settings, enhancer))
-                  : new Store(module, settings);
+                  ? (new Store(module, settings, enhancer, StoreModule.injector))
+                  : new Store(module, settings, undefined, StoreModule.injector);
               }
 
             queueMicrotask(() => StoreModule.modulesFn.forEach(fn => fn()));

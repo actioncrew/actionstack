@@ -1,4 +1,4 @@
-import { Action, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
+import { STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
 import { epics } from '@actionstack/epics';
 import { perfmon } from '@actionstack/tools';
 import { NgModule } from '@angular/core';
@@ -8,7 +8,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
-import { applyMiddleware } from '@actionstack/store';
+import { Action, applyMiddleware } from '@actionstack/store';
 import { HeroService } from './hero.service';
 
 @NgModule({
@@ -18,7 +18,7 @@ import { HeroService } from './hero.service';
     AppRoutingModule,
     StoreModule.forRoot({
       reducer: (state: any = {}, action: Action<any>) => state,
-      dependencies: { heroService: () => StoreModule.injector.get(HeroService) },
+      dependencies: { heroService: HeroService },
       strategy: "exclusive"
     }),
     MessagesModule
