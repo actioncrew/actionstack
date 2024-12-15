@@ -245,7 +245,6 @@ export interface MainModule {
   reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
   metaReducers?: MetaReducer[];
   dependencies?: Tree<any>;
-  strategy?: ProcessingStrategy;
 }
 
 /**

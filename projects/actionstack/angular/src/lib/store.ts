@@ -12,6 +12,7 @@ export class StoreSettings {
   awaitStatePropagation?: boolean;
   enableMetaReducers?: boolean;
   enableAsyncReducers?: boolean;
+  exclusiveActionProcessing?: boolean;
 };
 
 /**
@@ -26,6 +27,7 @@ export class DefaultStoreSettings extends StoreSettings {
     this.awaitStatePropagation = true;
     this.enableMetaReducers = true;
     this.enableAsyncReducers = true;
+    this.exclusiveActionProcessing = false;
   }
 };
 

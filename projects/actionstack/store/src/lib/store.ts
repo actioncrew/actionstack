@@ -36,17 +36,19 @@ export type StoreSettings = {
   awaitStatePropagation?: boolean;
   enableMetaReducers?: boolean;
   enableAsyncReducers?: boolean;
+  exclusiveActionProcessing?: boolean;
 };
 
 /**
  * The default settings for the store that configure various behaviors such as action dispatch,
  * state propagation, and reducer handling.
  */
-const defaultStoreSettings = {
+const defaultStoreSettings: StoreSettings = {
   dispatchSystemActions: true,
   awaitStatePropagation: true,
   enableMetaReducers: true,
-  enableAsyncReducers: true
+  enableAsyncReducers: true,
+  exclusiveActionProcessing: false
 };
 
 /**
@@ -123,12 +125,6 @@ export function createStore<T = any>(
   let main = { ...mainModule };
   let modules: FeatureModule[] = [];
 
-  let pipeline = {
-    reducer: ((state: any = {}) => state) as AsyncReducer,
-    dependencies: {} as Tree<any>,
-    strategy: "exclusive" as ProcessingStrategy
-  };
-
   let sysActions = { ...systemActions };
 
   // Determine if the second argument is storeSettings or enhancer
@@ -141,6 +137,12 @@ export function createStore<T = any>(
     // Otherwise, it's storeSettings
     settings = { ...storeSettingsOrEnhancer, ...defaultStoreSettings };
   }
+
+  let pipeline = {
+    reducer: ((state: any = {}) => state) as AsyncReducer,
+    dependencies: {} as Tree<any>,
+    strategy: (settings.exclusiveActionProcessing ? "exclusive" : "concurrent") as ProcessingStrategy
+  };
 
   const currentState = new BehaviorSubject<any>({});
   const tracker = createTracker();
@@ -478,7 +480,6 @@ export function createStore<T = any>(
       reducer: (state: any = {}) => state as Reducer,
       metaReducers: [],
       dependencies: {},
-      strategy: "exclusive" as ProcessingStrategy
     };
 
     // Assign mainModule properties to store
@@ -488,7 +489,7 @@ export function createStore<T = any>(
     pipeline = {...pipeline, ...{
       reducer: combineReducers({[main.slice!]: main.reducer}),
       dependencies: {...main.dependencies},
-      strategy: main.strategy!,
+      strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
     }};
 
     // Bind system actions

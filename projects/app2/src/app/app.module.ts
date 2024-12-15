@@ -21,7 +21,6 @@ import { HeroService } from './hero.service';
     StoreModule.forRoot({
       reducer: (state: any = {}, action: Action<any>) => state,
       dependencies: { heroService: HeroService },
-      strategy: "exclusive"
     }),
     MessagesModule
   ],
@@ -32,7 +31,8 @@ import { HeroService } from './hero.service';
     { provide: STORE_SETTINGS, useValue: { dispatchSystemActions: true,
                                            awaitStatePropagation: false,
                                            enableMetaReducers: false,
-                                           enableAsyncReducers: true }
+                                           enableAsyncReducers: true,
+                                           exclusiveActionProcessing: false }
     },
     { provide: EpicStore, useValue: Store },
     { provide: STORE_ENHANCER, useValue: combineEnhancers(storeEnhancer, applyMiddleware(epics, perfmon)) } // Provide custom enhancer
