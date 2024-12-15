@@ -25,7 +25,7 @@ export class DashboardComponent implements OnInit {
     this.slice.setup({
       slice: slice,
       reducer: reducer,
-      dependencies: { heroService: this.injector.get(HeroService) },
+      dependencies: { heroService: () => this.injector.get(HeroService) },
       strategy: "persistent"
     });
 

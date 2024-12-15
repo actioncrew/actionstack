@@ -16,7 +16,7 @@ export const loadHeroes = (action$: Observable<Action<any>>, state$: Observable<
     ofType(getHeroesRequest.type),
     withLatestFrom(state$!),
     concatMap(([action, state]) =>
-      heroService.getHeroes().pipe(
+      heroService().getHeroes().pipe(
         concatMap((heroes) => [
           getHeroesSuccess(heroes),
           addMessage('HeroService: fetched heroes')  // Dispatch addMessage action

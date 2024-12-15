@@ -9,6 +9,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
 import { applyMiddleware } from '@actionstack/store';
+import { HeroService } from './hero.service';
 
 @NgModule({
   imports: [
@@ -17,7 +18,7 @@ import { applyMiddleware } from '@actionstack/store';
     AppRoutingModule,
     StoreModule.forRoot({
       reducer: (state: any = {}, action: Action<any>) => state,
-      dependencies: {},
+      dependencies: { heroService: () => StoreModule.injector.get(HeroService) },
       strategy: "exclusive"
     }),
     MessagesModule

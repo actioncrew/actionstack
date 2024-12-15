@@ -16,7 +16,7 @@ const routes: Routes = [
   imports: [CommonModule, FormsModule, RouterModule.forChild(routes), StoreModule.forFeature({
     slice: slice,
     reducer: reducer,
-    dependencies: { heroService: StoreModule.injector.get(HeroService) }
+    dependencies: { heroService: () => StoreModule.injector.get(HeroService) }
   })],
   declarations: [
     HeroDetailsComponent,
