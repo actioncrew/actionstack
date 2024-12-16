@@ -124,7 +124,7 @@ export function createStore<T = any>(
   storeSettingsOrEnhancer?: StoreSettings | StoreEnhancer,
   enhancer?: StoreEnhancer
 ): Store<T> {
-  let main = { ...mainModule };
+  let main = { ...defaultMainModule, ...mainModule };
   let modules: FeatureModule[] = [];
 
   let sysActions = { ...systemActions };
@@ -140,10 +140,11 @@ export function createStore<T = any>(
     settings = { ...storeSettingsOrEnhancer, ...defaultStoreSettings };
   }
 
+  // Configure store pipeline
   let pipeline = {
-    reducer: ((state: any = {}) => state) as AsyncReducer,
-    dependencies: {} as Tree<any>,
-    strategy: (settings.exclusiveActionProcessing ? "exclusive" : "concurrent") as ProcessingStrategy
+    reducer: combineReducers({ [main.slice!]: main.reducer }),
+    dependencies: { ...main.dependencies },
+    strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
   };
 
   const currentState = new BehaviorSubject<any>({});
@@ -477,16 +478,6 @@ export function createStore<T = any>(
    * The store provides methods for dispatching actions, accessing state, and managing modules.
    */
   let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
-
-    // Assign mainModule properties to store
-    main = { ...defaultMainModule, ...mainModule };
-
-    // Configure store pipeline
-    pipeline = {...pipeline, ...{
-      reducer: combineReducers({[main.slice!]: main.reducer}),
-      dependencies: {...main.dependencies},
-      strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
-    }};
 
     // Bind system actions
     sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
