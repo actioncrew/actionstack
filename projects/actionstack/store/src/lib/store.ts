@@ -197,7 +197,7 @@ export function createStore<T = any>(
       return source.map(processDependencies); // Process array elements
     }
     if (source && typeof source === "object") {
-      if (typeof source.constructor === "function") {
+      if (typeof source.constructor === "function" && source.constructor !== Object) {
         return source; // Assume it's a class or function instance
       }
       // Process object properties
@@ -473,6 +473,19 @@ export function createStore<T = any>(
     stack: stack,
   } as MiddlewareAPI);
 
+  // Apply enhancer if provided
+  if (typeof enhancer === "function") {
+    // Check if the enhancer contains applyMiddleware
+    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
+
+    // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
+    if (!hasMiddlewareEnhancer) {
+      enhancer = combineEnhancers(enhancer, applyMiddleware());
+    }
+
+    return enhancer(createStore)(main, settings);
+  }
+
   // Bind system actions
   sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
 
@@ -488,19 +501,6 @@ export function createStore<T = any>(
     .finally(() => lock.release());
 
   sysActions.storeInitialized();
-
-  // Apply enhancer if provided
-  if (typeof enhancer === "function") {
-    // Check if the enhancer contains applyMiddleware
-    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
-
-    // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
-    if (!hasMiddlewareEnhancer) {
-      return combineEnhancers(enhancer, applyMiddleware())(createStore)(main, settings);
-    }
-
-    return enhancer(createStore)(main, settings);
-  }
 
   return {
     starter,
