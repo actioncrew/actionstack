@@ -19,6 +19,7 @@ import {
   MainModule,
   MetaReducer,
   Middleware,
+  MiddlewareAPI,
   Observer,
   ProcessingStrategy,
   Reducer,
@@ -468,7 +469,7 @@ export function createStore<T = any>(
     strategy: () => pipeline.strategy,
     lock: lock,
     stack: stack,
-  });
+  } as MiddlewareAPI);
 
   /**
    * Creates and initializes the store with the given main module configuration.

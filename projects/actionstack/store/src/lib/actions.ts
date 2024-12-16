@@ -3,20 +3,48 @@ import { Action, isAction, kindOf } from './types';
 export { createAction as action };
 
 /**
- * Creates an action creator function for Actionstack actions.
+ * Creates an action creator function for Actionstack actions, supporting both synchronous and asynchronous use cases.
  *
- * @param {string|Function} typeOrThunk   - This can be either a string representing the action type
- *                                          or a function representing a thunk (asynchronous action).
- * @param {Function} [payloadCreator]     - (Optional) A function used to generate the payload for the action.
- * @returns {Function}                    - An action creator function.
+ * @param {string|Function} typeOrThunk   - A string representing the action type for synchronous actions,
+ *                                          or a function representing a thunk for asynchronous actions.
+ * @param {Function} [payloadCreator]     - (Optional) A function to generate the payload for the action.
+ * @returns {Function}                    - An action creator function that generates action objects or dispatchable thunks.
  *
- * This function creates an action creator function that can be used to create action objects.
- * The action object will have a `type` property set to the provided `typeOrThunk` value.
- * Additionally, it can have a `payload` property if a `payloadCreator` function is provided
- * or if arguments are passed to the action creator function itself.
- * It can also have optional `meta` and `error` properties included in the payload object.
+ * This function allows the creation of action creators for both synchronous and asynchronous workflows:
+ *
+ * - **Synchronous Actions**: When `typeOrThunk` is a string, the returned action creator generates objects
+ *   with a `type` property and optionally a `payload`, `meta`, and `error` property.
+ *   - If a `payloadCreator` is provided, it is used to generate the payload.
+ *   - If no `payloadCreator` is provided, the first argument passed to the action creator is used as the payload.
+ *
+ * - **Asynchronous Actions (Thunks)**: When `typeOrThunk` is a function, the returned action creator creates
+ *   a dispatchable thunk. The thunk receives `dispatch`, `getState`, and optional `dependencies` as arguments,
+ *   allowing for asynchronous logic.
+ *   - Errors in the thunk are caught and logged with a warning.
+ *
+ * **Example Usage:**
+ *
+ * Synchronous:
+ * ```typescript
+ * const increment = createAction('INCREMENT', (amount) => ({ amount }));
+ * dispatch(increment(1));
+ * // Output: { type: 'INCREMENT', payload: { amount: 1 } }
+ * ```
+ *
+ * Asynchronous:
+ * ```typescript
+ * const fetchData = createAction(async (dispatch, getState) => {
+ *   const data = await fetch('/api/data');
+ *   dispatch({ type: 'DATA_FETCHED', payload: await data.json() });
+ * });
+ * dispatch(fetchData);
+ * ```
+ *
+ * Warnings:
+ * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
+ * - For thunks, an error in execution logs a warning.
  */
-function createAction(typeOrThunk: string | Function, payloadCreator?: Function): any {
+export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): Function {
   function actionCreator(...args: any[]) {
     let action: Action = {
       type: typeOrThunk as string,
@@ -78,22 +106,28 @@ export function bindActionCreator(actionCreator: Function, dispatch: Function): 
 }
 
 /**
- * Binds multiple action creators or a single action creator to the dispatch function.
+ * Binds one or more action creators to a dispatch function, making it easier to call actions directly.
  *
- * @param {Object|Function} actionCreators - An object containing action creator functions or a single action creator function.
- * @param {Function} dispatch              - The dispatch function.
- * @returns {Object|Function}              - An object containing the bound action creator functions or the bound single action creator function.
+ * @param {Object|Function} actionCreators - An object containing multiple action creator functions
+ *                                           or a single action creator function.
+ * @param {Function} dispatch              - The dispatch function to bind the action creators to.
+ * @returns {Object|Function}              - An object with the bound action creator functions
+ *                                           or a single bound action creator function.
  *
- * This function takes an object containing multiple action creator functions or a single action creator function,
- * along with the dispatch function.
- * It iterates through the provided object (or binds a single function if provided) and returns a new object.
- * In the new object, each action creator function is wrapped with the `bindActionCreator` function
- * to automatically dispatch the created action when called.
+ * This function accepts either:
+ * - An object containing multiple action creator functions:
+ *   Each function in the object will be wrapped by `bindActionCreator` to automatically dispatch
+ *   actions when called, and the resulting object will be returned.
+ * - A single action creator function:
+ *   The function will be wrapped and returned as a bound action creator.
  *
- * This function is useful for binding all action creators from a module or file to the dispatch function
- * in a single call, promoting cleaner component code.
+ * It also performs type-checking to ensure the provided `actionCreators` parameter is either
+ * an object or a function, issuing a warning if the input type is incorrect.
+ *
+ * This utility simplifies the process of binding all action creators from a module or file
+ * to the dispatch function, resulting in cleaner and more concise component code.
  */
-export function bindActionCreators(actionCreators: any, dispatch: Function): any {
+export function bindActionCreators(actionCreators: Record<string, Function> | Function, dispatch: Function): any {
   if (typeof actionCreators !== "object" || actionCreators === null) {
     console.warn(`bindActionCreators expected an object or a function, but instead received: '${kindOf(actionCreators)}'. Did you write "import ActionCreators from" instead of "import * as ActionCreators from"?`);
     return undefined;

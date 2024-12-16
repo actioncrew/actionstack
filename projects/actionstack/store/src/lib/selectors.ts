@@ -20,7 +20,7 @@ export {
  *                 * An array of strings representing a path of keys to navigate within the state object to reach the desired feature slice.
  * @returns A function that takes an Observable of the entire state object and returns an Observable of the selected feature data.
  */
-function createFeatureSelector<U = any, T = any> (
+export function createFeatureSelector<U = any, T = any> (
   slice: keyof T | string[]
 ): (state$: Observable<T>) => Observable<U> {
   let lastValue: U | undefined;
@@ -54,7 +54,7 @@ function createFeatureSelector<U = any, T = any> (
  *                             * An options object (not currently implemented).
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
-function createSelector<U = any, T = any>(
+export function createSelector<U = any, T = any>(
   featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
@@ -143,7 +143,7 @@ function createSelector<U = any, T = any>(
  *                             * An options object (not currently implemented).
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
-function createSelectorAsync<U = any, T = any>(
+export function createSelectorAsync<U = any, T = any>(
   featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction

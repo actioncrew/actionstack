@@ -1,6 +1,5 @@
 import { Observable } from 'rxjs/internal/Observable';
-import { Store, StoreSettings } from '../lib';
-
+import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
  * Interface defining the structure of an action object.
@@ -69,6 +68,27 @@ export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
  * @returns Promise<AsyncReducer> - A promise that resolves to a potentially modified asynchronous reducer.
  */
 export type MetaReducer = (reducer: AsyncReducer) => Promise<AsyncReducer>;
+
+/**
+ * Defines the methods and properties available to middleware for interacting with the store.
+ * Provides access to state, dispatching actions, dependencies, processing strategy,
+ * synchronization, and execution stack.
+ *
+ * @property {function([string[]]): any} getState - Retrieves the state or a specific slice of the state.
+ * @property {function(Action|AsyncAction): Promise<void>} dispatch - Dispatches an action (synchronous or asynchronous).
+ * @property {function(): any} dependencies - Retrieves the current dependencies in the pipeline.
+ * @property {function(): ProcessingStrategy} strategy - Retrieves the current processing strategy.
+ * @property {SimpleLock} lock - A lock to synchronize or prevent concurrent access to resources.
+ * @property {ExecutionStack} stack - The execution stack tracking the sequence of actions or operations.
+ */
+export type MiddlewareAPI = {
+  getState: (slice?: string[]) => any;
+  dispatch: (action: Action | AsyncAction) => Promise<void>;
+  dependencies: () => any;
+  strategy: () => ProcessingStrategy;
+  lock: SimpleLock;
+  stack: ExecutionStack;
+}
 
 /**
  * Interface defining the structure of a middleware function.
@@ -207,13 +227,13 @@ export type SliceStrategy = "persistent" | "temporary";
  *                  - A reducer function takes the current state slice and an action object,
  *                    and returns the updated state slice based on the action.
  *                  - A tree of reducers allows for defining nested reducers for complex state structures.
- * @property dependencies?: Tree<Type<any> | InjectionToken<any>> (optional) -
+ * @property dependencies?: Tree<any> (optional) -
  *                   An optional tree representing the dependencies required by the feature module.
  *                   - These dependencies can be types (like classes or interfaces) or injection tokens
  *                     used for dependency injection.
  *                   - The tree structure allows for specifying nested dependencies within the feature.
  */
-export interface FeatureModule {
+export type FeatureModule = {
   slice: string;
   reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
   dependencies?: Tree<any>;
@@ -225,23 +245,12 @@ export interface FeatureModule {
  * The main application module serves as the entry point for configuring the Actionstack store.
  * This interface defines the expected properties for the main application module.
  *
- * @property slice?: string (optional) - A unique string identifier for the main application's state slice (if applicable).
- * @property middleware?: Middleware[] (optional) - An array of middleware functions to be applied to the store.
- *                  - Middleware functions intercept, handle, and potentially modify the dispatching process.
- * @property reducer - The reducer function or a tree of reducers responsible for managing the entire application state.
  * @property metaReducers?: MetaReducer[] (optional) - An array of meta-reducer functions to be applied to the reducers.
  *                  - Meta-reducers are higher-order functions that can wrap and potentially modify reducers,
  *                    adding additional logic or middleware functionality.
- * @property dependencies?: Tree<Type<any> | InjectionToken<any>> (optional) -
- *                   An optional tree representing the dependencies required by the main application.
- *                   - These dependencies can be types or injection tokens used for dependency injection.
- *                   - The tree structure allows for specifying nested dependencies.
  */
-export interface MainModule {
-  slice?: string;
-  reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
+export type MainModule = FeatureModule & {
   metaReducers?: MetaReducer[];
-  dependencies?: Tree<any>;
 }
 
 /**
