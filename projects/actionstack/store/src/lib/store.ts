@@ -217,7 +217,7 @@ export function createStore<T = any>(
           if (!processed.hasOwnProperty(key)) {
             processed[key] = processDependencies(value, processed, origin);
           } else {
-            console.warn(`Overlapping property '${key}' found in modules: ${origin}`);
+            console.warn(`Overlapping property '${key}' found in dependencies from module: ${origin}. The existing value will be preserved.`);
           }
         }
         return processed;// Assume it's a class instance or other non-plain object
