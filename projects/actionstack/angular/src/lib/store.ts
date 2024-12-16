@@ -78,8 +78,8 @@ export class Store<T = any> {
       return Promise.resolve();
     }
 
-    this.modules.splice(index, 1);
-    return this.store.unloadModule(this.modules[index], clearState);
+    const featureModule = this.modules.splice(index, 1)[0];
+    return this.store.unloadModule(featureModule, clearState);
   }
 
   getMiddlewareAPI() {
