@@ -181,32 +181,50 @@ export function createStore<T = any>(
   };
 
   /**
-   * Recursively processes a nested structure of dependencies, handling arrays,
-   * objects, and class instances appropriately. This function ensures that
-   * nested dependencies are correctly preserved or instantiated.
-   *
-   * @example
-   * const dependencies = {
-   *   a: { b: 1, c: [2, { d: 3 }] },
-   *   e: new SomeClass(),
-   * };
-   * const result = processDependencies(dependencies);
-   */
-  const processDependencies = (source: any): any => {
+ * Recursively processes a nested structure of dependencies, handling arrays, objects, and class instances.
+ *
+ * @param {any} source The source object to process.
+ * @param {Object} processed The object to accumulate processed values.
+ * @param {string} origin The origin of the current source object (e.g., module name).
+ * @returns {any} The processed object.
+ *
+ * @description
+ * This function recursively traverses the `source` object, processing its properties and handling arrays, objects, and class instances. It merges overlapping properties from different sources, logging a warning for each conflict.
+ *
+ * - **Array Handling:** Recursively processes each element of an array.
+ * - **Plain Object Handling:** Iterates over the properties of a plain object, recursively processing each value and merging them into the `processed` object. Logs a warning for overlapping properties.
+ * - **Class Instance Handling:** Returns the original class instance without modification to avoid unintended side effects.
+ *
+ * @example
+ * const dependencies = {
+ *   a: { b: 1, c: [2, { d: 3 }] },
+ *   e: new SomeClass(),
+ * };
+ *
+ * const processedDependencies = processDependencies(dependencies);
+ */
+  const processDependencies = (source: any, processed: any = {}, origin: string = ''): any => {
     if (Array.isArray(source)) {
-      return source.map(processDependencies); // Process array elements
+      return source.map(item => processDependencies(item, processed));
     }
-    if (source && typeof source === "object") {
-      if (typeof source.constructor === "function" && source.constructor !== Object) {
-        return source; // Assume it's a class or function instance
+
+    if (source && typeof source === 'object') {
+      // Check if the source is a plain object
+      if (typeof source.constructor === 'function' && source.constructor !== Object) {
+        return source;
+      } else {
+        for (const [key, value] of Object.entries(source)) {
+          if (!processed.hasOwnProperty(key)) {
+            processed[key] = processDependencies(value, processed, origin);
+          } else {
+            console.warn(`Overlapping property '${key}' found in modules: ${origin}`);
+          }
+        }
+        return processed;// Assume it's a class instance or other non-plain object
       }
-      // Process object properties
-      return Object.entries(source).reduce((acc, [key, value]) => {
-        acc[key] = processDependencies(value);
-        return acc;
-      }, {} as any);
     }
-    return source; // Return primitive values as-is
+
+    return source;
   };
 
   /**
@@ -214,15 +232,11 @@ export function createStore<T = any>(
    * into the pipeline's dependency object. Handles class instantiation.
    */
   const injectDependencies = (): void => {
-    // Merge all dependencies into a single object
-    const allDependencies = Object.assign(
-      {},
-      mainModule.dependencies,
-      ...modules.map(module => module.dependencies)
-    );
+    const allDependencies = [mainModule, ...modules].reduce((acc, module) => {
+      return processDependencies(module.dependencies, acc, module.slice);
+    }, {});
 
-    // Initialize the pipeline dependencies
-    pipeline.dependencies = processDependencies(allDependencies);
+    pipeline.dependencies = allDependencies;
   };
 
   /**
@@ -230,15 +244,12 @@ export function createStore<T = any>(
    * the global dependencies object, ensuring proper handling of nested structures.
    */
   const ejectDependencies = (module: FeatureModule): void => {
-    // Merge dependencies of the main module and remaining feature modules
-    const allDependencies = Object.assign(
-      {},
-      mainModule.dependencies,
-      ...modules.filter(m => m !== module).map(m => m.dependencies)
-    );
+    const otherModules = [mainModule, ...modules].filter(m => m !== module);
+    const remainingDependencies = otherModules.reduce((acc, module) => {
+      return processDependencies(module.dependencies, acc, module.slice);
+    }, {});
 
-    // Update the pipeline dependencies
-    pipeline.dependencies = processDependencies(allDependencies);
+    pipeline.dependencies = remainingDependencies;
   };
 
   /**

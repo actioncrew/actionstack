@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 
 import { MessagesComponent } from './messages.component';
 import { reducer, slice } from './messages.slice';
+import { HeroService } from '../hero.service';
 
 
 @NgModule({
