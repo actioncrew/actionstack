@@ -7,10 +7,10 @@ A powerful and flexible state management library designed to provide a scalable 
 [saga-docs](https://redux-saga.js.org/)
 [actionstack-docs](https://actionstack.vercel.app/documentation/)
 
-  [![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)
-  [![npm version](https://img.shields.io/npm/v/@actioncrew%2Factionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew%2Factionstack)
-  [![npm downloads](https://img.shields.io/npm/dm/@actioncrew%2Factionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew%2Factionstack)
-  [![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)
+[![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)  
+[![npm version](https://img.shields.io/npm/v/@actionstack/store.svg?style=flat-square)](https://www.npmjs.com/package/@actionstack/store)  
+[![npm downloads](https://img.shields.io/npm/dm/@actionstack/store.svg?style=flat-square)](https://www.npmjs.com/package/@actionstack/store)  
+[![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actionstack%2Fstore)](https://img.shields.io/bundlephobia/minzip/%40actionstack%2Fstore)
   
 ## Key Features
 - Reactive State Management: ActionStack uses RxJS observables to create a reactive state management system. This allows your components and views to stay in sync with the latest state changes automatically.
