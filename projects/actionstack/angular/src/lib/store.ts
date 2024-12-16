@@ -153,7 +153,6 @@ export {
   createFeatureSelector,
   createSelector,
   createSelectorAsync,
-  createInstruction,
   isInstruction,
   createExecutionStack,
   createActionHandler,
@@ -164,4 +163,12 @@ export {
   createSelector as selector,
   createSelectorAsync as selectorAsync,
 
+  applyChange,
+  applyMiddleware,
+  combineEnhancers,
+  combineReducers,
+
+  // Constants:
+  createInstruction,
+  defaultMainModule
 } from '@actionstack/store';

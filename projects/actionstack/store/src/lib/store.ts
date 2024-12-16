@@ -13,6 +13,7 @@ import {
   Action,
   AnyFn,
   AsyncReducer,
+  defaultMainModule,
   FeatureModule,
   isPlainObject,
   kindOf,
@@ -332,7 +333,7 @@ export function createStore<T = any>(
    * Sets the state for a specified slice of the global state, updating it with the given value.
    * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
    */
-  const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> => {
+  const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action = systemActions.updateState() as Action): Promise<any> => {
     let newState: any;
     if (slice === undefined || typeof slice === "string" && slice == "@global") {
       // Update the whole state with a shallow copy of the value
@@ -365,7 +366,7 @@ export function createStore<T = any>(
    * which receives the current state as its argument and returns the updated state.
    * The resulting state is then set using the `setState` function.
    */
-  const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> => {
+  const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action = systemActions.updateState() as Action): Promise<any> => {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
       return;
@@ -456,7 +457,7 @@ export function createStore<T = any>(
     pipeline.reducer = reducer;
 
     // Update store state
-    return await reducer(state, systemActions.updateState());
+    return await reducer(state, systemActions.updateState() as Action);
   }
 
   /**
@@ -476,12 +477,6 @@ export function createStore<T = any>(
    * The store provides methods for dispatching actions, accessing state, and managing modules.
    */
   let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
-    let defaultMainModule = {
-      slice: "main",
-      reducer: (state: any = {}) => state as Reducer,
-      metaReducers: [],
-      dependencies: {},
-    };
 
     // Assign mainModule properties to store
     main = { ...defaultMainModule, ...mainModule };

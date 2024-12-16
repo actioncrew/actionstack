@@ -1,4 +1,4 @@
-import { Action, isAction, kindOf } from './types';
+import { Action, ActionCreator, isAction, kindOf } from './types';
 
 export { createAction as action };
 
@@ -44,7 +44,7 @@ export { createAction as action };
  * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
  * - For thunks, an error in execution logs a warning.
  */
-export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): Function {
+export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): ActionCreator {
   function actionCreator(...args: any[]) {
     let action: Action = {
       type: typeOrThunk as string,
@@ -82,7 +82,7 @@ export function createAction(typeOrThunk: string | Function, payloadCreator?: Fu
   }
 
   actionCreator.toString = () => `${typeOrThunk}`;
-  actionCreator.type = typeOrThunk;
+  actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
   actionCreator.match = (action: any) => isAction(action) && action.type === typeOrThunk;
 
   return actionCreator;

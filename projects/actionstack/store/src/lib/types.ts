@@ -249,9 +249,21 @@ export type FeatureModule = {
  *                  - Meta-reducers are higher-order functions that can wrap and potentially modify reducers,
  *                    adding additional logic or middleware functionality.
  */
-export type MainModule = FeatureModule & {
+export type MainModule =  Omit<FeatureModule, "slice"> & {
+  slice?: "main";
   metaReducers?: MetaReducer[];
 }
+
+/**
+ * Default configuration for the main module.
+ * Includes a slice name, a basic reducer, an empty list of metaReducers, and no dependencies.
+ */
+export const defaultMainModule = {
+  slice: "main" as "main",
+  reducer: (state: any = {}) => state as Reducer,
+  metaReducers: [],
+  dependencies: {}
+};
 
 /**
  * Type definition for a function that creates a store instance.
