@@ -473,38 +473,31 @@ export function createStore<T = any>(
     stack: stack,
   } as MiddlewareAPI);
 
-  /**
-   * Creates and initializes the store with the given main module configuration.
-   * The store provides methods for dispatching actions, accessing state, and managing modules.
-   */
-  let storeCreator = (mainModule: MainModule, settings: StoreSettings = defaultStoreSettings) => {
+  // Bind system actions
+  sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
 
-    // Bind system actions
-    sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
+  // Initialize state and mark store as initialized
+  sysActions.initializeState();
 
-    // Initialize state and mark store as initialized
-    sysActions.initializeState();
+  console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
 
-    console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
+  lock.acquire()
+    .then(() => setupReducer())
+    .then(state => setState("@global", state))
+    .finally(() => lock.release());
 
-    lock.acquire()
-      .then(() => setupReducer())
-      .then(state => setState("@global", state))
-      .finally(() => lock.release());
+  sysActions.storeInitialized();
 
-    sysActions.storeInitialized();
-
-    return {
-      starter,
-      dispatch,
-      getState,
-      readSafe,
-      select,
-      loadModule,
-      unloadModule,
-      getMiddlewareAPI,
-    } as Store<any>;
-  }
+  let store = {
+    starter,
+    dispatch,
+    getState,
+    readSafe,
+    select,
+    loadModule,
+    unloadModule,
+    getMiddlewareAPI,
+  } as Store<any>;
 
   // Apply enhancer if provided
   if (typeof enhancer === "function") {
@@ -513,12 +506,11 @@ export function createStore<T = any>(
 
     // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
     if (!hasMiddlewareEnhancer) {
-      return combineEnhancers(enhancer, applyMiddleware())(storeCreator)(main, settings);
+      store = combineEnhancers(enhancer, applyMiddleware())(createStore)(main, settings);
     }
 
-    return enhancer(storeCreator)(main, settings);
+    store = enhancer(createStore)(main, settings);
   }
 
-  // If no enhancer provided, ensure starter is included by applying applyMiddleware with an empty array
-  return applyMiddleware()(storeCreator)(main, settings);
+  return store;
 }
