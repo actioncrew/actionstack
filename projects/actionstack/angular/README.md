@@ -2,6 +2,10 @@
 
 ActionStack Angular is an Angular wrapper for the ActionStack state management library. It integrates ActionStack’s powerful state management features seamlessly into Angular applications, offering a modular and flexible way to handle global application state. With ActionStack Angular, developers can easily manage state through a centralized store, dispatch actions, and organize state into slices for better modularity and maintainability.
 
+> **Important:** The `@actionstack/store` package is re-exported by `@actionstack/angular`.  
+> It is strongly recommended **not to use `@actionstack/store` directly** in your Angular project.  
+> Always use the Angular-specific wrappers and modules provided by `@actionstack/angular` for proper integration and functionality.
+
 ## Key Features
 - Centralized State Management: Use a single store instance across the entire application to manage global state.
 - Modular State Slices: Define and manage specific parts of the application state (slices) for better organization and scalability.
@@ -20,9 +24,9 @@ ActionStack Angular is an Angular wrapper for the ActionStack state management l
 Registers the store at the root level and for feature modules.
 
     import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
-    import { combineEnhancers } from '@actionstack/store';
+    import { combineEnhancers } from '@actionstack/angular';
     import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
-    import { epics } from '@actionstack/epics';
+    import { epics } from '@actionstack/angular/epics';
     import { perfmon } from '@actionstack/tools';
     import { NgModule } from '@angular/core';
     import { FormsModule } from '@angular/forms';
@@ -31,7 +35,7 @@ Registers the store at the root level and for feature modules.
     import { AppRoutingModule } from './app-routing.module';
     import { AppComponent } from './app.component';
     import { MessagesModule } from './messages/messages.module';
-    import { Action, applyMiddleware } from '@actionstack/store';
+    import { Action, applyMiddleware } from '@actionstack/angular';
     import { HeroService } from './hero.service';
 
     @NgModule({
