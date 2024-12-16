@@ -1,4 +1,4 @@
-import { defaultMainModule } from './../../../store/src/lib/types';
+import { defaultMainModule } from '@actionstack/store';
 import { Tree } from '@actionstack/store';
 import { Action, createStore, Store as StoreType, StoreEnhancer, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
 import { InjectionToken, Injector } from '@angular/core';
