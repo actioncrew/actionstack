@@ -38,69 +38,84 @@ export class DefaultStoreSettings extends StoreSettings {
  * @template T The type of the state managed by the store.
  */
 export class Store<T = any> {
-  private stream: StoreType;
+  private _store: StoreType | undefined;
+  private settings: StoreSettings;
+  private mainModule: MainModule;
+  private modules: FeatureModule[] = [];
 
-  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancer, private injector?: Injector) {
-    const settings = { ...new DefaultStoreSettings(), ...storeSettings } as Settings;
-    this.stream = createStore(mainModule, settings, enhancer);
+  constructor(main: MainModule, storeSettings?: StoreSettings, private enhancer?: StoreEnhancer, private injector?: Injector) {
+    this.settings = { ...new DefaultStoreSettings(), ...storeSettings };
+    this.mainModule = { ...main };
   }
 
   dispatch(action: Action | any): Promise<void> {
-    return this.stream.dispatch(action);
+    return this.store.dispatch(action);
   }
 
   getState(slice?: keyof T | string[] | "@global"): any {
-    return this.stream.getState(slice);
+    return this.store.getState(slice);
   }
 
   readSafe(slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>): Promise<void> {
-    return this.stream.readSafe(slice, callback);
+    return this.store.readSafe(slice, callback);
   }
 
   select<R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> {
-    return this.stream.select(selector, defaultValue);
+    return this.store.select(selector, defaultValue);
   }
 
   loadModule(module: FeatureModule): Promise<void> {
-    let featureModule = module;
-    if (this.injector && module.dependencies) {
-      const dependencies = this.resolveDependencies(module.dependencies);
-      featureModule = { ...module, dependencies };
-    }
-    return this.stream.loadModule(featureModule);
+    let featureModule = { ...module, dependencies: this.resolveDependencies(module.dependencies ?? {}) };
+    this.modules = [...this.modules, featureModule];
+    return this.store.loadModule(featureModule);
   }
 
   unloadModule(module: FeatureModule, clearState: boolean): Promise<void> {
-    return this.stream.unloadModule(module, clearState);
+    let index = this.modules.findIndex((item) => module.slice === item.slice);
+    if(index < 0) {
+      console.warn(`Module with slice "${module.slice}" not found. Skipping unload.`);
+      return Promise.resolve();
+    }
+
+    this.modules.splice(index, 1);
+    return this.store.unloadModule(this.modules[index], clearState);
   }
 
   getMiddlewareAPI() {
-    return this.stream.getMiddlewareAPI();
+    return this.store.getMiddlewareAPI();
   }
 
   get starter() {
-    return this.stream.starter;
+    return this.store.starter;
   }
 
-  resolveDependencies(dependencies: Tree<any>): Tree<any> {
+  private resolveDependencies(dependencies: Tree<any>): Tree<any> {
     const resolveNode = (node: Tree<any>): Tree<any> => {
-        if (node && typeof node === 'object' && !Array.isArray(node)) {
-            // Skip objects whose constructor is a method (class instances)
-            if (typeof node.constructor === 'function') {
-                return node; // Return the class instance as-is
-            }
-            // Recursively resolve plain objects
-            return Object.fromEntries(
-                Object.entries(node).map(([key, value]) => [key, resolveNode(value)])
-            );
-        } else if (typeof node === 'function' || node instanceof InjectionToken) {
-            // Resolve Type or InjectionToken
-            return this.injector!.get(node);
+      if (typeof node === 'function' || node instanceof InjectionToken) {
+        // Resolve Type or InjectionToken
+        return this.injector!.get(node);
+      } else if (node && typeof node === 'object' && !Array.isArray(node)) {
+        // Skip objects whose constructor is a method (class instances)
+        if (typeof node.constructor === 'function' && node.constructor !== Object) {
+          return node; // Return the class instance as-is
         }
-        // Return primitive values or unhandled types as-is
-        return node;
+        // Recursively resolve plain objects
+        return Object.fromEntries(
+          Object.entries(node).map(([key, value]) => [key, resolveNode(value)])
+        );
+      }
+      // Return primitive values or unhandled types as-is
+      return node;
     };
     return resolveNode(dependencies);
+  }
+
+  private get store(): StoreType {
+    if (!this._store) {
+      this.mainModule = { ...this.mainModule, dependencies: this.resolveDependencies(this.mainModule.dependencies ?? {}) };
+      this._store = createStore(this.mainModule, this.settings, this.enhancer);;
+    }
+    return this._store;
   }
 };
 
