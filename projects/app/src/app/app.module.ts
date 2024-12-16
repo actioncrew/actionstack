@@ -13,8 +13,7 @@ import { applyMiddleware, combineEnhancers } from 'projects/actionstack/store/sr
 export const store = createStore({
   reducer: (state: any = {}) => state,
   dependencies: {},
-  strategy: "exclusive"
-}, applyMiddleware(logger, epics));
+}, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
 
 @NgModule({
   imports: [
