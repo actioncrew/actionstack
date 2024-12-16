@@ -1,5 +1,5 @@
 import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
-import { combineEnhancers } from '@actionstack/store';
+import { combineEnhancers } from '@actionstack/angular';
 import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
 import { epics } from '@actionstack/epics';
 import { perfmon } from '@actionstack/tools';
@@ -10,7 +10,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
-import { Action, applyMiddleware } from '@actionstack/store';
+import { Action, applyMiddleware } from '@actionstack/angular';
 import { HeroService } from './hero.service';
 
 @NgModule({

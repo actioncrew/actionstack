@@ -1,4 +1,4 @@
-import { Action, action, featureSelector, selector } from '@actionstack/store';
+import { Action, action, featureSelector, selector } from '@actionstack/angular';
 import { ofType } from '@actionstack/epics';
 import { concatMap, take, withLatestFrom } from 'rxjs';
 import { Observable } from 'rxjs/internal/Observable';

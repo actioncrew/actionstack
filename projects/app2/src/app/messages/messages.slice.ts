@@ -1,4 +1,4 @@
-import { Action, action, featureSelector, selector } from "@actionstack/store";
+import { Action, action, featureSelector, selector } from "@actionstack/angular";
 
 export const slice = "messages";
 
