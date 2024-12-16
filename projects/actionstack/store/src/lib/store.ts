@@ -143,7 +143,7 @@ export function createStore<T = any>(
   // Configure store pipeline
   let pipeline = {
     reducer: combineReducers({ [main.slice!]: main.reducer }),
-    dependencies: { ...main.dependencies },
+    dependencies: {},
     strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
   };
 
@@ -482,13 +482,27 @@ export function createStore<T = any>(
   console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
 
   lock.acquire()
+    .then(() => injectDependencies())
     .then(() => setupReducer())
     .then(state => setState("@global", state))
     .finally(() => lock.release());
 
   sysActions.storeInitialized();
 
-  let store = {
+  // Apply enhancer if provided
+  if (typeof enhancer === "function") {
+    // Check if the enhancer contains applyMiddleware
+    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
+
+    // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
+    if (!hasMiddlewareEnhancer) {
+      return combineEnhancers(enhancer, applyMiddleware())(createStore)(main, settings);
+    }
+
+    return enhancer(createStore)(main, settings);
+  }
+
+  return {
     starter,
     dispatch,
     getState,
@@ -498,19 +512,4 @@ export function createStore<T = any>(
     unloadModule,
     getMiddlewareAPI,
   } as Store<any>;
-
-  // Apply enhancer if provided
-  if (typeof enhancer === "function") {
-    // Check if the enhancer contains applyMiddleware
-    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
-
-    // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
-    if (!hasMiddlewareEnhancer) {
-      store = combineEnhancers(enhancer, applyMiddleware())(createStore)(main, settings);
-    }
-
-    store = enhancer(createStore)(main, settings);
-  }
-
-  return store;
 }
