@@ -1,4 +1,4 @@
-import { Action, AsyncReducer, StoreCreator, StoreEnhancer, Tree } from "./types";
+import { Action, AsyncReducer, Reducer, StoreCreator, StoreEnhancer, Tree } from "./types";
 
 
 /**
@@ -56,26 +56,32 @@ function combineEnhancers(...enhancers: StoreEnhancer[]): StoreEnhancer {
  * Combines reducers into a single reducer function.
  * Initializes the default state by invoking each reducer with `undefined` and a special `@@INIT` action.
  */
-const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
+const combineReducers = (reducers: Tree<Reducer | AsyncReducer>): AsyncReducer => {
   /**
    * Helper to validate reducers and flatten them into a single map.
+   *
+   * This recursively flattens the nested reducer tree and ensures all reducer paths are captured in the map.
    */
-  const flattenReducers = (tree: Tree<AsyncReducer>, path: string[] = []): Map<string, { reducer: AsyncReducer; path: string[] }> => {
+  const flattenReducers = (tree: Tree<Reducer | AsyncReducer>, path: string[] = []): Map<string, { reducer: AsyncReducer; path: string[] }> => {
     const reducerMap = new Map<string, { reducer: AsyncReducer; path: string[] }>();
+
     for (const key in tree) {
       const reducer = tree[key];
       const currentPath = [...path, key];
+
       if (typeof reducer === "function") {
         reducerMap.set(currentPath.join("."), { reducer, path: currentPath });
-      } else if (typeof reducer === "object") {
+      } else if (typeof reducer === "object" && reducer !== null) {
+        // Recursively flatten the nested reducers.
         const childReducers = flattenReducers(reducer, currentPath);
-        for (const [childKey, childReducer] of childReducers) {
+        childReducers.forEach((childReducer, childKey) => {
           reducerMap.set(childKey, childReducer);
-        }
+        });
       } else {
         throw new Error(`Invalid reducer at path: ${currentPath.join(".")}`);
       }
     }
+
     return reducerMap;
   };
 
@@ -83,36 +89,49 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
 
   /**
    * Helper to build the initial state by calling reducers with undefined state and a special `@@INIT` action.
+   *
+   * It gathers the initial state for each reducer, ensuring the nested structure is respected.
    */
   const gatherInitialState = async (): Promise<any> => {
     const initialState: any = {};
+
     for (const { reducer, path } of reducerMap.values()) {
       const key = path[path.length - 1]; // Get the last key in the path as the state slice
-      const initState = await reducer(undefined, { type: "@@INIT" } as Action);
-      let cursor = initialState;
-      for (let i = 0; i < path.length - 1; i++) {
-        cursor[path[i]] = cursor[path[i]] || {};
-        cursor = cursor[path[i]];
+      try {
+        const initState = await reducer(undefined, { type: "@@INIT" } as Action);
+        let cursor = initialState;
+        for (let i = 0; i < path.length - 1; i++) {
+          cursor[path[i]] = cursor[path[i]] || {};
+          cursor = cursor[path[i]];
+        }
+        cursor[key] = initState;
+      } catch (error: any) {
+        console.error(`Error initializing state at path "${path.join('.')}" with action "@@INIT": ${error.message}`);
       }
-      cursor[key] = initState;
     }
+
     return initialState;
   };
 
   /**
    * Combined reducer function.
+   *
+   * It processes each reducer asynchronously and ensures the state is only updated if necessary.
    */
   return async (state: any, action: Action): Promise<any> => {
     if (state === undefined) {
       state = await gatherInitialState();
     }
+
     let hasChanged = false;
     const modified: any = {}; // To track the modifications
     const nextState = { ...state };
 
+    // Process each reducer in the flattened reducer map
     for (const { reducer, path } of reducerMap.values()) {
       const key = path[path.length - 1];
       const currentState = path.reduce((acc, key) => acc[key], state);
+
       try {
         const updatedState = await reducer(currentState, action);
         if (currentState !== updatedState) {
@@ -127,7 +146,7 @@ const combineReducers = (reducers: Tree<AsyncReducer>): AsyncReducer => {
       }
     }
 
-    // Return the state only if it has changed
+    // Return the state only if it has changed, otherwise return the previous state.
     return hasChanged ? state : nextState;
   };
 };
