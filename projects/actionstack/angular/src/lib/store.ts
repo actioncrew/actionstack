@@ -1,3 +1,4 @@
+import { defaultMainModule } from './../../../store/src/lib/types';
 import { Tree } from '@actionstack/store';
 import { Action, createStore, Store as StoreType, StoreEnhancer, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
 import { InjectionToken, Injector } from '@angular/core';
@@ -45,7 +46,7 @@ export class Store<T = any> {
 
   constructor(main: MainModule, storeSettings?: StoreSettings, private enhancer?: StoreEnhancer, private injector?: Injector) {
     this.settings = { ...new DefaultStoreSettings(), ...storeSettings };
-    this.mainModule = { ...main };
+    this.mainModule = { ...defaultMainModule, ...main };
   }
 
   dispatch(action: Action | any): Promise<void> {
