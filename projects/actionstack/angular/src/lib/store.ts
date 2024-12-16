@@ -1,8 +1,8 @@
 import { Tree } from '@actionstack/store';
-import { Action, createStore, Store as StoreType, StoreEnhancer as StoreEnhancerType, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
-import { InjectionToken, Injector, Type } from '@angular/core';
+import { Action, createStore, Store as StoreType, StoreEnhancer, FeatureModule, MainModule, Tracker, StoreSettings as Settings } from '@actionstack/store';
+import { InjectionToken, Injector } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
+// export { Store as StoreType, StoreSettings as StoreSettingsType } from '@actionstack/store';
 
 /**
  * Configuration settings for the store.
@@ -40,7 +40,7 @@ export class DefaultStoreSettings extends StoreSettings {
 export class Store<T = any> {
   private stream: StoreType;
 
-  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancerType, private injector?: Injector) {
+  constructor(mainModule: MainModule, storeSettings?: StoreSettings, enhancer?: StoreEnhancer, private injector?: Injector) {
     const settings = { ...new DefaultStoreSettings(), ...storeSettings } as Settings;
     this.stream = createStore(mainModule, settings, enhancer);
   }
@@ -83,7 +83,7 @@ export class Store<T = any> {
   }
 
   resolveDependencies(dependencies: Tree<any>): Tree<any> {
-    const resolveNode = (node: Tree<any>) => {
+    const resolveNode = (node: Tree<any>): Tree<any> => {
         if (node && typeof node === 'object' && !Array.isArray(node)) {
             // Skip objects whose constructor is a method (class instances)
             if (typeof node.constructor === 'function') {
@@ -95,7 +95,7 @@ export class Store<T = any> {
             );
         } else if (typeof node === 'function' || node instanceof InjectionToken) {
             // Resolve Type or InjectionToken
-            return this.injector.get(node);
+            return this.injector!.get(node);
         }
         // Return primitive values or unhandled types as-is
         return node;
@@ -103,3 +103,65 @@ export class Store<T = any> {
     return resolveNode(dependencies);
   }
 };
+
+export {
+  // Types:
+  Action,
+  AsyncAction,
+  ActionCreator,
+  Reducer,
+  AsyncReducer,
+  MetaReducer,
+  Middleware,
+  MiddlewareAPI,
+  Observer,
+  AsyncObserver,
+  OperatorFunction,
+  AnyFn,
+  SelectorFunction,
+  ProjectionFunction,
+  Tree,
+  ProcessingStrategy,
+  SliceStrategy,
+  FeatureModule,
+  MainModule,
+  StoreCreator,
+  StoreEnhancer,
+  StoreSettings as Settings,
+  Store as StoreType,
+  InstructionType,
+  Instruction,
+  ExecutionStack,
+
+  // Functions:
+  createAction,
+  bindActionCreator,
+  bindActionCreators,
+  salt,
+  hash,
+  signature,
+  isValidSignature,
+  createLock,
+  createTracker,
+  kindOf,
+  isBoxed,
+  isPromise,
+  isAction,
+  isAsync,
+  isPlainObject,
+  isObservable,
+  createFeatureSelector,
+  createSelector,
+  createSelectorAsync,
+  createInstruction,
+  isInstruction,
+  createExecutionStack,
+  createActionHandler,
+  createStarter,
+
+  createAction as action,
+  createFeatureSelector as featureSelector,
+  createSelector as selector,
+  createSelectorAsync as selectorAsync,
+
+} from '@actionstack/store';
