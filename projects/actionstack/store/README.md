@@ -61,6 +61,23 @@ To create a store, use the createStore function, which initializes the store wit
       dependencies: {}
     }, storeSettings, applyMiddleware(logger, epics));
 
+### Defining Reducers
+Reducers are pure functions responsible for updating the state based on dispatched actions. They take the current state and an action as arguments, and return a new state. You are free to define reducers in any structure that fits your application needs—there is no predefined function for creating reducers.
+
+A basic reducer structure looks like this:
+
+    const myReducer = (state = initialState, action) => {
+      switch (action.type) {
+        case 'ACTION_TYPE':
+          // Reducer logic
+          return { ...state, /* new state */ };
+        default:
+          return state;
+      }
+    };
+
+> Note: The state parameter in all reducers must have a default value, typically initialized with the reducer's initialState. This ensures that reducers have a valid state to operate on and prevents potential errors.
+
 ### Loading and Unloading Modules
 Modules can be loaded or unloaded dynamically. The loadModule and unloadModule methods manage this process, ensuring that the store’s dependencies are correctly updated.
 

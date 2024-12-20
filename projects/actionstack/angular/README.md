@@ -2,9 +2,7 @@
 
 ActionStack Angular is an Angular wrapper for the ActionStack state management library. It integrates ActionStack’s powerful state management features seamlessly into Angular applications, offering a modular and flexible way to handle global application state. With ActionStack Angular, developers can easily manage state through a centralized store, dispatch actions, and organize state into slices for better modularity and maintainability.
 
-> **Important:** The `@actionstack/store` package is re-exported by `@actionstack/angular`.  
-> It is strongly recommended **not to use `@actionstack/store` directly** in your Angular project.  
-> Always use the Angular-specific wrappers and modules provided by `@actionstack/angular` for proper integration and functionality.
+> **Important:** The `@actionstack/store` package is re-exported by `@actionstack/angular`. It is strongly recommended **not to use `@actionstack/store` directly** in your Angular project. Always use the Angular-specific wrappers and modules provided by `@actionstack/angular` for proper integration and functionality.
 
 ## Key Features
 - Centralized State Management: Use a single store instance across the entire application to manage global state.
