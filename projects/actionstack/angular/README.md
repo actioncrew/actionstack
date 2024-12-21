@@ -102,7 +102,7 @@ Defines slices of state for specific parts of the application, allowing for modu
       }
 
       ngOnInit(): void {
-        this.slice.setup({
+        this.slice.init({
           slice: slice,
           reducer: reducer,
           dependencies: { heroService: new HeroService() },
