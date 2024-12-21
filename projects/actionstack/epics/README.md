@@ -24,7 +24,7 @@ Setting Up Epics Middleware
 Configure the epics middleware in your store:
 
     import { createStore } from '@actionstack/store';
-    import { epics, addEpics } from '@actionstack/epics';
+    import { epics, run } from '@actionstack/epics';
     import rootEpic from './epics';
 
     export const store = createStore({
@@ -33,7 +33,7 @@ Configure the epics middleware in your store:
     }, applyMiddleware(logger, epics));
 
     // Register the root epic
-    store.dispatch(addEpics(rootEpic));
+    store.dispatch(run(rootEpic));
 
 Writing an Epic
 
@@ -59,8 +59,8 @@ Epics are functions that transform action streams into other streams:
 
 ### Utilities
 
-- addEpics: Action to dynamically add epics.
-- removeEpics: Action to dynamically remove epics.
+- run: Action to launch epics.
+- stop: Action to stop epics.
 - ofType: RxJS operator to filter actions by type.
 
 ## Contribution
