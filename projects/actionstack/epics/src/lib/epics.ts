@@ -274,7 +274,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   const store = createStore(module, settings, enhancer) as EpicStore;
 
   /**
-   * Extends the store with the given epics.
+   * Spawns the given epics.
    *
    * @template U
    * @param {...Epic[]} epics - The epics to be added to the store.
