@@ -40,8 +40,8 @@ export const createSagasMiddleware = ({
 
     channel.put(action);
 
-    if (action.type === 'ADD_SAGAS' || action.type === 'REMOVE_SAGAS') {
-      if (action.type === 'ADD_SAGAS') {
+    if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
+      if (action.type === 'RUN_ENTITIES') {
         action.payload.sagas.forEach((saga: Saga) => {
           if (!activeSagas.has(saga)) {
             if (typeof saga !== 'function') {
@@ -65,7 +65,7 @@ export const createSagasMiddleware = ({
             activeSagas.set(saga, task);
           }
         });
-      } else if (action.type === 'REMOVE_SAGAS') {
+      } else if (action.type === 'STOP_ENTITIES') {
         action.payload.sagas.forEach((saga: any) => {
           const task = activeSagas.get(saga);
           if (task) {
@@ -86,11 +86,11 @@ createSagasMiddleware.signature = "u.p.l.2.y.m.b.1.d.7";
 
 export const sagas = createSagasMiddleware({});
 
-export const addSagas = action('ADD_SAGAS', (...sagas: any[]) => ({sagas}));
-export const removeSagas = action('REMOVE_SAGAS', (...sagas: any[]) => ({sagas}));
+export const run = action('RUN_ENTITIES', (...sagas: any[]) => ({sagas}));
+export const stop = action('STOP_ENTITIES', (...sagas: any[]) => ({sagas}));
 
 /**
- * A store enhancer to extend the store with sagas.
+ * A store enhancer to spawn the given sagas.
  *
  * @param {Function} createStore - The function to create the store.
  * @returns {Function} - A function that accepts the main module and optional enhancer to create an saga store.
@@ -99,20 +99,20 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   const store = createStore(module, settings, enhancer) as SagaStore;
 
   /**
-   * Extends the store with the given sagas.
+   * Spawns the given sagas.
    *
    * @template U
-   * @param {...Saga[]} args - The sagas to be added to the store.
+   * @param {...Saga[]} sagas - The sagas to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the sagas are removed.
    */
-  store.extend = <U>(...args: Saga[]): Observable<U> => {
+  store.spawn = <U>(...sagas: Saga[]): Observable<U> => {
     const effects$ = new Observable<U>((subscriber: Observer<U>) => {
       return () => {
-        store.dispatch(removeSagas(args));
+        store.dispatch(stop(sagas));
       }
     });
 
-    store.dispatch(addSagas(args));
+    store.dispatch(run(sagas));
     return effects$;
   };
 
@@ -126,13 +126,13 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  */
 export abstract class SagaStore extends Store {
   /**
-   * Abstract method to extend the store with sagas.
+   * Abstract method to spawn the given sagas.
    *
    * @template U
-   * @param {...Saga[]} args - The sagas to be added to the store.
+   * @param {...Saga[]} sagas - The sagas to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the sagas are removed.
    */
-  abstract extend<U>(...args: Saga[]): Observable<U>;
+  abstract spawn<U>(...sagas: Saga[]): Observable<U>;
 }
 
 /**
