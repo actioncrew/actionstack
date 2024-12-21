@@ -189,14 +189,14 @@ export const createEpicsMiddleware = () => {
     // Proceed to the next action
     const result = await next(action);
 
-    if (action.type === 'ADD_EPICS' || action.type === 'REMOVE_EPICS') {
-      if (action.type === 'ADD_EPICS') {
+    if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
+      if (action.type === 'RUN_ENTITIES') {
         action.payload.epics.forEach((epic: Epic) => {
           if (!activeEpics.includes(epic)) {
             activeEpics.push(epic);
           }
         });
-      } else if (action.type === 'REMOVE_EPICS') {
+      } else if (action.type === 'STOP_ENTITIES') {
         action.payload.epics.forEach((epic: Epic) => {
           const epicIndex = activeEpics.indexOf(epic);
           if (epicIndex !== -1) {
@@ -257,7 +257,7 @@ export const epics = createEpicsMiddleware();
  * @param {...Epic[]} epics - The epics to add.
  * @returns {Action<any>} - The action object.
  */
-export const addEpics = action("ADD_EPICS", (...epics: Epic[]) => ({ epics }));
+export const run = action("RUN_ENTITIES", (...epics: Epic[]) => ({ epics }));
 
 /**
  * Action creator for removing epics.
@@ -265,10 +265,10 @@ export const addEpics = action("ADD_EPICS", (...epics: Epic[]) => ({ epics }));
  * @param {...Epic[]} epics - The epics to remove.
  * @returns {Action<any>} - The action object.
  */
-export const removeEpics = action("REMOVE_EPICS", (...epics: Epic[]) => ({ epics }));
+export const stop = action("STOP_ENTITIES", (...epics: Epic[]) => ({ epics }));
 
 /**
- * A store enhancer to extend the store with epics.
+ * A store enhancer that spawns the given epics.
  *
  * @param {Function} createStore - The function to create the store.
  * @returns {Function} - A function that accepts the main module and optional enhancer to create an epic store.
@@ -277,20 +277,20 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   const store = createStore(module, settings!, enhancer) as EpicStore;
 
   /**
-   * Extends the store with the given epics.
+   * Spawns the given epics.
    *
    * @template U
    * @param {...Epic[]} args - The epics to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the epics are removed.
    */
-  store.extend = <U>(...args: Epic[]): Observable<U> => {
+  store.spawn = <U>(...epics: Epic[]): Observable<U> => {
     const effects$ = new Observable<U>((subscriber: Observer<U>) => {
       return () => {
-        store.dispatch(removeEpics(args));
+        store.dispatch(stop(epics));
       }
     });
 
-    store.dispatch(addEpics(args));
+    store.dispatch(run(epics));
     return effects$;
   };
 
@@ -304,13 +304,13 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  */
 export abstract class EpicStore extends Store {
   /**
-   * Abstract method to extend the store with epics.
+   * Abstract method to spawn the epics.
    *
    * @template U
-   * @param {...Epic[]} args - The epics to be added to the store.
+   * @param {...Epic[]} epics - The epics to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the epics are removed.
    */
-  abstract extend<U>(...args: Epic[]): Observable<U>;
+  abstract spawn<U>(...epics: Epic[]): Observable<U>;
 }
 
 /**
