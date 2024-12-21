@@ -37,8 +37,8 @@ export const createSagasMiddleware = ({
 
     channel.put(action);
 
-    if (action.type === 'RUN_ENTIRIES' || action.type === 'STOP_ENTIRIES') {
-      if (action.type === 'RUN_ENTIRIES') {
+    if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
+      if (action.type === 'RUN_ENTITIES') {
         action.payload.sagas.forEach((saga: Saga) => {
           if (!activeSagas.has(saga)) {
             if (typeof saga !== 'function') {
