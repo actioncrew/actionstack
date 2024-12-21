@@ -87,7 +87,7 @@ export const run = action('RUN_ENTITIES', (...sagas: any[]) => ({sagas}));
 export const stop = action('STOP_ENTITIES', (...sagas: any[]) => ({sagas}));
 
 /**
- * A store enhancer that extends the store with support for sagas.
+ * A store enhancer that adds method to spawn sagas.
  *
  * @param {Function} createStore - A function used to create the base store.
  * @returns {Function} - A function that takes the main module, settings, and an optional enhancer,
@@ -100,7 +100,7 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
    * Spawns the given sagas.
    *
    * @template U
-   * @param {...Saga[]} args - The sagas to be added to the store.
+   * @param {...Saga[]} sagas - The sagas to be added to the store.
    * @returns {Observable<U>} - An observable that completes when the sagas are removed.
    */
   store.spawn = <U>(...sagas: Saga[]): Observable<U> => {
