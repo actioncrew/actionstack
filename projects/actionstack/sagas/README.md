@@ -24,7 +24,7 @@ To install Actionstack Sagas, use the following command:
 Import and configure the middleware in your store setup:
 
     import { createStore } from '@actionstack/store';
-    import { sagas, addSagas } from '@actionstack/sagas';
+    import { sagas, run } from '@actionstack/sagas';
     import rootSaga from './sagas';
 
     export const store = createStore({
@@ -32,8 +32,8 @@ Import and configure the middleware in your store setup:
       dependencies: {},
     }, applyMiddleware(logger, sagas));
 
-    // Register the root epic
-    store.dispatch(addSagas(rootSaga));
+    // Run the root saga
+    store.dispatch(run(rootSaga));
 
 ### Writing a Saga
 
