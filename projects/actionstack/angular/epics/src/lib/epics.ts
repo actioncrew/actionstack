@@ -312,24 +312,3 @@ export abstract class EpicStore extends Store {
    */
   abstract spawn<U>(...epics: Epic[]): Observable<U>;
 }
-
-/**
- * NgModule for providing the epic store and its enhancer.
- *
- * @ngModule
- */
-@NgModule({
-  providers: [
-    {
-      provide: STORE_ENHANCER,
-      useValue: storeEnhancer,
-      multi: false
-    },
-    {
-      provide: EpicStore,
-      useFactory: (store: Store) => store,
-      deps: [Store]
-    }
-  ]
-})
-export class EpicModule { }
