@@ -134,24 +134,3 @@ export abstract class SagaStore extends Store {
    */
   abstract spawn<U>(...sagas: Saga[]): Observable<U>;
 }
-
-/**
- * NgModule for providing the saga store and its enhancer.
- *
- * @ngModule
- */
-@NgModule({
-  providers: [
-    {
-      provide: STORE_ENHANCER,
-      useValue: storeEnhancer,
-      multi: false
-    },
-    {
-      provide: SagaStore,
-      useValue: Store,
-      deps: [Store]
-    }
-  ]
-})
-export class SagaModule { }
