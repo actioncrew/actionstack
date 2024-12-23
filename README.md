@@ -18,7 +18,6 @@ A powerful and flexible state management library designed to provide a scalable 
 - TypeScript Support: ActionStack offers full TypeScript support, enhancing developer experience with type safety for state, actions, and reducers.
 - Framework-Agnostic: ActionStack is framework-agnostic, meaning it can be used with any JavaScript or TypeScript project, not just Angular.
 - Dynamic Module Support: Easily manage complex, large-scale applications by supporting multiple store modules that can attach or detach dynamically, optimizing memory usage.
-- Built-in Tools: Includes tools like the logger, performance monitor, and state freezer to enhance debugging and improve performance.
 
 ## What Sets ActionStack Apart
 ActionStack excels in managing asynchronous state. Unlike traditional state management libraries, ActionStack has robust support for handling side effects and asynchronous operations:
@@ -27,22 +26,14 @@ ActionStack excels in managing asynchronous state. Unlike traditional state mana
 - Asynchronous Reducers: Reducers can handle async processes, ensuring smooth state transitions even when asynchronous actions are involved.
 - Asynchronous Meta-Reducers and Selectors: Meta-reducers and selectors can operate asynchronously, allowing state to be fetched or transformed without blocking the main flow.
 
-ActionStack is built for flexibility, letting you structure your state tree however you want while handling complex state management scenarios with ease.
-
-## Extending the Store with Side Effects
-ActionStack provides built-in support for side effects, allowing you to extend the store's functionality through epics or sagas. These mechanisms handle asynchronous tasks and interactions in response to dispatched actions.
-
-### Epics
-Epics, inspired by Redux-Observable, use RxJS to handle side effects in a reactive way. Epics listen for dispatched actions, apply transformations using RxJS operators, and can dispatch new actions.
-
-### Sagas
-Sagas, inspired by Redux-Saga, use generator functions to manage side effects. They provide a powerful way to handle complex workflows, including concurrent tasks and long-running processes.
+ActionStack is built for flexibility, letting you structure your state tree however you want while handling complex state management scenarios with ease. It provides built-in support for side effects, allowing you to extend the store's functionality through epics or sagas. These mechanisms handle asynchronous tasks and interactions in response to dispatched actions.
 
 ## Usage
 
 ### Creating a Store
 To create a store, use the createStore function, which initializes the store with the provided main module and optional settings or enhancers.
 
+```typescript
     import { createStore } from '@actionstack/store';
     import { someMainModule } from './modules';
 
@@ -51,19 +42,40 @@ To create a store, use the createStore function, which initializes the store wit
       dispatchSystemActions: false,
       enableMetaReducers: false,
       awaitStatePropagation: true,
-      enableAsyncReducers: false
+      enableAsyncReducers: false,
+      exclusiveActionProcessing: false
     };
 
     // Create the store instance
     const store = export const store = createStore({
-      reducer: (state: any = {}) => state,
-      dependencies: {},
-      strategy: "exclusive"
+      reducer: rootReducer,
+      dependencies: {}
     }, storeSettings, applyMiddleware(logger, epics));
+```
+
+### Defining Reducers
+Reducers are pure functions responsible for updating the state based on dispatched actions. They take the current state and an action as arguments, and return a new state. You are free to define reducers in any structure that fits your application needs—there is no predefined function for creating reducers.
+
+A basic reducer structure looks like this:
+
+```typescript
+    const myReducer = (state = initialState, action) => {
+      switch (action.type) {
+        case 'ACTION_TYPE':
+          // Reducer logic
+          return { ...state, /* new state */ };
+        default:
+          return state;
+      }
+    };
+```
+
+> Note: The state parameter in all reducers must have a default value, typically initialized with the reducer's initialState. This ensures that reducers have a valid state to operate on and prevents potential errors.
 
 ### Loading and Unloading Modules
 Modules can be loaded or unloaded dynamically. The loadModule and unloadModule methods manage this process, ensuring that the store’s dependencies are correctly updated.
 
+```typescript
     const featureModule = {
       slice: 'superModule',
       reducer: superReducer,
@@ -75,18 +87,27 @@ Modules can be loaded or unloaded dynamically. The loadModule and unloadModule m
 
     // Unload a feature module (with optional state clearing)
     store.unloadModule(featureModule, true);
+```
 
 ### Reading State Safely
 To read a slice of the state in a safe manner (e.g., avoiding race conditions), use readSafe. This method ensures the state is accessed while locking the pipeline.
 
+```typescript
     store.readSafe('@global', (state) => {
       console.log('Global state:', state);
     });
+```
 
 ### Dispatching Actions
 You can dispatch actions to add or clear messages in the store. Here's how to do it:
 
-    import { addMessage, clearMessages } from "./messagesSlice";
+```typescript
+    import { Action, action, featureSelector, selector } from '@actionstack/store';
+
+    export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
+    export const clearMessages = action('CLEAR_MESSAGES');
+    
+    ...
 
     // Dispatching an action to add a message
     store.dispatch(addMessage("Hello, world!"));
@@ -96,21 +117,33 @@ You can dispatch actions to add or clear messages in the store. Here's how to do
 
     // Dispatching an action to clear all messages
     store.dispatch(clearMessages());
+```
 
 ### Subscribing to State Changes
 You can also subscribe to changes in the state, so that when messages are added or cleared, you can react to those changes:
 
+```typescript
+    import { Action, action, featureSelector, selector } from '@actionstack/store';
+    
+    export const feature = featureSelector(slice);
+    export const selectHeroes = selector(feature, state => state.heroes);
+    
+    ...
+    
     // Subscribe to state changes
     this.subscription = store.select(selectHeroes()).subscribe(value => {
       this.heroes = value;
     });
+```
 
-## Tools
-ActionStack includes several tools to aid development and debugging:
+## Tooling
+ActionStack includes several tools to aid development and debugging: logger, perfmon and storeFreeze. In addition, it is compatible with any middleware available for Redux, but with caution. Middleware can add powerful functionalities to your application, but improper usage may lead to unintended side effects or performance issues.
 
-- Logger: Logs all state changes and actions to the console, making it easier to track how state evolves.
-- Performance Monitor: Measures the performance of state changes and actions, helping you identify bottlenecks.
-- State Freezer: Prevents accidental mutations of state, ensuring immutability is maintained throughout your application.
+> Note: Redux Thunk-like functionality is already integrated into ActionStack, so there's no need to add it separately for handling asynchronous actions.
 
 # Conclusion
 ActionStack makes state management in your applications easier, more predictable, and scalable. With support for both epics and sagas, it excels in handling asynchronous operations while offering the flexibility and power of RxJS and generator functions. Whether you're working on a small project or a large-scale application, ActionStack can help you manage state efficiently and reliably.
+
+If you're interested, join our discussions on [GitHub](https://github.com/actioncrew/actionstack/discussions)!
+ 
+Have fun and happy coding!

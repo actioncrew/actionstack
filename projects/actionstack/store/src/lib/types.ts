@@ -96,7 +96,7 @@ export type MiddlewareAPI = {
  * Middleware functions are used to intercept, handle, and potentially modify the dispatching process in Actionstack-like stores.
  * This interface defines the expected behavior for a middleware function.
  *
- * @property (store: Store) => (next: (action: any) => any) => Promise<(action: any) => any> | any
+ * @property (api: Store) => (next: Function) => (action: any) => Promise<any> | any
  *  - A function that takes the store instance as an argument.
  *  - It returns another function that takes the `next` function in the middleware chain as an argument.
  *  - The inner function can perform logic before and/or after calling the `next` function with the action.
@@ -109,7 +109,7 @@ export type MiddlewareAPI = {
  *      aiding in type checking and documentation.
  */
 export interface Middleware {
-  (store: any): (next: Function) => (action: Action) => Promise<any>;
+  (api: any): (next: Function) => (action: Action) => Promise<any> | any;
   signature?: string;
 }
 

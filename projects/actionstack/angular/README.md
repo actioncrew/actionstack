@@ -103,7 +103,7 @@ Defines slices of state for specific parts of the application, allowing for modu
         this.slice.init({
           slice: slice,
           reducer: reducer,
-          dependencies: { heroService: new HeroService() },
+          dependencies: { heroService: HeroService },
           strategy: "persistent"
         });
 
@@ -144,16 +144,6 @@ Acts as the single source of truth for application state, providing a unified pl
           map(params => Number(params.get('id'))),
           tap(id => this.store.dispatch(loadHero(id)))
         ).subscribe();
-      }
-
-      goBack(): void {
-        this.location.back();
-      }
-
-      ngOnDestroy() {
-        if(this.subscription) {
-          this.subscription.unsubscribe();
-        }
       }
     }
 
