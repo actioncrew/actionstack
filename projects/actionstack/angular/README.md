@@ -5,12 +5,12 @@ ActionStack Angular is an Angular wrapper for the ActionStack state management l
 > **Important:** The `@actionstack/store` package is re-exported by `@actionstack/angular`. It is strongly recommended **not to use `@actionstack/store` directly** in your Angular project. Always use the Angular-specific wrappers and modules provided by `@actionstack/angular` for proper integration and functionality.
 
 ## Key Features
-- Centralized State Management: Use a single store instance across the entire application to manage global state.
-- Modular State Slices: Define and manage specific parts of the application state (slices) for better organization and scalability.
-- Action Dispatching: Dispatch actions to modify the application state, making state updates predictable and traceable.
-- State Selection: Select portions of the state as observables, allowing reactive updates to components.
-- Feature Modules Support: Dynamically load and unload feature modules, encapsulating state management for specific parts of the application.
-- Configurable Store: Customize store settings, including reducers, strategies, and enhancements, to meet specific application requirements.
+- Centralized State: Manage global state with a single store instance.
+- Modular Slices: Organize state into slices for better scalability and maintainability.
+- Predictable Updates: Dispatch actions to modify state in a traceable manner.
+- Reactive State: Select and observe portions of the state for automatic component updates.
+- Dynamic Modules: Load and unload feature modules dynamically for encapsulated state management.
+- Customizable Store: Tailor reducers, strategies, and enhancements to suit your application needs.
 
 ## Core Components
 - StoreModule: The core module that configures and provides access to the store. It offers methods for setting up the store at the root level (forRoot()) and within feature modules (forFeature()).
@@ -19,8 +19,9 @@ ActionStack Angular is an Angular wrapper for the ActionStack state management l
 
 ## Usage
 ### StoreModule:
-Registers the store at the root level and for feature modules.
+StoreModule registers the store at the root level and for feature modules:
 
+```typescript
     import { EpicStore, storeEnhancer } from '@actionstack/angular/epics';
     import { combineEnhancers } from '@actionstack/angular';
     import { Store, STORE_ENHANCER, STORE_SETTINGS, StoreModule } from '@actionstack/angular';
@@ -63,26 +64,31 @@ Registers the store at the root level and for feature modules.
       bootstrap: [AppComponent],
     })
     export class AppModule {}
-
+```
 
 or instead of use StoreModule use helper functions:
 
+```typescript
     provideStore({
       reducer: rootReducer,
       dependencies: rootDependencies,
       metaReducers: [formsMetaReducer]
     })
+```
 
 for feature module:
-    
+
+```typescript
     provideModule({
       slice: sliceName,
       reducer: reducer
     })
+```
 
 ### Slice:
-Defines slices of state for specific parts of the application, allowing for modular state management.
+If you prefer a component-oriented store, you can utilize Slices. Slices allow you to group state, actions, and reducers logically by feature or component, making your store structure more modular and easier to maintain.
 
+```typescript
     import { Slice } from '@actionstack/angular';
 
     @Component({
@@ -113,10 +119,12 @@ Defines slices of state for specific parts of the application, allowing for modu
       ngOnDestroy(): void {
       }
     }
+```
 
 ### Store: 
 Acts as the single source of truth for application state, providing a unified place to manage, update, and access state across the entire application.
-    
+
+```typescript
     import { Component, OnInit } from '@angular/core';
     import { Observable, Subscription, map, tap } from 'rxjs';
     ...
@@ -146,7 +154,7 @@ Acts as the single source of truth for application state, providing a unified pl
         ).subscribe();
       }
     }
-
+```
 
 ## Benefits
 - Seamless Integration: ActionStack Angular leverages Angular's dependency injection and module system for easy setup and configuration.
@@ -155,3 +163,7 @@ Acts as the single source of truth for application state, providing a unified pl
 
 ## Conclusion
 ActionStack Angular provides a robust, flexible, and scalable solution for managing application state in Angular applications. By integrating seamlessly with Angular’s features and offering powerful state management capabilities, it helps developers build maintainable and high-performing applications.
+
+If you're interested, join our discussions on [GitHub](https://github.com/actioncrew/actionstack/discussions)!
+ 
+Have fun and happy coding!

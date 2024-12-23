@@ -36,12 +36,14 @@ To use ActionStack tools, install the ActionStack package (if not already instal
 
 Then, import the necessary tools in your application:
 
+```typescript
     import { createStore } from '@actionstack/store';
     import { logger, perfmon, storeFreeze } from '@actionstack/tools';
     export const store = createStore({
       reducer: rootReducer,
       dependencies: {}
     }, applyMiddleware(logger, perfmon, storeFreeze));
+```
 
 ## Conclusion
 

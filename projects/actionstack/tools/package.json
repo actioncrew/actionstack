@@ -1,8 +1,8 @@
 {
   "name": "@actionstack/tools",
-  "version": "2.0.5",
+  "version": "2.0.8",
   "peerDependencies": {
-    "@actionstack/store": "^2.0.5"
+    "@actionstack/store": "^2.0.8"
   },
   "dependencies": {
     "tslib": "^2.3.0"

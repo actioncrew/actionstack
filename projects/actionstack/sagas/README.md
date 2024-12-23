@@ -23,6 +23,7 @@ To install Actionstack Sagas, use the following command:
 
 Import and configure the middleware in your store setup:
 
+```typescript
     import { createStore } from '@actionstack/store';
     import { sagas, run } from '@actionstack/sagas';
     import rootSaga from './sagas';
@@ -34,11 +35,13 @@ Import and configure the middleware in your store setup:
 
     // Run the root saga
     store.dispatch(run(rootSaga));
+```
 
 ### Writing a Saga
 
 Sagas are generator functions that describe side effects in a declarative way. Use effects like take, call, and put to manage actions and state:
 
+```typescript
     import { take, call, put } from 'redux-saga/effects';
     import { fetchData } from './api';
     import { fetchSuccess, fetchFailure } from './actions';
@@ -55,6 +58,7 @@ Sagas are generator functions that describe side effects in a declarative way. U
     export default function* rootSaga() {
       yield take('FETCH_REQUEST', fetchDataSaga);
     }
+```
 
 ## API Reference
 

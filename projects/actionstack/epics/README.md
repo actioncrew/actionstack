@@ -19,10 +19,8 @@ Install Actionstack Epics using:
 
 ## Usage
 
-Setting Up Epics Middleware
-
 Configure the epics middleware in your store:
-
+```typescript
     import { createStore } from '@actionstack/store';
     import { epics, run } from '@actionstack/epics';
     import rootEpic from './epics';
@@ -34,22 +32,23 @@ Configure the epics middleware in your store:
 
     // Register the root epic
     store.dispatch(run(rootEpic));
+```
 
-Writing an Epic
+Writing an Epic:
 
-Epics are functions that transform action streams into other streams:
-
+```typescript
     import { ofType } from '@actionstack/epics';
     import { map } from 'rxjs/operators';
     import { fetchSuccess } from './actions';
 
-    const fetchEpic = (action$) =>
+    const fetchEpic = (action$, state$, dependencies) =>
       action$.pipe(
         ofType('FETCH_REQUEST'),
         map(() => fetchSuccess())
       );
 
     export default fetchEpic;
+```
 
 ## API Reference
 
