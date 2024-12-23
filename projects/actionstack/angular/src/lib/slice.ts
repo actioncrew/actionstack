@@ -55,7 +55,7 @@ export class Slice implements OnDestroy {
    *
    * @param opts - Configuration options for the Slice.
    */
-  setup(opts: SliceOptions): void {
+  init(opts: SliceOptions): void {
     this.opts = Object.assign(this.opts, opts);
     this.opts.slice !== undefined && this.opts.reducer && this.store.loadModule({
       slice: this.opts.slice,
