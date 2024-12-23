@@ -1,5 +1,5 @@
 import { Store } from '@actionstack/angular';
-import { addEpics, removeEpics } from '@actionstack/epics';
+import { run, stop } from '@actionstack/epics';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 
@@ -19,7 +19,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   constructor(private store: Store, private heroService: HeroService) { }
 
   ngOnInit(): void {
-    this.store.dispatch(addEpics(loadHeroes));
+    this.store.dispatch(run(loadHeroes));
 
     this.subscription = this.store.select(selectHeroes()).subscribe(value => {
       this.heroes = value;
@@ -35,6 +35,6 @@ export class HeroesComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
 
-    this.store.dispatch(removeEpics(loadHeroes));
+    this.store.dispatch(stop(loadHeroes));
   }
 }

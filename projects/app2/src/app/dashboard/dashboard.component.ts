@@ -22,7 +22,7 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.slice.setup({
+    this.slice.init({
       slice: slice,
       reducer: reducer,
       dependencies: { heroService: HeroService },
