@@ -10,6 +10,10 @@
     "tslib": "^2.3.0"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/actioncrew/actionstack.git"
+  },
   "keywords": [
     "RxJS",
     "ActionStack",

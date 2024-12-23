@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "minify": "node terser.mjs",
-    "bundle": "dts-bundle-generator --o ./dist/actionstack/angular/sagas/actionstack.d.ts ./dist/actionstack/angular/sagas/index.d.ts"
+    "bundle": "dts-bundle-generator --o ./dist/actionstack/tools/actionstack.d.ts ./dist/actionstack/tools/index.d.ts"
   },
   "dependencies": {
     "@angular/animations": "^14.0.0",
