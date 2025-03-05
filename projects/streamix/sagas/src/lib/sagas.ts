@@ -8,10 +8,10 @@ import {
   StoreSettings,
   StoreEnhancer,
   createInstruction,
-} from '@actionstack/store';
+} from 'streamix';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
 import { call, cancelled } from 'redux-saga/effects';
-import { Observable } from 'rxjs/internal/Observable';
+import { createStream, Stream } from '@actioncrew/streamix';
 
 export const createSagasMiddleware = ({
     context = {},
@@ -101,18 +101,17 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
    *
    * @template U
    * @param {...Saga[]} sagas - The sagas to be added to the store.
-   * @returns {Observable<U>} - An observable that completes when the sagas are removed.
+   * @returns {Stream<U>} - An Stream that completes when the sagas are removed.
    */
-  store.spawn = <U>(...sagas: Saga[]): Observable<U> => {
-    const effects$ = new Observable<U>((subscriber: Observer<U>) => {
-      return () => {
+  store.spawn = <U>(...sagas: Saga[]): Stream<U> => {
+      const effects$ = createStream<U>('spawn', async function* () {
+        // Unsubscribe from the epics
         store.dispatch(stop(sagas));
-      }
-    });
+      });
 
-    store.dispatch(run(sagas));
-    return effects$;
-  };
+      store.dispatch(run(sagas));
+      return effects$;
+    };
 
   return store;
 }
@@ -128,8 +127,8 @@ export type SagaStore = Store & {
    *
    * @template U
    * @param {...Saga[]} args - The sagas to be added to the store.
-   * @returns {Observable<U>} - An observable that completes when the sagas are removed.
+   * @returns {Stream<U>} - An Stream that completes when the sagas are removed.
    */
-  spawn<U>(...sagas: Saga[]): Observable<U>;
+  spawn<U>(...sagas: Saga[]): Stream<U>;
 }
 

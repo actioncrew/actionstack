@@ -5,14 +5,11 @@ import {
   ExecutionStack,
   isAction,
   MainModule,
-  Observer,
   Store,
   StoreSettings,
   StoreEnhancer,
-} from '@actionstack/store';
-import { Observable } from 'rxjs/internal/Observable';
-import { Subject } from 'rxjs/internal/Subject';
-import { Subscription } from 'rxjs/internal/Subscription';
+} from 'streamix';
+import { Emission, Operator, Stream, Subscription, createEmission, createOperator, createSemaphore, createStream, createSubject } from '@actioncrew/streamix';
 
 /**
  * Type alias for an epic function.
@@ -23,152 +20,164 @@ import { Subscription } from 'rxjs/internal/Subscription';
  *  - Persisting state to local storage
  * This type defines the expected signature for the epic function.
  *
- * @param {Observable<Action<any>>} action - An observable of the dispatched action object.
- * @param {Observable<any>} state - An observable of the current application state.
+ * @param {Stream<Action<any>>} action - A stream of dispatched action objects.
+ * @param {Stream<any>} state - A stream of the current application state.
  * @param {Record<string, any>} dependencies - A record object containing any additional dependencies required by the epic.
- * @returns {Observable<Action<any>>} - An observable that emits new action objects to be dispatched.
+ * @returns {Stream<Action<any>>} - A stream that emits new action objects to be dispatched.
  */
-export type Epic = (action: Observable<Action<any>>, state: Observable<any>, dependencies: Record<string, any>) => Observable<Action<any>>;
+export type Epic = (
+  action: Stream<Action<any>>,
+  state: Stream<any>,
+  dependencies: Record<string, any>
+) => Stream<Action<any>>;
 
 /**
- * Concatenates multiple source Observables sequentially.
+ * Concatenates multiple source streams sequentially.
  *
  * @param {ExecutionStack} stack - The execution stack to track operation states.
- * @param {...Epic[]} sources - The source Observables (epics) to concatenate.
- * @returns {(action: Observable<Action<any>>, state: Observable<any>, dependencies: any) => Observable<Action<any>>}
- *   A function that returns an Observable which emits values from the source Observables in order as they are concatenated.
+ * @param {...Epic[]} sources - The source streams (epics) to concatenate.
+ * @returns {(action: Stream<Action<any>>, state: Stream<any>, dependencies: any) => Stream<Action<any>>}
+ *   A function that returns a Stream which emits values from the source streams in order as they are concatenated.
  */
-function concat(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<Action<any>>, state: Observable<any>, dependencies: any) => Observable<Action<any>> {
-  return (action$: Observable<Action<any>>, state$: Observable<any>, dependencies: any) => {
-    return new Observable<Action<any>>(subscriber => {
-      let index = 0;
-      let subscription: Subscription | null = null;
+export function concat(
+  stack: ExecutionStack,
+  ...epics: Epic[]
+): (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => Stream<Action> {
+  return (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => {
+    return createStream<Action>("concat", async function* (this: Stream<Action>) {
+      for (const epic of epics) {
+        const itemAvailable = createSemaphore(0); // Controls when items are available
+        const queue: Action[] = []; // Event queue
+        let completed = false;
 
-      const next = () => {
-        if (subscriber.closed) {
-          return;
-        }
-
-        if (index < sources.length) {
-          const source = sources[index++];
-          let effect = createInstruction.epic(source);
-          stack.add(effect);
-          subscription = source(action$, state$, dependencies).subscribe({
-            next: value => subscriber.next(Object.assign({}, value, { source: effect })),
-            error: error => {
-              subscriber.error(error);
-              stack.remove(effect);
-            },
-            complete: () => {
-              subscription = null;
-              stack.remove(effect);
-              next();
-            }
-          });
-        } else {
-          subscriber.complete();
-        }
-      };
-
-      next();
-
-      return () => {
-        // Unsubscribe if a source Observable is currently being subscribed to
-        if (subscription) {
-          subscription.unsubscribe();
-        }
-      };
-    });
-  };
-}
-
-/**
- * Combines multiple source Observables into one Observable that emits all the values from each of the source Observables.
- *
- * @param {ExecutionStack} stack - The execution stack to track operation states.
- * @param {...Epic[]} sources - The source Observables (epics) to merge.
- * @returns {(action: Observable<Action<any>>, state: Observable<any>, dependencies: any) => Observable<Action<any>>}
- *   A function that returns an Observable which emits all the values from the source Observables.
- */
-function merge(stack: ExecutionStack, ...sources: Epic[]): (action: Observable<Action<any>>, state: Observable<any>, dependencies: any) => Observable<Action<any>> {
-  return (action$: Observable<Action<any>>, state$: Observable<any>, dependencies: any) => {
-    return new Observable<Action<any>>(subscriber => {
-      let completedCount = 0;
-      let subscriptions: Subscription[] = [];
-
-      const completeIfAllCompleted = () => {
-        if (++completedCount === sources.length) {
-          subscriber.complete();
-        }
-      };
-
-      sources.forEach(source => {
-        let effect = createInstruction.epic(source);
+        // Add the epic to the execution stack
+        const effect = createInstruction.epic(epic);
         stack.add(effect);
-        const subscription = source(action$, state$, dependencies).subscribe({
-          next: value => subscriber.next(Object.assign({}, value, { source: effect })),
-          error: error => {
-            // Unsubscribe from all source Observables when an error occurs
-            if (subscriptions.length) {
-              subscriptions.forEach(subscription => subscription.unsubscribe());
-              subscriptions = [];
-            }
-            subscriber.error(error);
-            stack.remove(effect);
+
+        // Run the epic and subscribe to its output
+        const epicStream = epic(action$, state$, dependencies);
+        const subscription = epicStream.subscribe({
+          next: (value) => {
+            queue.push(value);
+            itemAvailable.release(); // Signal that an item is available
           },
           complete: () => {
-            stack.remove(effect);
-            completeIfAllCompleted();
-          }
+            completed = true; // Mark as completed when the epic finishes
+            itemAvailable.release(); // Ensure loop doesn't hang if no values were emitted
+            stack.remove(effect); // Remove the epic from the execution stack
+          },
+          error: (err) => {
+            stack.remove(effect); // Remove the epic from the execution stack on error
+            throw err; // Propagate the error
+          },
         });
 
-        subscriptions.push(subscription);
-      });
+        // Process queued values sequentially
+        while (!completed || queue.length > 0) {
+          await itemAvailable.acquire(); // Wait until an event is available
 
-      return () => {
-        // Unsubscribe from all source Observables when the resulting Observable is unsubscribed
-        if (subscriptions.length) {
-          subscriptions.forEach(subscription => subscription.unsubscribe());
-          subscriptions = [];
+          if (queue.length > 0) {
+            yield createEmission({ value: queue.shift()! });
+          }
         }
-      };
+
+        subscription.unsubscribe(); // Unsubscribe when done with this epic
+      }
     });
   };
 }
 
 /**
- * Creates an RxJS operator function that filters actions based on their type.
+ * Combines multiple source streams into one Stream that emits all the values from each of the source streams.
  *
- * @param {string | string[]} types - A variable number of strings representing the action types to filter by.
- * @returns {(source: Observable<Action<any>>) => Observable<Action<any>>} - An RxJS operator function that filters actions.
+ * @param {ExecutionStack} stack - The execution stack to track operation states.
+ * @param {...Epic[]} sources - The source streams (epics) to merge.
+ * @returns {(action: Stream<Action<any>>, state: Stream<any>, dependencies: any) => Stream<Action<any>>}
+ *   A function that returns a Stream which emits all the values from the source streams.
  */
-export function ofType(types: string | string[]): (source: Observable<Action<any>>) => Observable<Action<any>> {
-  return (source: Observable<Action<any>>) => {
-    return new Observable<Action<any>>(observer => {
-      const subscription = source.subscribe({
-        next: (action) => {
-          if (isAction(action)) {
-            if (typeof types === 'string') {
-              if (types === action.type) {
-                observer.next(action);
-              }
-            } else {
-              if (types.includes(action.type)) {
-                observer.next(action);
-              }
-            }
-          }
-        },
-        error: (err) => observer.error(err),
-        complete: () => observer.complete()
+export function merge(
+  stack: ExecutionStack,
+  ...epics: Epic[]
+): (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => Stream<Action> {
+  return (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => {
+    return createStream<Action>("merge", async function* (this: Stream<Action>) {
+      const itemAvailable = createSemaphore(0); // Controls when an item is available
+      const queue: Action[] = []; // Event queue
+      let completedCount = 0;
+
+      // Add each epic to the execution stack
+      const effects = epics.map((epic) => {
+        const effect = createInstruction.epic(epic);
+        stack.add(effect);
+        return effect;
       });
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      // Subscribe to each epic and push emissions to the queue
+      const subscriptions = epics.map((epic, index) => {
+        const epicStream = epic(action$, state$, dependencies);
+        return epicStream.subscribe({
+          next: (value) => {
+            queue.push(value);
+            itemAvailable.release(); // Signal availability
+          },
+          complete: () => {
+            completedCount++;
+            itemAvailable.release(); // Ensure loop progresses when an epic completes
+            stack.remove(effects[index]); // Remove the epic from the execution stack
+          },
+          error: (err) => {
+            stack.remove(effects[index]); // Remove the epic from the execution stack on error
+            throw err; // Propagate the error
+          },
+        });
+      });
+
+      // Yield values from the queue as they become available
+      while (completedCount < epics.length || queue.length > 0) {
+        await itemAvailable.acquire(); // Wait until an event is available
+
+        if (queue.length > 0) {
+          yield createEmission({ value: queue.shift()! });
+        }
+      }
+
+      // Cleanup subscriptions
+      subscriptions.forEach((sub) => sub.unsubscribe());
     });
   };
 }
+
+/**
+ * `ofType` operator filters emissions based on the type of action contained in the emission.
+ * It only allows emissions whose `value` is an action and whose `type` matches the provided type(s).
+ *
+ * @param {string | string[]} types - The action type(s) to match. Can be a single string or an array of strings.
+ * @returns {Operator} - The operator that processes each emission.
+ *
+ * @example
+ * const filteredStream = sourceStream.pipe(ofType(['USER_LOGIN', 'USER_LOGOUT']));
+ * // Only actions of type 'USER_LOGIN' or 'USER_LOGOUT' will pass through.
+ */
+export const ofType = <T extends Action<any>>(types: string | string[]): Operator => {
+  const handle = (emission: Emission<T>): Emission<T> => {
+    const action = emission.value as Action<any>; // Access the actual Action from the Emission
+
+    if (isAction(action)) {
+      const matches =
+        typeof types === 'string' ? types === action.type : types.includes(action.type);
+
+      // If the action type doesn't match, mark the emission as phantom
+      if (!matches) emission.phantom = true;
+      else delete emission.phantom; // Clear phantom flag if the action type matches
+    } else {
+      emission.phantom = true; // If it's not an action, mark it as phantom
+    }
+
+    return emission;
+  };
+
+  return createOperator('ofType', handle);
+};
 
 /**
  * Creates middleware for handling epics.
@@ -177,12 +186,11 @@ export function ofType(types: string | string[]): (source: Observable<Action<any
  */
 export const createEpicsMiddleware = () => {
   let activeEpics: Epic[] = [];
-  let currentAction = new Subject<Action<any>>();
-  let currentState = new Subject<any>();
-  let subscriptions: Subscription[] = [];
+  let currentAction = createSubject<Action<any>>();
+  let currentState = createSubject<any>();
+  let subscriptions: any[] = [];
 
   return ({ dispatch, getState, dependencies, strategy, stack }: any) => (next: any) => async (action: any) => {
-    // Proceed to the next action
     const result = await next(action);
 
     if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
@@ -201,35 +209,24 @@ export const createEpicsMiddleware = () => {
         });
       }
 
-      // Unsubscribe from the previous subscription if it exists
       if (subscriptions.length) {
-        subscriptions[0].unsubscribe();
-        subscriptions.shift();
+        subscriptions.forEach(subscription => subscription.unsubscribe());
+        subscriptions = [];
       }
 
-      let subscription: Subscription;
-      // Create a new subscription
-      subscription = currentAction.pipe(
-        () => (strategy === "concurrent" ? merge : concat)(stack, ...activeEpics)(currentAction, currentState, dependencies())
-      ).subscribe({
+      const epicStream = (strategy === 'concurrent' ? merge : concat)(stack, ...activeEpics);
+      const subscription = epicStream(currentAction, currentState, dependencies()).subscribe({
         next: (childAction: any) => {
           if (isAction(childAction)) {
             dispatch(childAction);
           }
         },
         error: (err: any) => {
-          console.warn("Error in epic:", err);
-          if (subscription) {
-            subscription.unsubscribe();
-            subscriptions = subscriptions.filter(item => item === subscription);
-          }
+          console.warn('Error in epic:', err);
         },
         complete: () => {
-          if (subscription) {
-            subscription.unsubscribe();
-            subscriptions = subscriptions.filter(item => item === subscription);
-          }
-        }
+          subscriptions = [];
+        },
       });
 
       subscriptions.push(subscription);
@@ -253,7 +250,7 @@ export const epics = createEpicsMiddleware();
  * @param {...Epic[]} epics - The epics to add.
  * @returns {Action<any>} - The action object.
  */
-export const run = action("RUN_ENTITIES", (...epics: Epic[]) => ({ epics }));
+export const run = action('RUN_ENTITIES', (...epics: Epic[]) => ({ epics }));
 
 /**
  * Action creator for removing epics.
@@ -261,7 +258,7 @@ export const run = action("RUN_ENTITIES", (...epics: Epic[]) => ({ epics }));
  * @param {...Epic[]} epics - The epics to remove.
  * @returns {Action<any>} - The action object.
  */
-export const stop = action("STOP_ENTITIES", (...epics: Epic[]) => ({ epics }));
+export const stop = action('STOP_ENTITIES', (...epics: Epic[]) => ({ epics }));
 
 /**
  * A store enhancer that extends the store with support for epics.
@@ -273,18 +270,10 @@ export const stop = action("STOP_ENTITIES", (...epics: Epic[]) => ({ epics }));
 export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
   const store = createStore(module, settings, enhancer) as EpicStore;
 
-  /**
-   * Spawns the given epics.
-   *
-   * @template U
-   * @param {...Epic[]} epics - The epics to be added to the store.
-   * @returns {Observable<U>} - An observable that completes when the epics are removed.
-   */
-  store.spawn = <U>(...epics: Epic[]): Observable<U> => {
-    const effects$ = new Observable<U>((subscriber: Observer<U>) => {
-      return () => {
-        store.dispatch(stop(epics));
-      }
+  store.spawn = <U>(...epics: Epic[]): Stream<U> => {
+    const effects$ = createStream<U>('spawn', async function* () {
+      // Unsubscribe from the epics
+      store.dispatch(stop(epics));
     });
 
     store.dispatch(run(epics));
@@ -300,12 +289,5 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
  * @extends {Store}
  */
 export type EpicStore = Store & {
-  /**
-   * Abstract method to spawn the epics.
-   *
-   * @template U
-   * @param {...Epic[]} epics - The epics to be added to the store.
-   * @returns {Observable<U>} - An observable that completes when the epics are removed.
-   */
-  spawn<U>(...epics: Epic[]): Observable<U>;
+  spawn<U>(...epics: Epic[]): Stream<U>;
 }

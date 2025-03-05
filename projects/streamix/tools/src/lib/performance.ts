@@ -1,4 +1,4 @@
-import { Action, isSystemActionType, salt } from '@actionstack/store';
+import { Action, isSystemActionType, salt } from 'streamix';
 
 /**
  * Creates a middleware function for logging action performance data.
