@@ -1,5 +1,5 @@
 import { createLock, SimpleLock } from './lock';
-import { createInstruction, createExecutionStack, Instruction, ExecutionStack } from './stack';
+import { createInstruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
 
 /**

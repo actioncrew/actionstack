@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs/internal/Observable';
+import { Stream } from '@actioncrew/streamix';
 import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
@@ -114,7 +114,7 @@ export interface Middleware {
 }
 
 /**
- * Represents an observer that receives notifications of values from an Observable.
+ * Represents an observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -125,7 +125,7 @@ export interface Observer<T> {
 }
 
 /**
- * Represents an asynchronous observer that receives notifications of values from an Observable.
+ * Represents an asynchronous observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -136,15 +136,15 @@ export interface AsyncObserver<T> {
 }
 
 /**
- * Interface representing an operator function for transforming observables.
+ * Interface representing an operator function for transforming streams.
  *
- * An operator function takes an input `Observable<T>` and returns an output `Observable<R>`.
+ * An operator function takes an input `Stream<T>` and returns an output `Stream<R>`.
  *
  * @typeParam T - The type of the input elements.
  * @typeParam R - The type of the output elements.
  */
 export interface OperatorFunction<T, R> {
-  (source: Observable<T>): Observable<R>
+  (source: Stream<T>): Stream<R>
 }
 
 /**
@@ -324,8 +324,8 @@ function kindOf(val: any): string {
   if (isError(val))
     return "error";
 
-  if (isObservable(val))
-    return "observable";
+  if (isStream(val))
+    return "Stream";
 
   if (isPromise(val))
     return "promise";
@@ -461,21 +461,14 @@ function isPlainObject(obj: any): boolean {
 }
 
 /**
- * Tests to see if the object is an RxJS {@link Observable}
+ * Tests to see if the object is an RxJS {@link Stream}
  * @param obj the object to test
  */
-function isObservable(obj: any): obj is Observable<unknown> {
+function isStream(obj: any): obj is Stream<unknown> {
   // The !! is to ensure that this publicly exposed function returns
   // `false` if something like `null` or `0` is passed.
-  return !!obj && (obj instanceof Observable || (typeof obj.lift === 'function' && typeof obj.subscribe === 'function'));
+  return !!obj && obj.type === 'stream' && typeof obj.subscribe === 'function';
 }
 
-/**
- * Observable that immediately completes without emitting any values
- */
-export const EMPTY = new Observable<never>((subscriber) => {
-  subscriber.complete();
-});
-
-export { isAction, isAsync, isBoxed, isObservable, isPlainObject, isPromise, kindOf };
+export { isAction, isAsync, isBoxed, isStream, isPlainObject, isPromise, kindOf };
 

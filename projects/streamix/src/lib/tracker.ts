@@ -1,8 +1,7 @@
-import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
-import { Observable } from 'rxjs/internal/Observable';
+import { BehaviorSubject, createBehaviorSubject, Stream } from "@actioncrew/streamix";
 
 /**
- * A utility type for tracking the execution status of Observables.
+ * A utility type for tracking the execution status of Streams.
  */
 export type Tracker = {
   /**
@@ -11,109 +10,109 @@ export type Tracker = {
   timeout: number;
 
   /**
-   * Gets the execution status of a tracked Observable.
+   * Gets the execution status of a tracked Stream.
    *
-   * @param {Observable<any>} entry - The Observable to check the status for.
-   * @returns {boolean} - `true` if the Observable is executing, `false` otherwise.
+   * @param {Stream<any>} entry - The Stream to check the status for.
+   * @returns {boolean} - `true` if the Stream is executing, `false` otherwise.
    */
-  getStatus: (entry: Observable<any>) => boolean;
+  getStatus: (entry: Stream<any>) => boolean;
 
   /**
-   * Sets the execution status of a tracked Observable.
+   * Sets the execution status of a tracked Stream.
    *
-   * @param {Observable<any>} entry - The Observable to update the status for.
+   * @param {Stream<any>} entry - The Stream to update the status for.
    * @param {boolean} value - The new execution status.
    */
-  setStatus: (entry: Observable<any>, value: boolean) => void;
+  setStatus: (entry: Stream<any>, value: boolean) => void;
 
   /**
-   * Marks a tracked Observable as completed.
+   * Marks a tracked Stream as completed.
    *
-   * @param {Observable<any>} entry - The Observable to mark as completed.
+   * @param {Stream<any>} entry - The Stream to mark as completed.
    */
-  complete: (entry: Observable<any>) => void;
+  complete: (entry: Stream<any>) => void;
 
   /**
-   * Tracks a new Observable.
+   * Tracks a new Stream.
    *
-   * @param {Observable<any>} observable - The Observable to start tracking.
+   * @param {Stream<any>} Stream - The Stream to start tracking.
    */
-  track: (observable: Observable<any>) => void;
+  track: (Stream: Stream<any>) => void;
 
   /**
-   * Removes a tracked Observable and unsubscribes its BehaviorSubject.
+   * Removes a tracked Stream and unsubscribes its BehaviorSubject.
    *
-   * @param {Observable<any>} observable - The Observable to stop tracking.
+   * @param {Stream<any>} Stream - The Stream to stop tracking.
    */
-  remove: (observable: Observable<any>) => void;
+  remove: (Stream: Stream<any>) => void;
 
   /**
-   * Resets the execution status of all tracked Observables to `false`.
+   * Resets the execution status of all tracked Streams to `false`.
    */
   reset: () => void;
 
   /**
-   * Asynchronously checks if all tracked Observables have completed within a timeout period.
+   * Asynchronously checks if all tracked Streams have completed within a timeout period.
    *
-   * @returns {Promise<void>} - Resolves if all Observables complete within the timeout, rejects otherwise.
+   * @returns {Promise<void>} - Resolves if all Streams complete within the timeout, rejects otherwise.
    */
   allExecuted: () => Promise<void>;
 };
 
 /**
- * Creates a new functional Tracker for managing the execution status of Observables.
+ * Creates a new functional Tracker for managing the execution status of Streams.
  *
  * @returns {Tracker} - A Tracker instance.
  */
 export const createTracker = (): Tracker => {
-  const entries = new Map<Observable<any>, BehaviorSubject<boolean>>();
+  const entries = new Map<Stream<any>, BehaviorSubject<boolean>>();
   const timeout = 30000;
 
   /**
-   * Gets the execution status of a tracked Observable.
+   * Gets the execution status of a tracked Stream.
    */
   const getStatus: Tracker['getStatus'] = (entry) =>
     entries.get(entry)?.value === true;
 
   /**
-   * Sets the execution status of a tracked Observable.
+   * Sets the execution status of a tracked Stream.
    */
   const setStatus: Tracker['setStatus'] = (entry, value) =>
     entries.get(entry)?.next(value);
 
   /**
-   * Marks a tracked Observable as completed.
+   * Marks a tracked Stream as completed.
    */
   const setCompletion: Tracker['complete'] = (entry) =>
     entries.get(entry)?.complete();
 
   /**
-   * Tracks a new Observable.
+   * Tracks a new Stream.
    */
-  const track: Tracker['track'] = (observable) => {
-    if (!entries.has(observable)) {
-      const subject = new BehaviorSubject<boolean>(false);
-      entries.set(observable, subject);
+  const track: Tracker['track'] = (Stream) => {
+    if (!entries.has(Stream)) {
+      const subject = createBehaviorSubject<boolean>(false);
+      entries.set(Stream, subject);
     }
   };
 
   /**
-   * Removes a tracked Observable and unsubscribes its BehaviorSubject.
+   * Removes a tracked Stream and unsubscribes its BehaviorSubject.
    */
-  const remove: Tracker['remove'] = (observable) => {
-    const subject = entries.get(observable);
+  const remove: Tracker['remove'] = (Stream) => {
+    const subject = entries.get(Stream);
     if (subject) {
-      entries.delete(observable);
+      entries.delete(Stream);
       subject.complete();
     }
   };
 
   /**
-   * Resets the execution status of all tracked Observables to `false`.
+   * Resets the execution status of all tracked Streams to `false`.
    */
   const reset: Tracker['reset'] = () => {
     for (const [key, value] of [...entries.entries()]) {
-      if (value.closed) {
+      if (value.completed()) {
         entries.delete(key);
       } else {
         value.next(false);
@@ -122,7 +121,7 @@ export const createTracker = (): Tracker => {
   };
 
   /**
-   * Asynchronously checks if all tracked Observables have completed within a timeout period.
+   * Asynchronously checks if all tracked Streams have completed within a timeout period.
    */
   const allExecuted: Tracker['allExecuted'] = () =>
     new Promise<void>((resolve, reject) => {

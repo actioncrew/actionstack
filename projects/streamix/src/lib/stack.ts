@@ -1,5 +1,4 @@
-import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
-import { Observable } from 'rxjs/internal/Observable';
+import { createBehaviorSubject, Stream } from '@actioncrew/streamix';
 import { Action, AsyncAction } from './types';
 
 /**
@@ -56,7 +55,7 @@ export const isInstruction = (obj: any): boolean => {
 };
 
 /**
- * Represents a stack for managing operations with observable capabilities.
+ * Represents a stack for managing operations with Stream capabilities.
  */
 export type ExecutionStack = {
   length: number;
@@ -68,16 +67,16 @@ export type ExecutionStack = {
   findLast: (condition: (element: Instruction) => boolean) => Instruction | undefined;
   waitForEmpty: () => Promise<Instruction[]>;
   waitForIdle: () => Promise<Instruction[]>;
-  observable: Observable<Instruction[]>;
+  Stream: Stream<Instruction[]>;
 }
 
 /**
- * Creates a stack for managing operations with observable capabilities.
+ * Creates a stack for managing operations with Stream capabilities.
  * This stack allows you to add, remove, and query instructions (operations),
  * as well as observe changes to the stack.
  */
 export const createExecutionStack = () => {
-  const stack$ = new BehaviorSubject<Instruction[]>([]);
+  const stack$ = createBehaviorSubject<Instruction[]>([]);
 
   return {
     /**
@@ -160,22 +159,22 @@ export const createExecutionStack = () => {
     },
 
     /**
-     * Exposes the underlying observable stream for external subscription.
+     * Exposes the underlying Stream stream for external subscription.
      */
-    get observable(): Observable<Instruction[]> {
-      return stack$.asObservable();
+    get Stream(): Stream<Instruction[]> {
+      return stack$;
     },
   };
 };
 
 /**
- * Waits for a condition to be met in an observable stream.
+ * Waits for a condition to be met in an Stream stream.
  * @template T
- * @param obs The observable stream to observe.
+ * @param obs The Stream stream to observe.
  * @param predicate A predicate function to evaluate each emitted value.
  * @returns A promise that resolves when the condition is met.
  */
-function waitFor<T>(obs: Observable<T>, predicate: (value: T) => boolean): Promise<T> {
+function waitFor<T>(obs: Stream<T>, predicate: (value: T) => boolean): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const subscription = obs.subscribe({
       next: value => {
@@ -185,7 +184,7 @@ function waitFor<T>(obs: Observable<T>, predicate: (value: T) => boolean): Promi
         }
       },
       error: reject,
-      complete: () => reject("Observable completed before condition was met"),
+      complete: () => reject("Stream completed before condition was met"),
     });
   });
 }

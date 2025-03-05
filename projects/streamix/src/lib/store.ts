@@ -1,8 +1,3 @@
-import { inject } from '@angular/core';
-import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
-import { Observable } from 'rxjs/internal/Observable';
-import { Subject } from 'rxjs/internal/Subject';
-
 import { action, bindActionCreators } from './actions';
 import { applyChange, applyMiddleware, combineEnhancers, combineReducers } from './utils';
 import { createLock } from './lock';
@@ -27,6 +22,7 @@ import {
   StoreEnhancer,
   Tree,
 } from './types';
+import { createBehaviorSubject, createStream, Stream } from '@actioncrew/streamix';
 
 
 /**
@@ -61,7 +57,7 @@ export type Store<T = any> = {
   dispatch: (action: Action | any) => Promise<void>;
   getState: (slice?: keyof T | string[] | "@global") => any;
   readSafe: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
-  select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
+  select: <R = any>(selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>, defaultValue?: any) => Stream<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
   getMiddlewareAPI: () => any;
@@ -147,7 +143,7 @@ export function createStore<T = any>(
     strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
   };
 
-  const currentState = new BehaviorSubject<any>({});
+  const currentState = createBehaviorSubject<any>({});
   const tracker = createTracker();
   const lock = createLock();
   const stack = createExecutionStack();
@@ -412,24 +408,31 @@ export function createStore<T = any>(
   /**
    * Selects a value from the store's state using the provided selector function.
    */
-  const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
+  const select = <R = any>(selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>, defaultValue?: any): Stream<R> => {
     let lastValue: any;
-    let selected$: Observable<R> | undefined;
-    return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
-        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
-        if(filteredValue !== lastValue) {
-          Promise.resolve(subscriber.next(filteredValue))
-            .then(() => lastValue = filteredValue)
-            .finally(() => tracker.setStatus(selected$!, true));
-        } else {
-          tracker.setStatus(selected$!, true);
-        }
-      });
+    let selected$: Stream<R> | undefined;
 
-      return () => subscription.unsubscribe();
+    return createStream<R>('selector', async function* (this: Stream<R>) {
+      // Iterate over the current state
+        selected$ = selector(currentState, tracker);
+
+        // Yield values from the selected stream (async generator)
+        for await (const selectedValue of selected$) {
+          const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
+
+          // If the value has changed, emit it and update the last value
+          if (filteredValue !== lastValue) {
+            yield filteredValue; // Use 'yield' instead of 'next' for async generator
+            lastValue = filteredValue;
+            tracker.setStatus(selected$!, true);
+          } else {
+            tracker.setStatus(selected$!, true);
+          }
+        }
     });
-  }
+  };
+
+
 
   /**
    * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
