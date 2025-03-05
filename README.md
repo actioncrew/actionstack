@@ -1,7 +1,7 @@
 <h1 style="display: none;">ActionStack</h1>
 
 <p align="center">
-  <img src="https://github.com/actioncrew/actionstack/blob/main/LOGO.png?raw=true" alt="Streamix Logo" width="300">
+  <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
 
