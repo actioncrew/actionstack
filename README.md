@@ -1,4 +1,9 @@
-# ActionStack
+<h1 style="display: none;">ActionStack</h1>
+
+<p align="center">
+  <img src="https://github.com/actioncrew/actionstack/blob/main/LOGO.png?raw=true" alt="Streamix Logo" width="300">
+</p>
+
 
 A powerful and flexible state management library designed to provide a scalable and maintainable approach for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates with your project, offering advanced features such as handling asynchronous actions, reducers, and side effects like epics and sagas.
 
