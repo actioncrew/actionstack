@@ -1,4 +1,4 @@
-import { EMPTY, Stream, createStream, createSubject } from '@actioncrew/streamix';
+import { EMPTY, Stream, createSubject, eachValueFrom } from '@actioncrew/streamix';
 import { Tracker } from './tracker';
 import { ProjectionFunction, SelectorFunction } from './types';
 
@@ -16,7 +16,7 @@ export {
  * @param slice - This can be either:
  *                 * A string key representing the property name of the feature slice within the state object.
  *                 * An array of strings representing a path of keys to navigate within the state object to reach the desired feature slice.
- * @returns A function that takes an Stream of the entire state object and returns an Stream of the selected feature data.
+ * @returns A function that takes a Stream of the entire state object and returns a Stream of the selected feature data.
  */
 export function createFeatureSelector<U = any, T = any>(
   slice: keyof T | string[]
@@ -41,7 +41,10 @@ export function createFeatureSelector<U = any, T = any>(
         outputStream.next(selectedValue);
       },
       error: (err) => outputStream.error(err),
-      complete: () => { outputStream.complete(); subscription.unsubscribe(); },
+      complete: () => {
+        outputStream.complete();
+        subscription.unsubscribe();
+      },
     });
 
     return outputStream;
@@ -62,13 +65,13 @@ export function createFeatureSelector<U = any, T = any>(
  * @param projectionOrOptions - This can be either:
  *                             * A projection function that takes an array of results from the selector(s) and optional projection props as arguments and returns the final result.
  *                             * An options object (not currently implemented).
- * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns an Stream of the projected data.
+ * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
 export function createSelector<U = any, T = any>(
   featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -87,7 +90,9 @@ export function createSelector<U = any, T = any>(
     let lastSliceState: any;
 
     return (state$: Stream<T>, tracker?: Tracker) => {
-      return createStream<U>('composedSelector', async function* () {
+      const outputStream = createSubject<U | undefined>();
+
+      const subscription = (async () => {
         let sliceState$: Stream<U>;
 
         if (featureSelector$ === "@global") {
@@ -96,9 +101,9 @@ export function createSelector<U = any, T = any>(
           sliceState$ = (featureSelector$ as Function)(state$);
         }
 
-        for await (const sliceState of sliceState$) {
+        for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
-            yield undefined;
+            outputStream.next(undefined);
             continue;
           }
 
@@ -111,22 +116,23 @@ export function createSelector<U = any, T = any>(
                 selectorResults = await Promise.all(selectors.map((selector, index) => selector(sliceState, props ? props[index] : undefined)));
 
                 if (selectorResults.some(result => result === undefined)) {
-                  yield undefined;
+                  outputStream.next(undefined);
                 } else {
-                  yield projection ? projection(selectorResults as U[], projectionProps) : selectorResults;
+                  outputStream.next(projection ? projection(selectorResults as U[], projectionProps) : selectorResults);
                 }
               } else {
                 selectorResults = await selectors(sliceState, props);
-
-                yield selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults;
+                outputStream.next(selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults);
               }
             } catch (error: any) {
               console.warn("Error during selector execution:", error.message);
-              yield undefined;
+              outputStream.next(undefined);
             }
           }
         }
-      });
+      })();
+
+      return outputStream;
     };
   };
 }
@@ -145,13 +151,13 @@ export function createSelector<U = any, T = any>(
  * @param projectionOrOptions - This can be either:
  *                             * A projection function that takes an array of results from the selector(s) and optional projection props as arguments and returns the final result.
  *                             * An options object (not currently implemented).
- * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns an Stream of the projected data.
+ * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
 export function createSelectorAsync<U = any, T = any>(
   featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -170,7 +176,9 @@ export function createSelectorAsync<U = any, T = any>(
     let lastSliceState: any;
 
     return (state$: Stream<T>, tracker?: Tracker) => {
-      return createStream<U>('asyncSelector', async function* () {
+      const outputStream = createSubject<U | undefined>();
+
+      const subscription = (async () => {
         let sliceState$: Stream<U>;
 
         if (featureSelector$ === "@global") {
@@ -179,9 +187,9 @@ export function createSelectorAsync<U = any, T = any>(
           sliceState$ = (featureSelector$ as Function)(state$);
         }
 
-        for await (const sliceState of sliceState$) {
+        for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
-            yield undefined;
+            outputStream.next(undefined);
             continue;
           }
 
@@ -195,21 +203,23 @@ export function createSelectorAsync<U = any, T = any>(
                 selectorResults = await Promise.all(promises);
 
                 if (selectorResults.some(result => result === undefined)) {
-                  yield undefined;
+                  outputStream.next(undefined);
                 } else {
-                  yield projection ? projection(selectorResults as U[], projectionProps) : selectorResults;
+                  outputStream.next(projection ? projection(selectorResults as U[], projectionProps) : selectorResults);
                 }
               } else {
                 selectorResults = await selectors(sliceState, props);
-                yield selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults;
+                outputStream.next(selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults);
               }
             } catch (error: any) {
               console.warn("Error during selector execution:", error.message);
-              yield undefined;
+              outputStream.next(undefined);
             }
           }
         }
-      });
+      })();
+
+      return outputStream;
     };
   };
 }

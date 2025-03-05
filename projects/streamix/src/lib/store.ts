@@ -22,7 +22,7 @@ import {
   StoreEnhancer,
   Tree,
 } from './types';
-import { createBehaviorSubject, createStream, Stream } from '@actioncrew/streamix';
+import { createBehaviorSubject, createStream, Stream, createEmission } from '@actioncrew/streamix';
 
 
 /**
@@ -417,12 +417,13 @@ export function createStore<T = any>(
         selected$ = selector(currentState, tracker);
 
         // Yield values from the selected stream (async generator)
-        for await (const selectedValue of selected$) {
+        for await (const emission of selected$) {
+          const selectedValue = emission.value;
           const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
 
           // If the value has changed, emit it and update the last value
           if (filteredValue !== lastValue) {
-            yield filteredValue; // Use 'yield' instead of 'next' for async generator
+            yield createEmission({ value: filteredValue }); // Use 'yield' instead of 'next' for async generator
             lastValue = filteredValue;
             tracker.setStatus(selected$!, true);
           } else {
