@@ -9,7 +9,7 @@ import {
   StoreSettings,
   StoreEnhancer,
 } from 'streamix';
-import { Emission, Operator, Stream, Subscription, createEmission, createOperator, createSemaphore, createStream, createSubject } from '@actioncrew/streamix';
+import { Emission, Operator, Stream, createEmission, createOperator, createSemaphore, createStream, createSubject } from '@actioncrew/streamix';
 
 /**
  * Type alias for an epic function.

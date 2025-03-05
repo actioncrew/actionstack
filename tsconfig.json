@@ -48,8 +48,21 @@
         "./dist/actionstack/angular",
         "./projects/actionstack/angular/src/public-api.ts"
       ],
+      "streamix/epics": [
+        "./dist/streamix/epics",
+        "./projects/streamix/epics/src/public-api.ts"
+      ],
+      "streamix/sagas": [
+        "./dist/streamix/sagas",
+        "./projects/streamix/sagas/src/public-api.ts"
+      ],
+      "streamix/tools": [
+        "./dist/streamix/tools",
+        "./projects/streamix/tools/src/public-api.ts"
+      ],
       "streamix": [
-        "dist/streamix"
+        "dist/streamix",
+        "./projects/streamix/src/public-api.ts"
       ]
     },
     "useDefineForClassFields": false,
