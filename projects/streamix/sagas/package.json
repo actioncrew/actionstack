@@ -1,0 +1,24 @@
+{
+  "name": "@actionstack/sagas",
+  "version": "2.0.8",
+  "peerDependencies": {
+    "@actionstack/store": "^2.0.8"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/actioncrew/actionstack.git"
+  },
+  "keywords": [
+    "RxJS",
+    "ActionStack",
+    "NgRx",
+    "Redux",
+    "state management",
+    "asynchronous store",
+    "reactive state"
+  ]
+}

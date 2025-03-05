@@ -47,6 +47,9 @@
       "@actionstack/angular": [
         "./dist/actionstack/angular",
         "./projects/actionstack/angular/src/public-api.ts"
+      ],
+      "streamix": [
+        "dist/streamix"
       ]
     },
     "useDefineForClassFields": false,
