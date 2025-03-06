@@ -63,65 +63,14 @@ async function getGitDiff(commit1, commit2) {
     }
 }
 
-// Generate a changelog entry for a commit using the LLM
-async function generateChangelog(gitLogs) {
-    const prompt = `
-        The project is a reactive stream library written in TypeScript. Analyze the following git log and diff.
-        Return structured JSON with keys: "hash", "brief", and "summary".
-
-        Git Log:
-        Hash: ${gitLogs.hash}
-        Message: ${gitLogs.message}
-        ${gitLogs.diff ? `Diff: ${gitLogs.diff}\n` : ''}
-
-        Respond with valid JSON only. For "brief", use conventional commit format (e.g., "feat: add new feature", "fix: resolve bug").
-        Example:
-        {
-            "hash": "<commit_hash>",
-            "brief": "<max 100 symbols>",
-            "summary": "<detailed summary>"
-        }
-    `;
-
-    const data = {
-        model: MODEL_NAME,
-        prompt: prompt,
-        stream: false,
-    };
-
-    try {
-        const response = await axios.post(OLLAMA_URL, data);
-        const responseText = response.data.response;
-
-        // Validate and parse the JSON response
-        try {
-            const jsonResponse = JSON.parse(responseText);
-            if (!jsonResponse.hash || !jsonResponse.brief || !jsonResponse.summary) {
-                throw new Error("Invalid JSON structure");
-            }
-            return jsonResponse;
-        } catch (parseError) {
-            console.error("Error parsing LLM response as JSON:", parseError);
-            return {
-                hash: gitLogs.hash,
-                brief: "Invalid response format",
-                summary: "Failed to parse LLM response.",
-            };
-        }
-    } catch (error) {
-        console.error("Error communicating with Ollama:", error.message);
-        return {
-            hash: gitLogs.hash,
-            brief: "Error generating summary",
-            summary: "Failed to communicate with Ollama.",
-        };
-    }
-}
-
 // Generate a description for a tag using the LLM
 async function generateTagDescription(tagName, commits) {
   const prompt = `
-    You are an expert software engineer summarizing changes for a release of a reactive stream library Streamix written in TypeScript.
+    You are an expert software engineer summarizing changes for a release of a state management library Actionstack written in TypeScript.
+    It is a powerful and flexible state management library designed to provide a scalable and maintainable approach
+    for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates
+    with your project, offering advanced features such as handling asynchronous actions, reducers, and side
+    effects like epics and sagas.
 
     Analyze the following list of commit messages for the release tag "${tagName}". Focus on the key changes and improvements made in this release.
 
