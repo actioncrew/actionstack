@@ -252,9 +252,12 @@ async function main() {
   fs.writeFileSync('summary_changelog.json', JSON.stringify(changelog, null, 2), { encoding: 'utf-8' });
 
   console.log("Changelog generated successfully. Saved to summary_changelog.json.");
+
+  generateChangelogFromSummary();
+  fs.rmSync(outputFilePath);
 }
 
-function generateChangelogFromSummary(summaryFilePath = 'summary_changelog.json', outputFilePath = './projects/streamix/CHANGELOG.md') {
+function generateChangelogFromSummary(summaryFilePath = 'summary_changelog.json', outputFilePath = './CHANGELOG.md') {
   try {
     const summaryData = fs.readFileSync(summaryFilePath, 'utf-8');
     const summary = JSON.parse(summaryData);
@@ -275,10 +278,6 @@ function generateChangelogFromSummary(summaryFilePath = 'summary_changelog.json'
   } catch (error) {
     console.error('Error generating changelog:', error.message);
   }
-
-  generateChangelogFromSummary();
-
-  fs.rmSync(outputFilePath);
 }
 
 main();
