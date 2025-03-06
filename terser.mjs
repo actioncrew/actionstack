@@ -63,3 +63,4 @@ fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-epics.d.ts', './dist
 fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-sagas.d.ts', './dist/actionstack/sagas/index.d.ts');
 fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-tools.d.ts', './dist/actionstack/tools/index.d.ts');
 fs.rmSync('./dist/actionstack/@actioncrew', {recursive: true, force: true});
+fs.copyFileSync('./CHANGELOG.md', './dist/actionstack/CHANGELOG.md');

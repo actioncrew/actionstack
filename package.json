@@ -1,6 +1,6 @@
 {
   "name": "actionstack",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -32,6 +32,7 @@
     "@types/eslint": "^9.6.1",
     "@types/estree": "^1.0.5",
     "@types/jasmine": "~4.3.0",
+    "axios": "^1.8.1",
     "dts-bundle-generator": "^9.5.1",
     "jasmine-core": "~4.6.0",
     "karma": "~6.4.0",
@@ -41,5 +42,6 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^14.0.0",
     "typescript": "~4.7.0"
-  }
+  },
+  "type": "module"
 }
