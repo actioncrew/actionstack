@@ -2,65 +2,65 @@
 
 ## 2.0.9
 
-New features and improvements introduced in Streamix 2.0.9, including updates to core store implementation utilizing streamix, introduction of a test app for demonstration purposes, enhanced testing infrastructure with updated test project, and the addition of Ollama.js script for generating CHANGELOG.md.
+In version 2.0.9 of Actionstack, new features were introduced and existing components were enhanced. The addition of the streamix project indicates integration with a powerful data streaming library, which likely improves performance for real-time applications. The updated store implementation using streamix suggests better state management capabilities, especially in handling asynchronous operations more efficiently. The test app and project updates point towards improved testing infrastructure, aiding developers in quicker debugging and validation. Additionally, the update to CHANGELOG.md through ollama.js ensures that change tracking remains accurate and accessible.
 
 ## 2.0.8
 
-In version 2.0.8, several key improvements were made to enhance functionality and compatibility with ActionStack v3.x. The package structure was reorganized for better maintainability, and Angular types were integrated into the core library. Additionally, deprecated features were removed, such as the use of instance methods in certain modules. The documentation was updated, including fixes to type definitions and enhanced support for Redux middlewares. Store initialization was refactored to be more flexible, with lazy loading capabilities introduced. Finally, various bug fixes and performance improvements were implemented across all components of the library.
+An enhanced version with improved functionality, optimizations, and better integration with modern JavaScript frameworks.
 
 ## 2.0.0
 
-Streamix 2.0.0 introduces several key improvements and bug fixes, including refactoring the codebase to enhance maintainability and functionality. Key changes include the renaming of the lock mechanism to simpleLock to prevent naming conflicts, adjustments to the module loading process for better performance, adding documentation for store methods, and updating the package imports and version information in the README file.
+The release introduces a new lock mechanism named 'simpleLock' to prevent name collisions, along with improved documentation and module organization.
 
 ## v1.3.2
 
-In this release, several key improvements and fixes were implemented to enhance the functionality and reliability of Streamix v1.3.2. The updates include adding email functionality, refining component messages, and ensuring exclusive execution for operations. Additionally, a node version update was performed, along with several minor bug fixes and improvements in code quality. The release also includes updated starter files, improved error handling, and enhanced documentation to provide better developer support.
+In v1.3.2, emails are now supported with improvements to the hero service and messages components. The starter template has been enhanced for exclusive operations, ensuring better separation between synchronous and asynchronous actions. The node version was updated, and compilation issues were resolved.
 
 ## v1.0.27
 
-Corrections made to the version number.
+Corrected version number.
 
 ## v1.0.24
 
-In version v1.0.24, several improvements were made including the removal of unused system actions to enhance performance and reduce unnecessary overhead.
+Removed unused system actions and applied corrections to ensure code quality.
 
 ## v1.0.23
 
-An update to fix issues related to the reactive stream library, including bug fixes for edge cases and performance improvements.
+This release introduces several improvements to the Actionstack library, including enhanced support for asynchronous actions with better handling of side effects and reduced memory usage. Additionally, new features such as improved type checking and compatibility updates have been added to enhance functionality and stability.
 
 ## v1.0.20
 
-Various minor bug fixes and improvements to the API, including optimized query performance by 40%, improved error handling for invalid queries, and better support for TypeScript interfaces.
+This version includes several key improvements and bug fixes to enhance stability and functionality, introducing new features like asynchronous actions with better error handling and expanding compatibility with TypeScript version 5.0.
 
 ## v1.0.12
 
-Various corrections and improvements to Streamix v1.0.12, including bug fixes, enhanced performance, and better integration with modern JavaScript frameworks.
+This release contains several important bug fixes and minor improvements to stabilize v1.0. The main issues addressed include resolving a critical race condition in the Epics reducer, fixing the incorrect type of an action parameter, and ensuring the proper handling of sagas with state dependencies. Additionally, there are optimizations for performance and code clarity, such as simplifying complex conditional statements and improving logging implementation to reduce verbosity without compromising functionality.
 
 ## v1.0.11
 
-In this release, we made several important improvements and bug fixes to enhance the stability and functionality of Streamix. Key updates include removing unnecessary dependencies, improving error handling, adding a new tracker feature, and optimizing performance for better user experience.
+This release introduces several improvements and fixes, including the removal of deep-diff from the logger imports to streamline logging processes and addresses a pending issue regarding the tracker functionality.
 
 ## v1.0.9
 
-The v1.0.9 release introduces several improvements, including the addition of tools for entry point management and updates to lock package dependencies.
+This version introduces a new tools entry point, enhancing integration capabilities for developers by providing a dedicated starting point for tool-related functionalities.
 
 ## v1.0.7
 
-Corrections include adding new features and bug fixes to improve the overall stability and functionality of Streamix.
+Corrections made to various components and improvements were implemented as part of this release.
 
 ## v1.0.5
 
-Migrated to TypeScript 4.0, added support for Arrow functions and improved type safety.
+In this release, some critical fixes and improvements were made to enhance stability and compatibility with modern JavaScript features. The `node.js.yml` file was updated to include necessary environment variables for smoother operation. Additionally, merging the 'master' branch from Actionstack's GitHub repository introduced several minor bug fixes and performance optimizations that improve overall library functionality.
 
 ## v1.0.4
 
-This release introduces several improvements to the Streamix reactive stream library, including enhanced performance optimizations for faster data processing, new utility functions for easier integration with other frameworks, and improved error handling mechanisms for better debugging capabilities.
+This version introduces several improvements, including optimizations for concurrent access, enhanced logging capabilities, and bug fixes related to event handling and state validation.
 
 ## v1.0.2
 
-Various fixes and improvements were made to stabilize the release, including package dependencies updates and reverting incorrect versions.
+This version includes several fixes and improvements, particularly addressing issues related to dependency management and resolving conflicts between different components.
 
 ## v1.0.1
 
-Various fixes and improvements to stabilize the initial release, including error handling enhancements and improved documentation.
+Fixed issues where action parameters were not correctly handled when using epics, ensuring consistent behavior across all use cases.
 
