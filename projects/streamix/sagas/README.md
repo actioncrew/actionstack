@@ -8,7 +8,7 @@ Actionstack Sagas is a middleware package that provides a declarative way to han
 
 To install Actionstack Sagas, use the following command:
 
-    npm install @actionstack/sagas
+    npm install @actioncrew/actionstack
 
 ## Features
 
@@ -24,8 +24,8 @@ To install Actionstack Sagas, use the following command:
 Import and configure the middleware in your store setup:
 
 ```typescript
-    import { createStore } from '@actionstack/store';
-    import { sagas, run } from '@actionstack/sagas';
+    import { createStore } from '@actioncrew/actionstack';
+    import { sagas, run } from '@actioncrew/actionstack/sagas';
     import rootSaga from './sagas';
 
     export const store = createStore({

@@ -64,3 +64,16 @@ fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-sagas.d.ts', './dist
 fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-tools.d.ts', './dist/actionstack/tools/index.d.ts');
 fs.rmSync('./dist/actionstack/@actioncrew', {recursive: true, force: true});
 fs.copyFileSync('./CHANGELOG.md', './dist/actionstack/CHANGELOG.md');
+
+
+fs.rmSync('./dist/streamix/esm2022', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/lib', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/epics/lib', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/sagas/lib', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/tools/lib', {recursive: true, force: true});
+fs.copyFileSync('./dist/streamix/@actioncrew/actionstack.d.ts', './dist/streamix/index.d.ts');
+fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-epics.d.ts', './dist/streamix/epics/index.d.ts');
+fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-sagas.d.ts', './dist/streamix/sagas/index.d.ts');
+fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-tools.d.ts', './dist/streamix/tools/index.d.ts');
+fs.rmSync('./dist/streamix/@actioncrew', {recursive: true, force: true});
+fs.copyFileSync('./projects/streamix/CHANGELOG.md', './dist/streamix/CHANGELOG.md');

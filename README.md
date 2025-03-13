@@ -39,7 +39,7 @@ ActionStack is built for flexibility, letting you structure your state tree howe
 To create a store, use the createStore function, which initializes the store with the provided main module and optional settings or enhancers.
 
 ```typescript
-    import { createStore } from '@actionstack/store';
+    import { createStore } from '@actioncrew/actionstack';
     import { someMainModule } from './modules';
 
     // Optional: Define store settings to customize behavior
@@ -107,7 +107,7 @@ To read a slice of the state in a safe manner (e.g., avoiding race conditions), 
 You can dispatch actions to add or clear messages in the store. Here's how to do it:
 
 ```typescript
-    import { Action, action, featureSelector, selector } from '@actionstack/store';
+    import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
 
     export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
     export const clearMessages = action('CLEAR_MESSAGES');
@@ -128,7 +128,7 @@ You can dispatch actions to add or clear messages in the store. Here's how to do
 You can also subscribe to changes in the state, so that when messages are added or cleared, you can react to those changes:
 
 ```typescript
-    import { Action, action, featureSelector, selector } from '@actionstack/store';
+    import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
     
     export const feature = featureSelector(slice);
     export const selectHeroes = selector(feature, state => state.heroes);

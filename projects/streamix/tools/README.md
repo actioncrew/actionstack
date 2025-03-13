@@ -32,13 +32,13 @@ The State Freezer ensures that your application’s state remains immutable. It 
 ## Installation
 To use ActionStack tools, install the ActionStack package (if not already installed):
 
-    npm install @actionstack/tools
+    npm install @actioncrew/actionstack
 
 Then, import the necessary tools in your application:
 
 ```typescript
-    import { createStore } from '@actionstack/store';
-    import { logger, perfmon, storeFreeze } from '@actionstack/tools';
+    import { createStore } from '@actioncrew/actionstack';
+    import { logger, perfmon, storeFreeze } from '@actioncrew/actionstack/tools';
     export const store = createStore({
       reducer: rootReducer,
       dependencies: {}

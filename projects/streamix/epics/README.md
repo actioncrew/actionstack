@@ -8,7 +8,7 @@ Actionstack Epics is a middleware package that enables handling asynchronous ope
 
 Install Actionstack Epics using:
 
-    npm install @actionstack/epics
+    npm install @actioncrew/actionstack
 
 ## Features
 
@@ -21,8 +21,8 @@ Install Actionstack Epics using:
 
 Configure the epics middleware in your store:
 ```typescript
-    import { createStore } from '@actionstack/store';
-    import { epics, run } from '@actionstack/epics';
+    import { createStore } from '@actioncrew/actionstack';
+    import { epics, run } from '@actioncrew/actionstack/epics';
     import rootEpic from './epics';
 
     export const store = createStore({
@@ -37,8 +37,8 @@ Configure the epics middleware in your store:
 Writing an Epic:
 
 ```typescript
-    import { ofType } from '@actionstack/epics';
-    import { map } from 'rxjs/operators';
+    import { ofType } from '@actioncrew/actionstack/epics';
+    import { map } from 'streamix';
     import { fetchSuccess } from './actions';
 
     const fetchEpic = (action$, state$, dependencies) =>
