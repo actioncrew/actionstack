@@ -1,11 +1,25 @@
 {
-  "name": "streamix",
-  "version": "0.0.1",
-  "peerDependencies": {
-    "@angular/common": "^14.2.0",
-    "@angular/core": "^14.2.0"
-  },
+  "name": "@actioncrew/actionstack",
+  "version": "2.1.0",
   "dependencies": {
     "tslib": "^2.3.0"
-  }
+  },
+  "peerDependencies": {
+    "@actioncrew/streamix": "^1.0.14"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/actioncrew/actionstack.git"
+  },
+  "author": "Oleksii Shepel",
+  "email": "oleksii.shepel@outlook.com",
+  "keywords": [
+    "ActionStack",
+    "Streamix",
+    "Redux",
+    "state management",
+    "asynchronous store",
+    "reactive state"
+  ]
 }

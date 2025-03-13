@@ -1,4 +1,4 @@
-import { Action, action, featureSelector, selector } from "streamix";
+import { Action, action, featureSelector, selector } from "@actioncrew/actionstack";
 
 export const slice = "messages";
 

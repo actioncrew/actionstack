@@ -450,7 +450,7 @@
         }
       }
     },
-    "streamix": {
+    "@actioncrew/actionstack": {
       "projectType": "library",
       "root": "projects/streamix",
       "sourceRoot": "projects/streamix/src",

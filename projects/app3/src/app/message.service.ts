@@ -1,4 +1,4 @@
-import { Store } from 'streamix';
+import { Store } from '@actioncrew/actionstack';
 import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })

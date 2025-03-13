@@ -1,6 +1,6 @@
-import { Action, createStore, StoreCreator, StoreEnhancer } from 'streamix';
-import { epics } from 'streamix/epics';
-import { logger, perfmon } from 'streamix/tools';
+import { Action, createStore, StoreCreator, StoreEnhancer } from '@actioncrew/actionstack';
+import { epics } from '@actioncrew/actionstack/epics';
+import { logger, perfmon } from '@actioncrew/actionstack/tools';
 import { NgModule } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
@@ -8,7 +8,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
-import { applyMiddleware, combineEnhancers } from 'streamix';
+import { applyMiddleware, combineEnhancers } from '@actioncrew/actionstack';
 
 export const store = createStore({
   reducer: (state: any = {}) => state,

@@ -1,8 +1,8 @@
-import { Action, action, featureSelector, selector } from 'streamix';
+import { Action, action, featureSelector, selector } from '@actioncrew/actionstackrew/actionstackrew/actionstack';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
-import { firstValueFrom } from '@actioncrew/streamix';
+import { firstValueFrom } from '@actioncrew/@actioncrew/actionstack';
 
 export const slice = "hero-details";
 

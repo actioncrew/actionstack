@@ -8,7 +8,7 @@ import {
   Store,
   StoreSettings,
   StoreEnhancer,
-} from 'streamix';
+} from '@actioncrew/actionstack';
 import { Operator, Stream, Subscription, createOperator, createStream, createSubject } from '@actioncrew/streamix';
 
 /**

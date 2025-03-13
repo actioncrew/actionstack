@@ -1,9 +1,9 @@
-import { Action, action, featureSelector, selector } from 'streamix';
-import { ofType } from 'streamix/epics';
+import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
+import { ofType } from '@actioncrew/actionstack/epics';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
-import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
+import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/@actioncrew/actionstack';
 
 export const slice = "heroes";
 

@@ -1,4 +1,4 @@
-import { Action, AsyncReducer } from "streamix";
+import { Action, AsyncReducer } from "@actioncrew/actionstack";
 
 function deepFreeze (o: any) {
   Object.freeze(o);

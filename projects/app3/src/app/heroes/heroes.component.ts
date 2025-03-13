@@ -1,5 +1,5 @@
-import { Store } from 'streamix';
-import { run, stop } from 'streamix/epics';
+import { Store } from '@actioncrew/actionstack';
+import { run, stop } from '@actioncrew/actionstack/epics';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 
 
@@ -7,7 +7,7 @@ import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
 import { getHeroesRequest, loadHeroes, selectHeroes } from './heroes.slice';
 import { store } from '../app.module';
-import { Subscription } from '@actioncrew/streamix';
+import { Subscription } from '@actioncrew/@actioncrew/actionstack';
 
 @Component({
   selector: 'app-heroes',

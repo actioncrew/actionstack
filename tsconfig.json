@@ -48,19 +48,19 @@
         "./dist/actionstack/angular",
         "./projects/actionstack/angular/src/public-api.ts"
       ],
-      "streamix/epics": [
+      "@actioncrew/actionstack/epics": [
         "./dist/streamix/epics",
         "./projects/streamix/epics/src/public-api.ts"
       ],
-      "streamix/sagas": [
+      "@actioncrew/actionstack/sagas": [
         "./dist/streamix/sagas",
         "./projects/streamix/sagas/src/public-api.ts"
       ],
-      "streamix/tools": [
+      "@actioncrew/actionstack/tools": [
         "./dist/streamix/tools",
         "./projects/streamix/tools/src/public-api.ts"
       ],
-      "streamix": [
+      "@actioncrew/actionstack": [
         "dist/streamix",
         "./projects/streamix/src/public-api.ts"
       ]
