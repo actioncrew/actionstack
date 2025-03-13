@@ -11,7 +11,7 @@
     "bundle": "dts-bundle-generator --o ./dist/actionstack/tools/actionstack.d.ts ./dist/actionstack/tools/index.d.ts"
   },
   "dependencies": {
-    "@actioncrew/streamix": "^1.0.11",
+    "@actioncrew/streamix": "^1.0.14",
     "@angular/animations": "^14.0.0",
     "@angular/common": "^14.0.0",
     "@angular/compiler": "^14.0.0",
