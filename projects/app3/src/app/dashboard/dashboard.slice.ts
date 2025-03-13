@@ -1,8 +1,8 @@
-import { action, featureSelector, selector } from '@actioncrew/actionstackrew/actionstack';
+import { action, featureSelector, selector } from '@actioncrew/actionstack';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
-import { firstValueFrom } from '@actioncrew/@actioncrew/actionstack';
+import { firstValueFrom } from '@actioncrew/streamix';
 
 export const slice = "dashboard";
 

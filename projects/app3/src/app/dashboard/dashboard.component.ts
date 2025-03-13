@@ -6,7 +6,7 @@ import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
 import { loadHeroes, reducer, selectTopHeroes, slice } from './dashboard.slice';
 import { store } from '../app.module';
-import { Stream } from '@actioncrew/@actioncrew/actionstackrew/actionstack';
+import { Stream } from '@actioncrew/streamix';
 
 @Component({
   selector: 'app-dashboard',
