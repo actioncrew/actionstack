@@ -352,7 +352,7 @@ function kindOf(val: any): string {
  * @param val - The value to get the constructor name for.
  * @returns string - The name of the constructor (if applicable), otherwise null.
  */
-function ctorName(val: any): string {
+function ctorName(val: any): string | null {
   return typeof val.constructor === "function" ? val.constructor.name : null;
 }
 
