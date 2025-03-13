@@ -9,7 +9,7 @@ import {
   StoreSettings,
   StoreEnhancer,
 } from 'streamix';
-import { Emission, Operator, Stream, createEmission, createOperator, createSemaphore, createStream, createSubject } from '@actioncrew/streamix';
+import { Operator, Stream, Subscription, createOperator, createStream, createSubject } from '@actioncrew/streamix';
 
 /**
  * Type alias for an epic function.
@@ -42,48 +42,45 @@ export type Epic = (
 export function concat(
   stack: ExecutionStack,
   ...epics: Epic[]
-): (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => Stream<Action> {
-  return (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => {
-    return createStream<Action>("concat", async function* (this: Stream<Action>) {
-      for (const epic of epics) {
-        const itemAvailable = createSemaphore(0); // Controls when items are available
-        const queue: Action[] = []; // Event queue
-        let completed = false;
+): (action$: Stream<Action<any>>, state$: Stream<any>, dependencies: Record<string, any>) => Stream<Action<any>> {
+  return (action$: Stream<Action<any>>, state$: Stream<any>, dependencies: Record<string, any>) => {
+    const subject = createSubject<Action<any>>();
+    let currentEpicIndex = 0;
+    let currentSubscription: Subscription | null = null;
 
-        // Add the epic to the execution stack
-        const effect = createInstruction.epic(epic);
-        stack.add(effect);
-
-        // Run the epic and subscribe to its output
-        const epicStream = epic(action$, state$, dependencies);
-        const subscription = epicStream.subscribe({
-          next: (value) => {
-            queue.push(value);
-            itemAvailable.release(); // Signal that an item is available
-          },
-          complete: () => {
-            completed = true; // Mark as completed when the epic finishes
-            itemAvailable.release(); // Ensure loop doesn't hang if no values were emitted
-            stack.remove(effect); // Remove the epic from the execution stack
-          },
-          error: (err) => {
-            stack.remove(effect); // Remove the epic from the execution stack on error
-            throw err; // Propagate the error
-          },
-        });
-
-        // Process queued values sequentially
-        while (!completed || queue.length > 0) {
-          await itemAvailable.acquire(); // Wait until an event is available
-
-          if (queue.length > 0) {
-            yield createEmission({ value: queue.shift()! });
-          }
-        }
-
-        subscription.unsubscribe(); // Unsubscribe when done with this epic
+    const subscribeToNextEpic = () => {
+      if (currentEpicIndex >= epics.length) {
+        subject.complete();
+        return;
       }
-    });
+
+      const epic = epics[currentEpicIndex];
+      const effect = createInstruction.epic(epic);
+      stack.add(effect);
+
+      const epicStream = epic(action$, state$, dependencies);
+      currentSubscription = epicStream.subscribe({
+        next: (value) => {
+          subject.next(value);
+        },
+        complete: () => {
+          currentSubscription?.unsubscribe();
+          currentSubscription = null;
+          stack.remove(effect);
+          currentEpicIndex++;
+          subscribeToNextEpic();
+        },
+        error: (error) => {
+          stack.remove(effect);
+          subject.error(error);
+        },
+      });
+    };
+
+    subscribeToNextEpic();
+
+    subject.name = 'concat';
+    return subject;
   };
 }
 
@@ -100,49 +97,40 @@ export function merge(
   ...epics: Epic[]
 ): (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => Stream<Action> {
   return (action$: Stream<Action>, state$: Stream<any>, dependencies: any) => {
+    const subject = createSubject<Action>();
+    let completedCount = 0;
+
+    const effects = epics.map((epic) => {
+      const effect = createInstruction.epic(epic);
+      stack.add(effect);
+      return effect;
+    });
+
+    const subscriptions = epics.map((epic, index) => {
+      return epic(action$, state$, dependencies).subscribe({
+        next: (value) => subject.next(value),
+        complete: () => {
+          completedCount++;
+          if (completedCount === epics.length) {
+            subject.complete();
+          }
+          stack.remove(effects[index]);
+        },
+        error: (err) => {
+          stack.remove(effects[index]);
+          subject.error(err);
+        },
+      });
+    });
+
     return createStream<Action>("merge", async function* (this: Stream<Action>) {
-      const itemAvailable = createSemaphore(0); // Controls when an item is available
-      const queue: Action[] = []; // Event queue
-      let completedCount = 0;
-
-      // Add each epic to the execution stack
-      const effects = epics.map((epic) => {
-        const effect = createInstruction.epic(epic);
-        stack.add(effect);
-        return effect;
-      });
-
-      // Subscribe to each epic and push emissions to the queue
-      const subscriptions = epics.map((epic, index) => {
-        const epicStream = epic(action$, state$, dependencies);
-        return epicStream.subscribe({
-          next: (value) => {
-            queue.push(value);
-            itemAvailable.release(); // Signal availability
-          },
-          complete: () => {
-            completedCount++;
-            itemAvailable.release(); // Ensure loop progresses when an epic completes
-            stack.remove(effects[index]); // Remove the epic from the execution stack
-          },
-          error: (err) => {
-            stack.remove(effects[index]); // Remove the epic from the execution stack on error
-            throw err; // Propagate the error
-          },
-        });
-      });
-
-      // Yield values from the queue as they become available
-      while (completedCount < epics.length || queue.length > 0) {
-        await itemAvailable.acquire(); // Wait until an event is available
-
-        if (queue.length > 0) {
-          yield createEmission({ value: queue.shift()! });
+      try {
+        for await (const value of subject) {
+          yield value;
         }
+      } finally {
+        subscriptions.forEach((sub) => sub.unsubscribe());
       }
-
-      // Cleanup subscriptions
-      subscriptions.forEach((sub) => sub.unsubscribe());
     });
   };
 }
@@ -159,21 +147,20 @@ export function merge(
  * // Only actions of type 'USER_LOGIN' or 'USER_LOGOUT' will pass through.
  */
 export const ofType = <T extends Action<any>>(types: string | string[]): Operator => {
-  const handle = (emission: Emission<T>): Emission<T> => {
-    const action = emission.value as Action<any>; // Access the actual Action from the Emission
+  const handle = (value: T | undefined): T | undefined => {
+    const action = value as Action<any>; // Access the actual Action from the Emission
 
     if (isAction(action)) {
       const matches =
         typeof types === 'string' ? types === action.type : types.includes(action.type);
 
       // If the action type doesn't match, mark the emission as phantom
-      if (!matches) emission.phantom = true;
-      else delete emission.phantom; // Clear phantom flag if the action type matches
+      if (!matches) value = undefined;
     } else {
-      emission.phantom = true; // If it's not an action, mark it as phantom
+      value = undefined; // If it's not an action, mark it as phantom
     }
 
-    return emission;
+    return value;
   };
 
   return createOperator('ofType', handle);

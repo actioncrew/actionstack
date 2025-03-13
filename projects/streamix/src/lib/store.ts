@@ -16,13 +16,11 @@ import {
   MetaReducer,
   Middleware,
   MiddlewareAPI,
-  Observer,
-  ProcessingStrategy,
   Reducer,
   StoreEnhancer,
   Tree,
 } from './types';
-import { createBehaviorSubject, createStream, Stream, createEmission } from '@actioncrew/streamix';
+import { createBehaviorSubject, createStream, Stream } from '@actioncrew/streamix';
 
 
 /**
@@ -417,13 +415,13 @@ export function createStore<T = any>(
         selected$ = selector(currentState, tracker);
 
         // Yield values from the selected stream (async generator)
-        for await (const emission of selected$) {
-          const selectedValue = emission.value;
+        for await (const value of selected$) {
+          const selectedValue = value;
           const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
 
           // If the value has changed, emit it and update the last value
           if (filteredValue !== lastValue) {
-            yield createEmission({ value: filteredValue }); // Use 'yield' instead of 'next' for async generator
+            yield filteredValue; // Use 'yield' instead of 'next' for async generator
             lastValue = filteredValue;
             tracker.setStatus(selected$!, true);
           } else {

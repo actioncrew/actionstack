@@ -92,7 +92,7 @@ export function createSelector<U = any, T = any>(
     return (state$: Stream<T>, tracker?: Tracker) => {
       const outputStream = createSubject<U | undefined>();
 
-      const subscription = (async () => {
+      (async () => {
         let sliceState$: Stream<U>;
 
         if (featureSelector$ === "@global") {
@@ -178,7 +178,7 @@ export function createSelectorAsync<U = any, T = any>(
     return (state$: Stream<T>, tracker?: Tracker) => {
       const outputStream = createSubject<U | undefined>();
 
-      const subscription = (async () => {
+      (async () => {
         let sliceState$: Stream<U>;
 
         if (featureSelector$ === "@global") {

@@ -205,7 +205,7 @@ export type Tree<LeafType, T = any> = {
 };
 
 /**
- * Type alias representing processing strategies for side epics.
+ * Type alias representing processing strategies for side effects.
  *
  */
 export type ProcessingStrategy = "exclusive" | "concurrent";
