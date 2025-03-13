@@ -362,12 +362,12 @@ export function createStore<T = any>(
       return;
     }
 
-    tracker.reset();
 
     currentState.next(newState);
 
     if (settings.awaitStatePropagation) {
       await tracker.allExecuted;
+      tracker.reset();
     }
 
     return newState;
@@ -412,23 +412,39 @@ export function createStore<T = any>(
   /**
    * Selects a value from the store's state using the provided selector function.
    */
-  const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
-    let lastValue: any;
-    let selected$: Observable<R> | undefined;
-    return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
-        const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
-        if(filteredValue !== lastValue) {
-          Promise.resolve(subscriber.next(filteredValue))
-            .then(() => lastValue = filteredValue)
-            .finally(() => tracker.setStatus(selected$!, true));
-        } else {
-          tracker.setStatus(selected$!, true);
+  function select<T, R = any>(
+    selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>,
+    defaultValue?: R,
+    tracker?: Tracker,
+  ): Observable<R> {
+    const subject = new Subject<R>();
+    let selected$ = selector(currentState, tracker);
+    tracker?.track(selected$);
+
+    const subscription = selected$ // Create an inner subscription
+      .subscribe({
+        next: (value) => {
+          const filteredValue = value === undefined ? defaultValue : value;
+          if (filteredValue !== undefined) {
+            subject.next(filteredValue);
+            tracker?.setStatus(selected$, true);
+          }
+        },
+        error: (err) => {
+          subject.error(err)
+          tracker?.setStatus(selected$, true);
+        },
+        complete: () => {
+          tracker?.complete(selected$);
+          subject.complete();
         }
       });
 
-      return () => subscription.unsubscribe();
-    });
+    if (subscription) { // Add inner subscription to the outer subscription
+      subscription.add(subscription);
+    }
+
+    return subject.asObservable();
   }
 
   /**

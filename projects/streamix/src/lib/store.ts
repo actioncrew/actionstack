@@ -20,7 +20,7 @@ import {
   StoreEnhancer,
   Tree,
 } from './types';
-import { createBehaviorSubject, createStream, Stream } from '@actioncrew/streamix';
+import { createBehaviorSubject, createStream, createSubject, Stream } from '@actioncrew/streamix';
 
 
 /**
@@ -315,57 +315,113 @@ export function createStore<T = any>(
    * The function returns an observable that emits the selected value whenever the state changes.
    * Optionally, a default value can be provided if the selector returns `undefined`.
    */
-  const getState = (slice?: keyof T | string[] | "@global"): any => {
-    if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
-      return currentState.value as T;
-    } else if (typeof slice === "string") {
-      return currentState.value[slice] as T;
-    } else if (Array.isArray(slice)) {
+  const getState = <T>(slice?: keyof T | string[] | "@global"): T => {
+    const state = currentState.value;
+
+    // Early return if no slice is provided or if the slice is "@global"
+    if (slice === undefined || slice === "@global") {
+      return state as T;
+    }
+
+    // Handle string slice (single key)
+    if (typeof slice === "string") {
+      return state[slice] as T;
+    }
+
+    // Handle array slice (nested path)
+    if (Array.isArray(slice)) {
       return slice.reduce((acc, key) => {
         if (acc === undefined || acc === null) {
           return undefined;
-        } else if (Array.isArray(acc)) {
-          return acc[parseInt(key)];
-        } else {
-          return acc[key];
         }
-      }, currentState.value) as T;
-    } else {
-      console.warn("Unsupported type of slice parameter");
+        // Handle array indices (e.g., "0" -> 0)
+        const index = !isNaN(Number(key)) ? Number(key) : key;
+        return acc[index];
+      }, state) as T;
     }
-  }
+
+    // Handle unsupported slice types
+    console.warn("Unsupported type of slice parameter");
+    return state;
+  };
 
   /**
    * Sets the state for a specified slice of the global state, updating it with the given value.
    * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
    */
-  const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action = systemActions.updateState() as Action): Promise<any> => {
-    let newState: any;
-    if (slice === undefined || typeof slice === "string" && slice == "@global") {
-      // Update the whole state with a shallow copy of the value
-      newState = ({...value});
-    } else if (typeof slice === "string") {
-      // Update the state property with the given key with a shallow copy of the value
-      newState = {...currentState.value, [slice]: { ...value }};
-    } else if (Array.isArray(slice)) {
-      // Apply change to the state based on the provided path and value
-      newState = applyChange(currentState.value, {path: slice, value}, {});
-    } else {
-      // Unsupported type of slice parameter
+  const setState = async <T = any>(
+    slice: keyof T | string[] | "@global" | undefined,
+    value: any
+  ): Promise<T> => {
+    let newState: T;
+
+    // Handle global state update
+    if (slice === undefined || slice === "@global") {
+      newState = { ...value }; // Shallow copy of the value
+    }
+    // Handle single key update
+    else if (typeof slice === "string") {
+      newState = {
+        ...currentState.value, // Shallow copy of the current state
+        [slice]: { ...value }, // Shallow copy of the value for the specified key
+      };
+    }
+    // Handle nested path update
+    else if (Array.isArray(slice)) {
+      newState = setNestedState(currentState.value, slice, value);
+    }
+    // Handle unsupported slice types
+    else {
       console.warn("Unsupported type of slice parameter");
-      return;
+      return currentState.value; // Return the current state unchanged
     }
 
-    tracker.reset();
-
+    // Update the state
     currentState.next(newState);
 
+    // Wait for state propagation if required
     if (settings.awaitStatePropagation) {
       await tracker.allExecuted;
+      tracker.reset();
     }
 
     return newState;
-  }
+  };
+
+  /**
+   * Updates a nested state object based on the provided path and value.
+   * @param state - The current state object.
+   * @param path - The path to the property to update (e.g., ["user", "profile", "name"]).
+   * @param value - The new value to set at the specified path.
+   * @returns The updated state object.
+   */
+  const setNestedState = <T>(state: T, path: string[], value: any): T => {
+    // Create a shallow copy of the state to ensure immutability
+    const newState = { ...state } as any;
+
+    // Traverse the state and update the nested property
+    let current = newState;
+    for (let i = 0; i < path.length; i++) {
+      const key = path[i];
+
+      // If this is the last key, set the value
+      if (i === path.length - 1) {
+        current[key] = value;
+      }
+      // Otherwise, continue traversing
+      else {
+        // Create a shallow copy of the nested object if it doesn't exist
+        if (current[key] === undefined || current[key] === null) {
+          current[key] = {};
+        } else {
+          current[key] = { ...current[key] }; // Shallow copy to ensure immutability
+        }
+        current = current[key];
+      }
+    }
+
+    return newState as T;
+  };
 
   /**
    * Updates the state for a specified slice by executing the provided callback function,
@@ -380,7 +436,7 @@ export function createStore<T = any>(
 
     let state = getState(slice);
     let result = await callback(state);
-    await setState(slice, result, action);
+    await setState(slice, result);
 
     return action;
   };
@@ -406,32 +462,38 @@ export function createStore<T = any>(
   /**
    * Selects a value from the store's state using the provided selector function.
    */
-  const select = <R = any>(selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>, defaultValue?: any): Stream<R> => {
-    let lastValue: any;
-    let selected$: Stream<R> | undefined;
+  const select = <R = any>(
+    selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>,
+    defaultValue?: any
+  ): Stream<R> => {
+    const subject = createSubject<R>();
+    let selected$ = selector(currentState, tracker);
+    tracker?.track(selected$);
 
-    return createStream<R>('selector', async function* (this: Stream<R>) {
-      // Iterate over the current state
-        selected$ = selector(currentState, tracker);
-
-        // Yield values from the selected stream (async generator)
+    (async () => {
+      try {
+        let lastValue: any;
         for await (const value of selected$) {
           const selectedValue = value;
           const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
 
-          // If the value has changed, emit it and update the last value
           if (filteredValue !== lastValue) {
-            yield filteredValue; // Use 'yield' instead of 'next' for async generator
+            subject.next(filteredValue);
             lastValue = filteredValue;
-            tracker.setStatus(selected$!, true);
-          } else {
-            tracker.setStatus(selected$!, true);
           }
+
+          tracker?.setStatus(selected$, true);
         }
-    });
+      } catch (error) {
+        subject.error(error);
+      } finally {
+        tracker?.complete(selected$); // Ensure tracker knows this stream is done
+        subject.complete();
+      }
+    })();
+
+    return subject;
   };
-
-
 
   /**
    * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
