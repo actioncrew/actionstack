@@ -42,7 +42,7 @@ async function deleteFiles(filePaths) {
   }
 }
 
-let allFiles = getAllFiles("./dist/actionstack");
+let allFiles = getAllFiles("./dist/streamix");
 
 let maps = allFiles.filter(path => path.match(/\.map$/));
 await deleteFiles(maps);
@@ -53,27 +53,18 @@ let js = allFiles.filter(path => path.match(/\.[mc]?js$/));
 let definitions = allFiles.filter(path => !path.includes('@actioncrew') && path.match(/\.d\.ts$/));
 await deleteFiles(definitions);
 
-fs.rmSync('./dist/actionstack/esm2022', {recursive: true, force: true});
-fs.rmSync('./dist/actionstack/lib', {recursive: true, force: true});
-fs.rmSync('./dist/actionstack/epics/lib', {recursive: true, force: true});
-fs.rmSync('./dist/actionstack/sagas/lib', {recursive: true, force: true});
-fs.rmSync('./dist/actionstack/tools/lib', {recursive: true, force: true});
-fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack.d.ts', './dist/actionstack/index.d.ts');
-fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-epics.d.ts', './dist/actionstack/epics/index.d.ts');
-fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-sagas.d.ts', './dist/actionstack/sagas/index.d.ts');
-fs.copyFileSync('./dist/actionstack/@actioncrew/actionstack-tools.d.ts', './dist/actionstack/tools/index.d.ts');
-fs.rmSync('./dist/actionstack/@actioncrew', {recursive: true, force: true});
-fs.copyFileSync('./CHANGELOG.md', './dist/actionstack/CHANGELOG.md');
-
-
-fs.rmSync('./dist/streamix/esm2022', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/esm2020', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/fesm2015', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/lib', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/epics/lib', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/sagas/lib', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/tools/lib', {recursive: true, force: true});
-fs.copyFileSync('./dist/streamix/@actioncrew/actionstack.d.ts', './dist/streamix/index.d.ts');
-fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-epics.d.ts', './dist/streamix/epics/index.d.ts');
-fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-sagas.d.ts', './dist/streamix/sagas/index.d.ts');
-fs.copyFileSync('./dist/streamix/@actioncrew/actionstack-tools.d.ts', './dist/streamix/tools/index.d.ts');
+fs.copyFileSync('./dist/streamix/@actioncrew/index.d.ts', './dist/streamix/index.d.ts');
+fs.copyFileSync('./dist/streamix/epics/@actioncrew/index.d.ts', './dist/streamix/epics/index.d.ts');
+fs.copyFileSync('./dist/streamix/sagas/@actioncrew/index.d.ts', './dist/streamix/sagas/index.d.ts');
+fs.copyFileSync('./dist/streamix/tools/@actioncrew/index.d.ts', './dist/streamix/tools/index.d.ts');
 fs.rmSync('./dist/streamix/@actioncrew', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/epics/@actioncrew', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/sagas/@actioncrew', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/tools/@actioncrew', {recursive: true, force: true});
 fs.copyFileSync('./projects/streamix/CHANGELOG.md', './dist/streamix/CHANGELOG.md');
