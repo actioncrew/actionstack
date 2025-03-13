@@ -104,10 +104,7 @@ export function createSelector<U = any, T = any>(
         for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
             outputStream.next(undefined);
-            continue;
-          }
-
-          if (lastSliceState !== sliceState) {
+          } else if (lastSliceState !== sliceState) {
             lastSliceState = sliceState;
             let selectorResults: U[] | U;
 
@@ -129,7 +126,11 @@ export function createSelector<U = any, T = any>(
               outputStream.next(undefined);
             }
           }
+
+          tracker?.setStatus(outputStream, true);
         }
+
+        tracker?.complete(outputStream);
       })();
 
       return outputStream;
@@ -190,10 +191,7 @@ export function createSelectorAsync<U = any, T = any>(
         for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
             outputStream.next(undefined);
-            continue;
-          }
-
-          if (lastSliceState !== sliceState) {
+          } else if (lastSliceState !== sliceState) {
             lastSliceState = sliceState;
             let selectorResults: U[] | U;
 
@@ -216,7 +214,11 @@ export function createSelectorAsync<U = any, T = any>(
               outputStream.next(undefined);
             }
           }
+
+          tracker?.setStatus(outputStream, true);
         }
+
+        tracker?.complete(outputStream);
       })();
 
       return outputStream;
