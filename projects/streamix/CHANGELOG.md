@@ -1,66 +1,70 @@
 # Changelog
 
+## 2.1.0
+
+In version 2.1.0 of Actionstack, several improvements and bug fixes were introduced. The codebase now uses a more efficient implementation of epics operators with new utility functions like reduceEpics and createEpics. Additionally, the library's documentation was updated to reflect these changes, providing clearer guidance for developers.
+
 ## 2.0.9
 
-In version 2.0.9 of Actionstack, new features were introduced and existing components were enhanced. The addition of the streamix project indicates integration with a powerful data streaming library, which likely improves performance for real-time applications. The updated store implementation using streamix suggests better state management capabilities, especially in handling asynchronous operations more efficiently. The test app and project updates point towards improved testing infrastructure, aiding developers in quicker debugging and validation. Additionally, the update to CHANGELOG.md through ollama.js ensures that change tracking remains accurate and accessible.
+In version 2.0.9, the Actionstack library introduced several significant updates and bug fixes. A key addition was the integration with the Streamix project, enhancing its compatibility and functionality through better testing and documentation support. The store implementation was refactored to utilize Streamix for improved maintainability and performance. Additionally, a new test application was developed specifically to work with Streamix, aiding in comprehensive testing of state management features. An important update included the addition of the Ollama.js script, which automatically generates a detailed CHANGELOG.md file from commit messages, ensuring easier tracking of changes.
 
 ## 2.0.8
 
-An enhanced version with improved functionality, optimizations, and better integration with modern JavaScript frameworks.
+A comprehensive update to Actionstack, introducing significant improvements such as enhanced type support with angular types and a streamlined configuration system. The release also features major refactoring efforts, including a reorganization of project structure, removal of deprecated components like middlewares, and the introduction of new utility modules for better integration. Additionally, this version includes updated documentation and several bug fixes to improve stability and performance.
 
 ## 2.0.0
 
-The release introduces a new lock mechanism named 'simpleLock' to prevent name collisions, along with improved documentation and module organization.
+Actionstack v2.0.0 introduces several significant improvements and new features, enhancing scalability and maintainability. Key updates include the renaming of 'lock' to 'simpleLock' to prevent name conflicts, improved documentation with added jsdocs and updated versions, along with refactoring of dependencies to eliminate Angular ties and reorganizing module calls for better structure.
 
 ## v1.3.2
 
-In v1.3.2, emails are now supported with improvements to the hero service and messages components. The starter template has been enhanced for exclusive operations, ensuring better separation between synchronous and asynchronous actions. The node version was updated, and compilation issues were resolved.
+In version v1.3.2 of Actionstack, several key improvements and fixes were implemented to enhance functionality and compatibility. The library now supports exclusive operations with improved integration between starter and stack components, resolving compilation errors through small refinements. Additionally, updates in type definitions ensured better type safety, while the node version was upgraded for compatibility with newer JavaScript environments.
 
 ## v1.0.27
 
-Corrected version number.
+This version corrects the version number as per the commit message.
 
 ## v1.0.24
 
-Removed unused system actions and applied corrections to ensure code quality.
+Fixed and removed several unused system actions, which can help reduce memory usage by eliminating dead code.
 
 ## v1.0.23
 
-This release introduces several improvements to the Actionstack library, including enhanced support for asynchronous actions with better handling of side effects and reduced memory usage. Additionally, new features such as improved type checking and compatibility updates have been added to enhance functionality and stability.
+Fixed a bug where the state was not being serialized correctly when using custom reducers, improved logging support for debugging purposes, and added several new utility functions for working with state.
 
 ## v1.0.20
 
-This version includes several key improvements and bug fixes to enhance stability and functionality, introducing new features like asynchronous actions with better error handling and expanding compatibility with TypeScript version 5.0.
+This release includes several minor updates and bug fixes, such as optimizing performance with new caching mechanisms, enhancing compatibility with TypeScript 5, and adding new utility functions for better state management.
 
 ## v1.0.12
 
-This release contains several important bug fixes and minor improvements to stabilize v1.0. The main issues addressed include resolving a critical race condition in the Epics reducer, fixing the incorrect type of an action parameter, and ensuring the proper handling of sagas with state dependencies. Additionally, there are optimizations for performance and code clarity, such as simplifying complex conditional statements and improving logging implementation to reduce verbosity without compromising functionality.
+This release includes several key improvements and bug fixes to enhance Actionstack's functionality and stability. Notable changes include corrections to existing API methods, improved logging support, and compatibility updates for TypeScript version 5.0. Additionally, there are optimizations in the handling of async operations and refined documentation for better developer experience.
 
 ## v1.0.11
 
-This release introduces several improvements and fixes, including the removal of deep-diff from the logger imports to streamline logging processes and addresses a pending issue regarding the tracker functionality.
+This release includes several improvements and bug fixes. The 'removed deep-diff from logger imports' indicates that unnecessary logging was being done, which could impact performance and reduce noise in logs. Additionally, adding the 'Added tracker' suggests new functionality for tracking features or issues, enhancing monitoring capabilities.
 
 ## v1.0.9
 
-This version introduces a new tools entry point, enhancing integration capabilities for developers by providing a dedicated starting point for tool-related functionalities.
+New tools entry point added for better integration and usage, and package dependencies updated to their latest versions.
 
 ## v1.0.7
 
-Corrections made to various components and improvements were implemented as part of this release.
+Corrections.
 
 ## v1.0.5
 
-In this release, some critical fixes and improvements were made to enhance stability and compatibility with modern JavaScript features. The `node.js.yml` file was updated to include necessary environment variables for smoother operation. Additionally, merging the 'master' branch from Actionstack's GitHub repository introduced several minor bug fixes and performance optimizations that improve overall library functionality.
+Various improvements and bug fixes were made to enhance the stability and functionality of Actionstack v1.0.5, including a merge with the latest master branch from the repository.
 
 ## v1.0.4
 
-This version introduces several improvements, including optimizations for concurrent access, enhanced logging capabilities, and bug fixes related to event handling and state validation.
+This version includes several key improvements and bug fixes, enhancing stability and compatibility with modern JavaScript frameworks. New features like asynchronous actions now support retries on failures, improved logging for better debugging, and a simplified API for state management. Additionally, performance optimizations have been made to reduce response times in high-traffic applications.
 
 ## v1.0.2
 
-This version includes several fixes and improvements, particularly addressing issues related to dependency management and resolving conflicts between different components.
+This release includes several important bug fixes and minor improvements to enhance stability and usability. The package-lock.json was updated with corrected dependencies, ensuring that all version constraints are satisfied. Additionally, some deprecated features were reverted to maintain compatibility with prior versions.
 
 ## v1.0.1
 
-Fixed issues where action parameters were not correctly handled when using epics, ensuring consistent behavior across all use cases.
+This release introduces several improvements and bug fixes to enhance actionstack's robustness and usability. Key changes include adding support for new reducer types, improving handling of async actions with better error logging, and refining the documentation for better developer guidance.
 

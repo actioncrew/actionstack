@@ -7,18 +7,18 @@
 
 A powerful and flexible state management library designed to provide a scalable and maintainable approach for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates with your project, offering advanced features such as handling asynchronous actions, reducers, and side effects like epics and sagas.
 
-[redux-docs](https://redux.js.org/)
-[observable-docs](https://redux-observable.js.org/)
-[saga-docs](https://redux-saga.js.org/)
-[actionstack-docs](https://actionstack.vercel.app/documentation/)
+[redux-docs /](https://redux.js.org/)
+[observable-docs /](https://redux-observable.js.org/)
+[saga-docs /](https://redux-saga.js.org/)
+[actionstack-docs /](https://actionstack.vercel.app/documentation/)
 
-[![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)  
-[![npm version](https://img.shields.io/npm/v/@actionstack/store.svg?style=flat-square)](https://www.npmjs.com/package/@actionstack/store)  
-[![npm downloads](https://img.shields.io/npm/dm/@actionstack/store.svg?style=flat-square)](https://www.npmjs.com/package/@actionstack/store)  
-[![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actionstack%2Fstore)](https://img.shields.io/bundlephobia/minzip/%40actionstack%2Fstore)
+[![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)
+[![npm version](https://img.shields.io/npm/v/@actioncrew/actionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew/actionstack)
+[![npm downloads](https://img.shields.io/npm/dm/@actioncrew/actionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew/actionstack)
+[![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)
   
 ## Key Features
-- Reactive State Management: ActionStack uses RxJS observables to create a reactive state management system. This allows your components and views to stay in sync with the latest state changes automatically.
+- Reactive State Management: ActionStack uses [Streamix](https://www.npmjs.com/package/@actioncrew/streamix) library to create a reactive state management system. This allows your components and views to stay in sync with the latest state changes automatically.
 - Immutable State Updates: State updates are immutable, ensuring predictable state transitions and easier debugging.
 - TypeScript Support: ActionStack offers full TypeScript support, enhancing developer experience with type safety for state, actions, and reducers.
 - Framework-Agnostic: ActionStack is framework-agnostic, meaning it can be used with any JavaScript or TypeScript project, not just Angular.
@@ -147,7 +147,7 @@ ActionStack includes several tools to aid development and debugging: logger, per
 > Note: Redux Thunk-like functionality is already integrated into ActionStack, so there's no need to add it separately for handling asynchronous actions.
 
 # Conclusion
-ActionStack makes state management in your applications easier, more predictable, and scalable. With support for both epics and sagas, it excels in handling asynchronous operations while offering the flexibility and power of RxJS and generator functions. Whether you're working on a small project or a large-scale application, ActionStack can help you manage state efficiently and reliably.
+ActionStack makes state management in your applications easier, more predictable, and scalable. With support for both epics and sagas, it excels in handling asynchronous operations while offering the flexibility and power of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix) and generator functions. Whether you're working on a small project or a large-scale application, ActionStack can help you manage state efficiently and reliably.
 
 If you're interested, join our discussions on [GitHub](https://github.com/actioncrew/actionstack/discussions)!
  

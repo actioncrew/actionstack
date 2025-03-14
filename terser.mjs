@@ -67,4 +67,3 @@ fs.rmSync('./dist/streamix/@actioncrew', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/epics/@actioncrew', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/sagas/@actioncrew', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/tools/@actioncrew', {recursive: true, force: true});
-fs.copyFileSync('./projects/streamix/CHANGELOG.md', './dist/streamix/CHANGELOG.md');

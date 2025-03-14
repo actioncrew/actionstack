@@ -206,7 +206,7 @@ async function main() {
   fs.rmSync('summary_changelog.json');
 }
 
-function generateChangelogFromSummary(summaryFilePath = 'summary_changelog.json', outputFilePath = './CHANGELOG.md') {
+function generateChangelogFromSummary(summaryFilePath = 'summary_changelog.json', outputFilePath = './projects/streamix/CHANGELOG.md') {
   try {
     const summaryData = fs.readFileSync(summaryFilePath, 'utf-8');
     const summary = JSON.parse(summaryData);
