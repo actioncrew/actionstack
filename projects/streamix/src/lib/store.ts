@@ -1,5 +1,5 @@
 import { action, bindActionCreators } from './actions';
-import { applyChange, applyMiddleware, combineEnhancers, combineReducers } from './utils';
+import { applyMiddleware, combineEnhancers, combineReducers, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -20,8 +20,12 @@ import {
   StoreEnhancer,
   Tree,
 } from './types';
-import { createBehaviorSubject, createStream, createSubject, Stream } from '@actioncrew/streamix';
-
+import {
+  createBehaviorSubject,
+  createStream,
+  createSubject,
+  Stream,
+} from '@actioncrew/streamix';
 
 /**
  * Class representing configuration options for a store.
@@ -44,7 +48,7 @@ const defaultStoreSettings: StoreSettings = {
   awaitStatePropagation: true,
   enableMetaReducers: true,
   enableAsyncReducers: true,
-  exclusiveActionProcessing: false
+  exclusiveActionProcessing: false,
 };
 
 /**
@@ -53,9 +57,15 @@ const defaultStoreSettings: StoreSettings = {
  */
 export type Store<T = any> = {
   dispatch: (action: Action | any) => Promise<void>;
-  getState: (slice?: keyof T | string[] | "@global") => any;
-  readSafe: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
-  select: <R = any>(selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>, defaultValue?: any) => Stream<R>;
+  getState: (slice: keyof T | string[] | '*') => any;
+  readSafe: (
+    slice: keyof T | string[] | '*',
+    callback: (state: Readonly<T>) => void | Promise<void>
+  ) => Promise<void>;
+  select: <R = any>(
+    selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>,
+    defaultValue?: any
+  ) => Stream<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
   getMiddlewareAPI: () => any;
@@ -67,18 +77,18 @@ export type Store<T = any> = {
  * These action types are likely used internally for system events.
  */
 const SYSTEM_ACTION_TYPES = [
-  "INITIALIZE_STATE",
-  "UPDATE_STATE",
-  "STORE_INITIALIZED",
-  "MODULE_LOADED",
-  "MODULE_UNLOADED"
+  'INITIALIZE_STATE',
+  'UPDATE_STATE',
+  'STORE_INITIALIZED',
+  'MODULE_LOADED',
+  'MODULE_UNLOADED',
 ] as const;
 
 /**
  * Type alias representing all possible system action types.
  * This type is derived from the `SYSTEM_ACTION_TYPES` array using the `typeof` operator and ensures the type is also a string.
  */
-export type SystemActionTypes = typeof SYSTEM_ACTION_TYPES[number] & string;
+export type SystemActionTypes = (typeof SYSTEM_ACTION_TYPES)[number] & string;
 
 /**
  * Function to check if a given string is a system action type.
@@ -90,7 +100,10 @@ export function isSystemActionType(type: string): type is SystemActionTypes {
 /**
  * Private function to create a system action.
  */
-function systemAction<T extends SystemActionTypes>(type: T, payload?: Function) {
+function systemAction<T extends SystemActionTypes>(
+  type: T,
+  payload?: Function
+) {
   return action(type, payload);
 }
 
@@ -99,11 +112,15 @@ function systemAction<T extends SystemActionTypes>(type: T, payload?: Function) 
  * Each property name corresponds to a system action type, and the function creates an action object with that type and optional payload.
  */
 const systemActions = {
-  initializeState: systemAction("INITIALIZE_STATE"),
-  updateState: systemAction("UPDATE_STATE"),
-  storeInitialized: systemAction("STORE_INITIALIZED"),
-  moduleLoaded: systemAction("MODULE_LOADED", (module: FeatureModule) => ({module})),
-  moduleUnloaded: systemAction("MODULE_UNLOADED", (module: FeatureModule) => ({module}))
+  initializeState: systemAction('INITIALIZE_STATE'),
+  updateState: systemAction('UPDATE_STATE'),
+  storeInitialized: systemAction('STORE_INITIALIZED'),
+  moduleLoaded: systemAction('MODULE_LOADED', (module: FeatureModule) => ({
+    module,
+  })),
+  moduleUnloaded: systemAction('MODULE_UNLOADED', (module: FeatureModule) => ({
+    module,
+  })),
 };
 
 /**
@@ -125,7 +142,7 @@ export function createStore<T = any>(
 
   // Determine if the second argument is storeSettings or enhancer
   let settings: StoreSettings;
-  if (typeof storeSettingsOrEnhancer === "function") {
+  if (typeof storeSettingsOrEnhancer === 'function') {
     // If it's a function, it's the enhancer
     enhancer = storeSettingsOrEnhancer;
     settings = defaultStoreSettings; // Use default settings if not provided
@@ -138,7 +155,7 @@ export function createStore<T = any>(
   let pipeline = {
     reducer: combineReducers({ [main.slice!]: main.reducer }),
     dependencies: {},
-    strategy: settings.exclusiveActionProcessing ? "exclusive" : "concurrent"
+    strategy: settings.exclusiveActionProcessing ? 'exclusive' : 'concurrent',
   };
 
   const currentState = createBehaviorSubject<any>({});
@@ -155,7 +172,11 @@ export function createStore<T = any>(
    */
   let dispatch = async (action: Action | any) => {
     if (!isPlainObject(action)) {
-      console.warn(`Actions must be plain objects. Instead, the actual type was: '${kindOf(action)}'.`);
+      console.warn(
+        `Actions must be plain objects. Instead, the actual type was: '${kindOf(
+          action
+        )}'.`
+      );
       return;
     }
     if (typeof action.type === 'undefined') {
@@ -163,58 +184,75 @@ export function createStore<T = any>(
       return;
     }
     if (typeof action.type !== 'string') {
-      console.warn(`Action "type" property must be a string. Instead, the actual type was: '${kindOf(action.type)}'.`);
+      console.warn(
+        `Action "type" property must be a string. Instead, the actual type was: '${kindOf(
+          action.type
+        )}'.`
+      );
       return;
     }
 
     try {
-      await updateState('@global', async (state: any) => await pipeline.reducer(state, action), action);
+      await updateState(
+        '*',
+        async (state: any) => await pipeline.reducer(state, action),
+        action
+      );
     } catch {
       console.warn('Error during processing the action');
     }
   };
 
   /**
- * Recursively processes a nested structure of dependencies, handling arrays, objects, and class instances.
- *
- * @param {any} source The source object to process.
- * @param {Object} processed The object to accumulate processed values.
- * @param {string} origin The origin of the current source object (e.g., module name).
- * @returns {any} The processed object.
- *
- * @description
- * This function recursively traverses the `source` object, processing its properties and handling arrays, objects, and class instances. It merges overlapping properties from different sources, logging a warning for each conflict.
- *
- * - **Array Handling:** Recursively processes each element of an array.
- * - **Plain Object Handling:** Iterates over the properties of a plain object, recursively processing each value and merging them into the `processed` object. Logs a warning for overlapping properties.
- * - **Class Instance Handling:** Returns the original class instance without modification to avoid unintended side effects.
- *
- * @example
- * const dependencies = {
- *   a: { b: 1, c: [2, { d: 3 }] },
- *   e: new SomeClass(),
- * };
- *
- * const processedDependencies = processDependencies(dependencies);
- */
-  const processDependencies = (source: any, processed: any = {}, origin: string = ''): any => {
+   * Recursively processes a nested structure of dependencies, handling arrays, objects, and class instances.
+   *
+   * @param {any} source The source object to process.
+   * @param {Object} processed The object to accumulate processed values.
+   * @param {string} origin The origin of the current source object (e.g., module name).
+   * @returns {any} The processed object.
+   *
+   * @description
+   * This function recursively traverses the `source` object, processing its properties and handling arrays, objects, and class instances. It merges overlapping properties from different sources, logging a warning for each conflict.
+   *
+   * - **Array Handling:** Recursively processes each element of an array.
+   * - **Plain Object Handling:** Iterates over the properties of a plain object, recursively processing each value and merging them into the `processed` object. Logs a warning for overlapping properties.
+   * - **Class Instance Handling:** Returns the original class instance without modification to avoid unintended side effects.
+   *
+   * @example
+   * const dependencies = {
+   *   a: { b: 1, c: [2, { d: 3 }] },
+   *   e: new SomeClass(),
+   * };
+   *
+   * const processedDependencies = processDependencies(dependencies);
+   */
+  const processDependencies = (
+    source: any,
+    processed: any = {},
+    origin: string = ''
+  ): any => {
     if (Array.isArray(source)) {
-      return source.map(item => processDependencies(item, processed));
+      return source.map((item) => processDependencies(item, processed));
     }
 
     if (source && typeof source === 'object') {
       // Check if the source is a plain object
-      if (typeof source.constructor === 'function' && source.constructor !== Object) {
+      if (
+        typeof source.constructor === 'function' &&
+        source.constructor !== Object
+      ) {
         return source;
       } else {
         for (const [key, value] of Object.entries(source)) {
           if (!processed.hasOwnProperty(key)) {
             processed[key] = processDependencies(value, processed, origin);
           } else {
-            console.warn(`Overlapping property '${key}' found in dependencies from module: ${origin}. The existing value will be preserved.`);
+            console.warn(
+              `Overlapping property '${key}' found in dependencies from module: ${origin}. The existing value will be preserved.`
+            );
           }
         }
-        return processed;// Assume it's a class instance or other non-plain object
+        return processed; // Assume it's a class instance or other non-plain object
       }
     }
 
@@ -238,7 +276,7 @@ export function createStore<T = any>(
    * the global dependencies object, ensuring proper handling of nested structures.
    */
   const ejectDependencies = (module: FeatureModule): void => {
-    const otherModules = [mainModule, ...modules].filter(m => m !== module);
+    const otherModules = [mainModule, ...modules].filter((m) => m !== module);
     const remainingDependencies = otherModules.reduce((acc, module) => {
       return processDependencies(module.dependencies, acc, module.slice);
     }, {});
@@ -253,11 +291,12 @@ export function createStore<T = any>(
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
     // Check if the module already exists
-    if (modules.some(m => m.slice === module.slice)) {
+    if (modules.some((m) => m.slice === module.slice)) {
       return Promise.resolve(); // Module already exists, return without changes
     }
 
-    const promise = lock.acquire()
+    const promise = lock
+      .acquire()
       .then(() => {
         // Create a new array with the module added
         modules = [...modules, module];
@@ -265,22 +304,25 @@ export function createStore<T = any>(
         // Inject dependencies
         return injectDependencies();
       })
-      .then(() => updateState("@global", state => setupReducer(state)))
+      .then(() => updateState('*', (state) => setupReducer(state)))
       .finally(() => lock.release());
 
     // Dispatch module loaded action
     systemActions.moduleLoaded(module);
     return promise;
-  }
+  };
 
   /**
    * Unloads a feature module from the store, optionally clearing its state.
    * It removes the module, ejects its dependencies, and updates the global state.
    * A `moduleUnloaded` action is dispatched after the module is unloaded.
    */
-  const unloadModule = (module: FeatureModule, clearState: boolean = false): Promise<void> => {
+  const unloadModule = (
+    module: FeatureModule,
+    clearState: boolean = false
+  ): Promise<void> => {
     // Find the module index in the modules array
-    const moduleIndex = modules.findIndex(m => m.slice === module.slice);
+    const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
 
     // Check if the module exists
     if (moduleIndex === -1) {
@@ -288,7 +330,8 @@ export function createStore<T = any>(
       return Promise.resolve(); // Module not found, nothing to unload
     }
 
-    const promise = lock.acquire()
+    const promise = lock
+      .acquire()
       .then(() => {
         // Remove the module from the internal state
         modules.splice(moduleIndex, 1);
@@ -296,85 +339,43 @@ export function createStore<T = any>(
         // Eject dependencies
         return ejectDependencies(module);
       })
-      .then(() => updateState("@global", async (state) => {
-        if (clearState) {
-          state = { ...state };
-          delete state[module.slice];
-        }
-        return await setupReducer(state);
-      }))
+      .then(() =>
+        updateState('*', async (state) => {
+          if (clearState) {
+            state = { ...state };
+            delete state[module.slice];
+          }
+          return await setupReducer(state);
+        })
+      )
       .finally(() => lock.release());
 
     // Dispatch module unloaded action
     systemActions.moduleUnloaded(module);
     return promise;
-  }
+  };
 
   /**
    * Selects a specific value from the state using the provided selector function.
    * The function returns an observable that emits the selected value whenever the state changes.
-   * Optionally, a default value can be provided if the selector returns `undefined`.
    */
-  const getState = <T>(slice?: keyof T | string[] | "@global"): T => {
-    const state = currentState.value;
-
-    // Early return if no slice is provided or if the slice is "@global"
-    if (slice === undefined || slice === "@global") {
-      return state as T;
-    }
-
-    // Handle string slice (single key)
-    if (typeof slice === "string") {
-      return state[slice] as T;
-    }
-
-    // Handle array slice (nested path)
-    if (Array.isArray(slice)) {
-      return slice.reduce((acc, key) => {
-        if (acc === undefined || acc === null) {
-          return undefined;
-        }
-        // Handle array indices (e.g., "0" -> 0)
-        const index = !isNaN(Number(key)) ? Number(key) : key;
-        return acc[index];
-      }, state) as T;
-    }
-
-    // Handle unsupported slice types
-    console.warn("Unsupported type of slice parameter");
-    return state;
+  const getState = <T>(slice: keyof T | string[] | '*'): T | undefined => {
+    return getProperty(currentState.value, slice);
   };
 
   /**
-   * Sets the state for a specified slice of the global state, updating it with the given value.
-   * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
+   * Sets the state for a specified slice of the store state, updating it with the given value.
+   * Handles different slice types, including a specific key, an array of path keys, or the entire store state.
+   *
+   * @param slice - The slice of the state to update. Use `"*"` for full updates.
+   * @param value - The new value to set for the specified slice.
+   * @returns A promise that resolves with the updated state.
    */
   const setState = async <T = any>(
-    slice: keyof T | string[] | "@global" | undefined,
+    slice: keyof T | string[] | '*',
     value: any
   ): Promise<T> => {
-    let newState: T;
-
-    // Handle global state update
-    if (slice === undefined || slice === "@global") {
-      newState = { ...value }; // Shallow copy of the value
-    }
-    // Handle single key update
-    else if (typeof slice === "string") {
-      newState = {
-        ...currentState.value, // Shallow copy of the current state
-        [slice]: { ...value }, // Shallow copy of the value for the specified key
-      };
-    }
-    // Handle nested path update
-    else if (Array.isArray(slice)) {
-      newState = setNestedState(currentState.value, slice, value);
-    }
-    // Handle unsupported slice types
-    else {
-      console.warn("Unsupported type of slice parameter");
-      return currentState.value; // Return the current state unchanged
-    }
+    const newState = setProperty(currentState.value, slice, value);
 
     // Update the state
     currentState.next(newState);
@@ -389,48 +390,17 @@ export function createStore<T = any>(
   };
 
   /**
-   * Updates a nested state object based on the provided path and value.
-   * @param state - The current state object.
-   * @param path - The path to the property to update (e.g., ["user", "profile", "name"]).
-   * @param value - The new value to set at the specified path.
-   * @returns The updated state object.
-   */
-  const setNestedState = <T>(state: T, path: string[], value: any): T => {
-    // Create a shallow copy of the state to ensure immutability
-    const newState = { ...state } as any;
-
-    // Traverse the state and update the nested property
-    let current = newState;
-    for (let i = 0; i < path.length; i++) {
-      const key = path[i];
-
-      // If this is the last key, set the value
-      if (i === path.length - 1) {
-        current[key] = value;
-      }
-      // Otherwise, continue traversing
-      else {
-        // Create a shallow copy of the nested object if it doesn't exist
-        if (current[key] === undefined || current[key] === null) {
-          current[key] = {};
-        } else {
-          current[key] = { ...current[key] }; // Shallow copy to ensure immutability
-        }
-        current = current[key];
-      }
-    }
-
-    return newState as T;
-  };
-
-  /**
    * Updates the state for a specified slice by executing the provided callback function,
    * which receives the current state as its argument and returns the updated state.
    * The resulting state is then set using the `setState` function.
    */
-  const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action = systemActions.updateState() as Action): Promise<any> => {
-    if(callback === undefined) {
-      console.warn('Callback function is missing. State will not be updated.')
+  const updateState = async (
+    slice: keyof T | string[] | '*',
+    callback: AnyFn,
+    action = systemActions.updateState() as Action
+  ): Promise<any> => {
+    if (callback === undefined) {
+      console.warn('Callback function is missing. State will not be updated.');
       return;
     }
 
@@ -445,7 +415,10 @@ export function createStore<T = any>(
    * Reads the state slice and executes the provided callback with the current state.
    * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
    */
-  const readSafe = (slice: keyof T | string[], callback: (state:  Readonly<T>) => void | Promise<void>): Promise<void> => {
+  const readSafe = (
+    slice: keyof T | string[],
+    callback: (state: Readonly<T | undefined>) => void | Promise<void>
+  ): Promise<void> => {
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
@@ -457,7 +430,7 @@ export function createStore<T = any>(
     })();
 
     return promise;
-  }
+  };
 
   /**
    * Selects a value from the store's state using the provided selector function.
@@ -475,7 +448,8 @@ export function createStore<T = any>(
         let lastValue: any;
         for await (const value of selected$) {
           const selectedValue = value;
-          const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
+          const filteredValue =
+            selectedValue === undefined ? defaultValue : selectedValue;
 
           if (filteredValue !== lastValue) {
             subject.next(filteredValue);
@@ -500,29 +474,40 @@ export function createStore<T = any>(
    * Optionally applies meta reducers if enabled.
    */
   const setupReducer = async (state: any = {}): Promise<any> => {
-
-    let featureReducers = [{slice: mainModule.slice!, reducer: mainModule.reducer}, ...modules].reduce((reducers, module) => {
-      let moduleReducer: any = module.reducer instanceof Function ? module.reducer : {...module.reducer};
-      reducers = {...reducers, [module.slice]: moduleReducer};
+    let featureReducers = [
+      { slice: mainModule.slice!, reducer: mainModule.reducer },
+      ...modules,
+    ].reduce((reducers, module) => {
+      let moduleReducer: any =
+        module.reducer instanceof Function
+          ? module.reducer
+          : { ...module.reducer };
+      reducers = { ...reducers, [module.slice]: moduleReducer };
       return reducers;
     }, {} as Tree<Reducer>);
 
     let reducer = combineReducers(featureReducers);
 
     // Define async compose function to apply meta reducers
-    const asyncCompose = (...fns: MetaReducer[]) => async (reducer: AsyncReducer) => {
-      for (let i = fns.length - 1; i >= 0; i--) {
-        try {
-          reducer = await fns[i](reducer);
-        } catch (error: any) {
-          console.warn(`Error in metareducer ${i}:`, error.message);
+    const asyncCompose =
+      (...fns: MetaReducer[]) =>
+      async (reducer: AsyncReducer) => {
+        for (let i = fns.length - 1; i >= 0; i--) {
+          try {
+            reducer = await fns[i](reducer);
+          } catch (error: any) {
+            console.warn(`Error in metareducer ${i}:`, error.message);
+          }
         }
-      }
-      return reducer;
-    };
+        return reducer;
+      };
 
     // Apply meta reducers if enabled
-    if (settings.enableMetaReducers && mainModule.metaReducers && mainModule.metaReducers.length) {
+    if (
+      settings.enableMetaReducers &&
+      mainModule.metaReducers &&
+      mainModule.metaReducers.length
+    ) {
       try {
         reducer = await asyncCompose(...mainModule.metaReducers)(reducer);
       } catch (error: any) {
@@ -534,24 +519,27 @@ export function createStore<T = any>(
 
     // Update store state
     return await reducer(state, systemActions.updateState() as Action);
-  }
+  };
 
   /**
    * Creates the middleware API object for use in the middleware pipeline.
    */
-  const getMiddlewareAPI = () => ({
-    getState: (slice?: any) => getState(slice),
-    dispatch: (action: any) => dispatch(action),
-    dependencies: () => pipeline.dependencies,
-    strategy: () => pipeline.strategy,
-    lock: lock,
-    stack: stack,
-  } as MiddlewareAPI);
+  const getMiddlewareAPI = () =>
+    ({
+      getState: (slice?: any) => getState(slice),
+      dispatch: (action: any) => dispatch(action),
+      dependencies: () => pipeline.dependencies,
+      strategy: () => pipeline.strategy,
+      lock: lock,
+      stack: stack,
+    } as MiddlewareAPI);
 
   // Apply enhancer if provided
-  if (typeof enhancer === "function") {
+  if (typeof enhancer === 'function') {
     // Check if the enhancer contains applyMiddleware
-    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
+    const hasMiddlewareEnhancer =
+      enhancer.name === 'applyMiddleware' ||
+      (enhancer as any).names?.includes('applyMiddleware');
 
     // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
     if (!hasMiddlewareEnhancer) {
@@ -562,17 +550,24 @@ export function createStore<T = any>(
   }
 
   // Bind system actions
-  sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
+  sysActions = bindActionCreators(
+    systemActions,
+    (action: Action) => settings.dispatchSystemActions && dispatch(action)
+  );
 
   // Initialize state and mark store as initialized
   sysActions.initializeState();
 
-  console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
+  console.log(
+    '%cYou are using ActionStack. Happy coding! 🎉',
+    'font-weight: bold;'
+  );
 
-  lock.acquire()
+  lock
+    .acquire()
     .then(() => injectDependencies())
     .then(() => setupReducer())
-    .then(state => setState("@global", state))
+    .then((state) => setState('@global', state))
     .finally(() => lock.release());
 
   sysActions.storeInitialized();

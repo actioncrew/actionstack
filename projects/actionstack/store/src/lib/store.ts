@@ -1,10 +1,9 @@
-import { inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
-import { applyChange, applyMiddleware, combineEnhancers, combineReducers } from './utils';
+import { applyMiddleware, combineEnhancers, combineReducers, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -59,8 +58,8 @@ const defaultStoreSettings: StoreSettings = {
  */
 export type Store<T = any> = {
   dispatch: (action: Action | any) => Promise<void>;
-  getState: (slice?: keyof T | string[] | "@global") => any;
-  readSafe: (slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
+  getState: (slice?: keyof T | string[] | "*") => any;
+  readSafe: (slice: keyof T | string[] | "*", callback: (state: Readonly<T>) => void | Promise<void>) => Promise<void>;
   select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
@@ -174,7 +173,7 @@ export function createStore<T = any>(
     }
 
     try {
-      await updateState('@global', async (state: any) => await pipeline.reducer(state, action), action);
+      await updateState('*', async (state: any) => await pipeline.reducer(state, action), action);
     } catch {
       console.warn('Error during processing the action');
     }
@@ -271,7 +270,7 @@ export function createStore<T = any>(
         // Inject dependencies
         return injectDependencies();
       })
-      .then(() => updateState("@global", state => setupReducer(state)))
+      .then(() => updateState("*", state => setupReducer(state)))
       .finally(() => lock.release());
 
     // Dispatch module loaded action
@@ -302,7 +301,7 @@ export function createStore<T = any>(
         // Eject dependencies
         return ejectDependencies(module);
       })
-      .then(() => updateState("@global", async (state) => {
+      .then(() => updateState("*", async (state) => {
         if (clearState) {
           state = { ...state };
           delete state[module.slice];
@@ -321,47 +320,16 @@ export function createStore<T = any>(
    * The function returns an observable that emits the selected value whenever the state changes.
    * Optionally, a default value can be provided if the selector returns `undefined`.
    */
-  const getState = (slice?: keyof T | string[] | "@global"): any => {
-    if (currentState.value === undefined || slice === undefined || typeof slice === "string" && slice == "@global") {
-      return currentState.value as T;
-    } else if (typeof slice === "string") {
-      return currentState.value[slice] as T;
-    } else if (Array.isArray(slice)) {
-      return slice.reduce((acc, key) => {
-        if (acc === undefined || acc === null) {
-          return undefined;
-        } else if (Array.isArray(acc)) {
-          return acc[parseInt(key)];
-        } else {
-          return acc[key];
-        }
-      }, currentState.value) as T;
-    } else {
-      console.warn("Unsupported type of slice parameter");
-    }
+  const getState = (slice: keyof T | string[] | "*"): any => {
+    return getProperty(currentState.value, slice);
   }
 
   /**
    * Sets the state for a specified slice of the global state, updating it with the given value.
    * Handles different slice types, including a specific key, an array of path keys, or the entire global state.
    */
-  const setState = async <T = any>(slice: keyof T | string[] | "@global" | undefined, value: any, action = systemActions.updateState() as Action): Promise<any> => {
-    let newState: any;
-    if (slice === undefined || typeof slice === "string" && slice == "@global") {
-      // Update the whole state with a shallow copy of the value
-      newState = ({...value});
-    } else if (typeof slice === "string") {
-      // Update the state property with the given key with a shallow copy of the value
-      newState = {...currentState.value, [slice]: { ...value }};
-    } else if (Array.isArray(slice)) {
-      // Apply change to the state based on the provided path and value
-      newState = applyChange(currentState.value, {path: slice, value}, {});
-    } else {
-      // Unsupported type of slice parameter
-      console.warn("Unsupported type of slice parameter");
-      return;
-    }
-
+  const setState = async <T = any>(slice: keyof T | string[] | "*" , value: any, action = systemActions.updateState() as Action): Promise<any> => {
+    const newState = setProperty(currentState.value, slice, value);
 
     currentState.next(newState);
 
@@ -378,7 +346,7 @@ export function createStore<T = any>(
    * which receives the current state as its argument and returns the updated state.
    * The resulting state is then set using the `setState` function.
    */
-  const updateState = async (slice: keyof T | string[] | "@global" | undefined, callback: AnyFn, action = systemActions.updateState() as Action): Promise<any> => {
+  const updateState = async (slice: keyof T | string[] | "*", callback: AnyFn, action = systemActions.updateState() as Action): Promise<any> => {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
       return;
@@ -524,7 +492,7 @@ export function createStore<T = any>(
   lock.acquire()
     .then(() => injectDependencies())
     .then(() => setupReducer())
-    .then(state => setState("@global", state))
+    .then(state => setState("*", state))
     .finally(() => lock.release());
 
   sysActions.storeInitialized();

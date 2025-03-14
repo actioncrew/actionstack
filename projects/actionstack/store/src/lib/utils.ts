@@ -1,29 +1,91 @@
 import { Action, AsyncReducer, Reducer, StoreCreator, StoreEnhancer, Tree } from "./types";
 
+/**
+ * Retrieves a property from an object based on a path.
+ * @param obj - The object to retrieve the property from.
+ * @param path - The path to the property (e.g., "key" or ["user", "name"]).
+ * @returns The value of the property or `undefined` if the path is invalid.
+ */
+const getProperty = <T>(obj: any, path: keyof T | string[] | '*'): T | undefined => {
+  // Handle global state request
+  if (path === '*') {
+    return obj as T;
+  }
+
+  // Handle string path (single key)
+  if (typeof path === 'string') {
+    return obj[path] as T;
+  }
+
+  // Handle array path (nested keys)
+  if (Array.isArray(path)) {
+    return path.reduce((acc, key) => {
+      if (acc === undefined || acc === null) {
+        return undefined;
+      }
+      // Handle array indices (e.g., "0" -> 0)
+      const index = !isNaN(Number(key)) ? Number(key) : key;
+      return acc[index];
+    }, obj) as T;
+  }
+
+  // Handle unsupported path types
+  console.warn('Unsupported type of path parameter');
+  return undefined;
+};
 
 /**
-   * Updates a nested state object by applying a change to the specified path and value.
-   * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
-   * for unchanged branches. Tracks visited nodes in the provided object tree to avoid redundant updates.
-   */
-function applyChange(initialState: any, {path, value}: {path: string[], value: any}, objTree: Tree<boolean>): any {
-  let currentState: any = Object.keys(objTree).length > 0 ? initialState: {...initialState};
-  let currentObj: any = currentState;
-
-  for (let i = 0; i < path.length; i++) {
-    const key = path[i];
-    if (i === path.length - 1) {
-      // Reached the leaf node, update its value
-      currentObj[key] = value;
-      objTree[key] = true;
-    } else {
-      // Continue traversal
-      currentObj = currentObj[key] = objTree[key] ? currentObj[key] : { ...currentObj[key] };
-      objTree = (objTree[key] = objTree[key] ?? {}) as any;
-    }
+ * Sets a property in an object based on a path.
+ * @param obj - The object to update.
+ * @param path - The path to the property (e.g., "key" or ["user", "name"]).
+ * @param value - The new value to set at the specified path.
+ * @returns The updated object.
+ */
+const setProperty = <T>(obj: any, path: keyof T | string[] | '*', value: any): T => {
+  // Handle global state update
+  if (path === '*') {
+    return { ...value }; // Shallow copy of the value
   }
-  return currentState;
-}
+
+  // Handle string path (single key)
+  if (typeof path === 'string') {
+    return {
+      ...obj, // Shallow copy of the object
+      [path]: { ...value }, // Shallow copy of the value for the specified key
+    };
+  }
+
+  // Handle array path (nested keys)
+  if (Array.isArray(path)) {
+    const newObj = { ...obj }; // Shallow copy of the object
+    let current = newObj;
+
+    for (let i = 0; i < path.length; i++) {
+      const key = path[i];
+
+      // If this is the last key, set the value
+      if (i === path.length - 1) {
+        current[key] = value;
+      }
+      // Otherwise, continue traversing
+      else {
+        // Create a shallow copy of the nested object if it doesn't exist
+        if (current[key] === undefined || current[key] === null) {
+          current[key] = {};
+        } else {
+          current[key] = { ...current[key] }; // Shallow copy to ensure immutability
+        }
+        current = current[key];
+      }
+    }
+
+    return newObj as T;
+  }
+
+  // Handle unsupported path types
+  console.warn('Unsupported type of path parameter');
+  return obj; // Return the object unchanged
+};
 
 /**
  * Combines multiple store enhancers into a single enhancer function.
@@ -137,7 +199,7 @@ const combineReducers = (reducers: Tree<Reducer | AsyncReducer>): AsyncReducer =
         if (currentState !== updatedState) {
           hasChanged = true;
           // Apply the change to the state using applyChange
-          state = await applyChange(state, { path, value: updatedState }, modified);
+          state = await applyChange(state, path, updatedState, modified);
         }
       } catch (error: any) {
         console.error(
@@ -150,6 +212,30 @@ const combineReducers = (reducers: Tree<Reducer | AsyncReducer>): AsyncReducer =
     return hasChanged ? state : nextState;
   };
 };
+
+/**
+ * Updates a nested state object by applying a change to the specified path and value.
+ * Ensures that intermediate nodes in the state are properly cloned or created, preserving immutability
+ * for unchanged branches. Tracks visited nodes in the provided object tree to avoid redundant updates.
+ */
+function applyChange(initialState: any, path: string[], value: any, objTree: Tree<boolean>): any {
+  let currentState: any = Object.keys(objTree).length > 0 ? initialState: {...initialState};
+  let currentObj: any = currentState;
+
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i];
+    if (i === path.length - 1) {
+      // Reached the leaf node, update its value
+      currentObj[key] = value;
+      objTree[key] = true;
+    } else {
+      // Continue traversal
+      currentObj = currentObj[key] = objTree[key] ? currentObj[key] : { ...currentObj[key] };
+      objTree = (objTree[key] = objTree[key] ?? {}) as any;
+    }
+  }
+  return currentState;
+}
 
 /**
  * Applies middleware to the store's dispatch function.
@@ -188,7 +274,8 @@ const applyMiddleware = (...middlewares: Function[]): StoreEnhancer => {
 };
 
 export {
-  applyChange,
+  getProperty,
+  setProperty,
   applyMiddleware,
   combineEnhancers,
   combineReducers,
