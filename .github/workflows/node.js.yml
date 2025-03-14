@@ -27,9 +27,5 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm ci
-    - run: npm run build @actionstack/store
-    - run: npm run build @actionstack/epics
-    - run: npm run build @actionstack/sagas
-    - run: npm run build @actionstack/tools
-    - run: npm run build @actionstack/angular
+    - run: npm run build @actioncrew/actionstack
 
