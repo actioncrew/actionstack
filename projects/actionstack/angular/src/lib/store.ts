@@ -179,7 +179,8 @@ export {
   createSelector as selector,
   createSelectorAsync as selectorAsync,
 
-  applyChange,
+  getProperty,
+  setProperty,
   applyMiddleware,
   combineEnhancers,
   combineReducers,
