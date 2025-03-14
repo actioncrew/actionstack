@@ -3,7 +3,7 @@ import { ofType } from '@actioncrew/actionstack/epics';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
-import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/@actioncrew/actionstack';
+import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
 
 export const slice = "heroes";
 

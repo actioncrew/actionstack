@@ -2,11 +2,10 @@ import { Location } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Store } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { heroSelector, loadHero } from './hero-details.slice';
 import { store } from '../app.module';
-import { Stream } from '@actioncrew/@actioncrew/actionstack';
+import { Stream } from '@actioncrew/streamix';
 import { map, Subscription, tap } from 'rxjs';
 
 @Component({

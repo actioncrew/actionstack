@@ -7,7 +7,7 @@ import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
 import { getHeroesRequest, loadHeroes, selectHeroes } from './heroes.slice';
 import { store } from '../app.module';
-import { Subscription } from '@actioncrew/@actioncrew/actionstack';
+import { Subscription } from '@actioncrew/streamix';
 
 @Component({
   selector: 'app-heroes',
