@@ -57,8 +57,7 @@ const defaultStoreSettings: StoreSettings = {
  */
 export type Store<T = any> = {
   dispatch: (action: Action | any) => Promise<void>;
-  getState: (slice: keyof T | string[] | '*') => any;
-  readSafe: (
+  getState: (
     slice: keyof T | string[] | '*',
     callback: (state: Readonly<T>) => void | Promise<void>
   ) => Promise<void>;
@@ -159,7 +158,7 @@ export function createStore<T = any>(
   };
 
   const currentState = createBehaviorSubject<any>({});
-  const tracker = createTracker();
+  const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
 
@@ -193,7 +192,7 @@ export function createStore<T = any>(
     }
 
     try {
-      await updateState(
+      await update(
         '*',
         async (state: any) => await pipeline.reducer(state, action),
         action
@@ -304,7 +303,7 @@ export function createStore<T = any>(
         // Inject dependencies
         return injectDependencies();
       })
-      .then(() => updateState('*', (state) => setupReducer(state)))
+      .then(() => update('*', (state) => setupReducer(state)))
       .finally(() => lock.release());
 
     // Dispatch module loaded action
@@ -340,7 +339,7 @@ export function createStore<T = any>(
         return ejectDependencies(module);
       })
       .then(() =>
-        updateState('*', async (state) => {
+        update('*', async (state) => {
           if (clearState) {
             state = { ...state };
             delete state[module.slice];
@@ -359,7 +358,7 @@ export function createStore<T = any>(
    * Selects a specific value from the state using the provided selector function.
    * The function returns an observable that emits the selected value whenever the state changes.
    */
-  const getState = <T>(slice: keyof T | string[] | '*'): T | undefined => {
+  const get = <T>(slice: keyof T | string[] | '*'): T | undefined => {
     return getProperty(currentState.value, slice);
   };
 
@@ -371,7 +370,7 @@ export function createStore<T = any>(
    * @param value - The new value to set for the specified slice.
    * @returns A promise that resolves with the updated state.
    */
-  const setState = async <T = any>(
+  const set = async <T = any>(
     slice: keyof T | string[] | '*',
     value: any
   ): Promise<T> => {
@@ -382,8 +381,8 @@ export function createStore<T = any>(
 
     // Wait for state propagation if required
     if (settings.awaitStatePropagation) {
-      await tracker.allExecuted;
-      tracker.reset();
+      await tracker?.allExecuted;
+      tracker?.reset();
     }
 
     return newState;
@@ -394,7 +393,7 @@ export function createStore<T = any>(
    * which receives the current state as its argument and returns the updated state.
    * The resulting state is then set using the `setState` function.
    */
-  const updateState = async (
+  const update = async (
     slice: keyof T | string[] | '*',
     callback: AnyFn,
     action = systemActions.updateState() as Action
@@ -404,9 +403,9 @@ export function createStore<T = any>(
       return;
     }
 
-    let state = getState(slice);
+    let state = get(slice);
     let result = await callback(state);
-    await setState(slice, result);
+    await set(slice, result);
 
     return action;
   };
@@ -415,14 +414,14 @@ export function createStore<T = any>(
    * Reads the state slice and executes the provided callback with the current state.
    * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
    */
-  const readSafe = (
+  const getState = (
     slice: keyof T | string[],
     callback: (state: Readonly<T | undefined>) => void | Promise<void>
   ): Promise<void> => {
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const state = await getState(slice); // Get state after acquiring lock
+        const state = await get(slice); // Get state after acquiring lock
         callback(state);
       } finally {
         lock.release(); // Release lock regardless of success or failure
@@ -526,7 +525,7 @@ export function createStore<T = any>(
    */
   const getMiddlewareAPI = () =>
     ({
-      getState: (slice?: any) => getState(slice),
+      getState: (slice?: any) => get(slice),
       dispatch: (action: any) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,
@@ -567,7 +566,7 @@ export function createStore<T = any>(
     .acquire()
     .then(() => injectDependencies())
     .then(() => setupReducer())
-    .then((state) => setState('@global', state))
+    .then((state) => set('@global', state))
     .finally(() => lock.release());
 
   sysActions.storeInitialized();
@@ -576,7 +575,6 @@ export function createStore<T = any>(
     starter,
     dispatch,
     getState,
-    readSafe,
     select,
     loadModule,
     unloadModule,

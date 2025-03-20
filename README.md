@@ -4,7 +4,6 @@
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
-
 A powerful and flexible state management library designed to provide a scalable and maintainable approach for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates with your project, offering advanced features such as handling asynchronous actions, reducers, and side effects like epics and sagas.
 
 [redux-docs /](https://redux.js.org/)
@@ -98,8 +97,8 @@ Modules can be loaded or unloaded dynamically. The loadModule and unloadModule m
 To read a slice of the state in a safe manner (e.g., avoiding race conditions), use readSafe. This method ensures the state is accessed while locking the pipeline.
 
 ```typescript
-    store.readSafe('@global', (state) => {
-      console.log('Global state:', state);
+    store.get('*', (state) => {
+      console.log('State object:', state);
     });
 ```
 
