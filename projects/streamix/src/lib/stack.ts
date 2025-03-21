@@ -67,7 +67,7 @@ export type ExecutionStack = {
   findLast: (condition: (element: Instruction) => boolean) => Instruction | undefined;
   waitForEmpty: () => Promise<Instruction[]>;
   waitForIdle: () => Promise<Instruction[]>;
-  Stream: Stream<Instruction[]>;
+  stream: Stream<Instruction[]>;
 }
 
 /**
@@ -76,6 +76,7 @@ export type ExecutionStack = {
  * as well as observe changes to the stack.
  */
 export const createExecutionStack = () => {
+  let currentStack: Instruction[] = [];
   const stack$ = createBehaviorSubject<Instruction[]>([]);
 
   return {
@@ -84,7 +85,7 @@ export const createExecutionStack = () => {
      * @returns The length of the stack.
      */
     get length(): number {
-      return stack$.value.length;
+      return currentStack.length;
     },
 
     /**
@@ -92,7 +93,8 @@ export const createExecutionStack = () => {
      * @param item The operation (instruction) to add.
      */
     add(item: Instruction): void {
-      stack$.next([...stack$.value, item]);
+      currentStack = [...currentStack, item]
+      stack$.next(currentStack);
     },
 
     /**
@@ -100,7 +102,7 @@ export const createExecutionStack = () => {
      * @returns The top operation or undefined if the stack is empty.
      */
     peek(): Instruction | undefined {
-      return stack$.value[stack$.value.length - 1];
+      return currentStack[currentStack.length - 1];
     },
 
     /**
@@ -109,10 +111,10 @@ export const createExecutionStack = () => {
      * @returns The removed operation or undefined if the operation was not found.
      */
     remove(item: Instruction): Instruction | undefined {
-      const index = stack$.value.lastIndexOf(item);
+      const index = currentStack.lastIndexOf(item);
       if (index > -1) {
-        const newStack = stack$.value.filter((_, i) => i !== index);
-        stack$.next(newStack);
+        currentStack = currentStack.filter((_, i) => i !== index);
+        stack$.next(currentStack);
         return item;
       }
       return undefined;
@@ -122,7 +124,8 @@ export const createExecutionStack = () => {
      * Clears all operations from the stack.
      */
     clear(): void {
-      stack$.next([]);
+      currentStack = []
+      stack$.next(currentStack);
     },
 
     /**
@@ -130,7 +133,7 @@ export const createExecutionStack = () => {
      * @returns An array of instructions.
      */
     toArray(): Instruction[] {
-      return [...stack$.value];
+      return [...currentStack];
     },
 
     /**
@@ -139,7 +142,7 @@ export const createExecutionStack = () => {
      * @returns The last matching operation or undefined if no match is found.
      */
     findLast(condition: (element: Instruction) => boolean): Instruction | undefined {
-      return stack$.value.slice().reverse().find(condition);
+      return currentStack.slice().reverse().find(condition);
     },
 
     /**
@@ -161,7 +164,7 @@ export const createExecutionStack = () => {
     /**
      * Exposes the underlying Stream stream for external subscription.
      */
-    get Stream(): Stream<Instruction[]> {
+    get stream(): Stream<Instruction[]> {
       return stack$;
     },
   };

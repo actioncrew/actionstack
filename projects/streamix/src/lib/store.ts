@@ -24,6 +24,7 @@ import {
   createBehaviorSubject,
   createStream,
   createSubject,
+  eachValueFrom,
   of,
   Stream,
 } from '@actioncrew/streamix';
@@ -445,7 +446,7 @@ export function createStore<T = any>(
     (async () => {
       try {
         let lastValue: any;
-        for await (const value of selected$) {
+        for await (const value of eachValueFrom(selected$)) {
           const selectedValue = value;
           const filteredValue =
             selectedValue === undefined ? defaultValue : selectedValue;

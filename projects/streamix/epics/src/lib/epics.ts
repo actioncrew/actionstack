@@ -9,7 +9,7 @@ import {
   StoreSettings,
   StoreEnhancer,
 } from '@actioncrew/actionstack';
-import { Operator, Stream, Subscription, createOperator, createStream, createSubject } from '@actioncrew/streamix';
+import { Operator, Stream, Subscription, createOperator, createStream, createSubject, eachValueFrom } from '@actioncrew/streamix';
 
 /**
  * Type alias for an epic function.
@@ -125,7 +125,7 @@ export function merge(
 
     return createStream<Action>("merge", async function* (this: Stream<Action>) {
       try {
-        for await (const value of subject) {
+        for await (const value of eachValueFrom(subject)) {
           yield value;
         }
       } finally {
