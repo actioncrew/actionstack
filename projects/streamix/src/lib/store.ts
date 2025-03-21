@@ -24,6 +24,7 @@ import {
   createBehaviorSubject,
   createStream,
   createSubject,
+  of,
   Stream,
 } from '@actioncrew/streamix';
 
@@ -157,7 +158,8 @@ export function createStore<T = any>(
     strategy: settings.exclusiveActionProcessing ? 'exclusive' : 'concurrent',
   };
 
-  const currentState = createBehaviorSubject<any>({});
+  let state = {} as T;
+  let currentState = createBehaviorSubject<T>(state);
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
@@ -358,8 +360,8 @@ export function createStore<T = any>(
    * Selects a specific value from the state using the provided selector function.
    * The function returns an observable that emits the selected value whenever the state changes.
    */
-  const get = <T>(slice: keyof T | string[] | '*'): T | undefined => {
-    return getProperty(currentState.value, slice);
+  const get = (slice: keyof T | string[] | '*'): T | undefined => {
+    return getProperty(state, slice);
   };
 
   /**
@@ -370,14 +372,12 @@ export function createStore<T = any>(
    * @param value - The new value to set for the specified slice.
    * @returns A promise that resolves with the updated state.
    */
-  const set = async <T = any>(
+  const set = async (
     slice: keyof T | string[] | '*',
     value: any
   ): Promise<T> => {
-    const newState = setProperty(currentState.value, slice, value);
-
-    // Update the state
-    currentState.next(newState);
+    state = setProperty(state, slice, value);
+    currentState.next(state);
 
     // Wait for state propagation if required
     if (settings.awaitStatePropagation) {
@@ -385,7 +385,7 @@ export function createStore<T = any>(
       tracker?.reset();
     }
 
-    return newState;
+    return state;
   };
 
   /**
@@ -566,7 +566,7 @@ export function createStore<T = any>(
     .acquire()
     .then(() => injectDependencies())
     .then(() => setupReducer())
-    .then((state) => set('@global', state))
+    .then((state) => set('*', state))
     .finally(() => lock.release());
 
   sysActions.storeInitialized();
