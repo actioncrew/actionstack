@@ -526,7 +526,7 @@ export function createStore<T = any>(
    */
   const getMiddlewareAPI = () =>
     ({
-      getState: (slice?: any) => get(slice),
+      getState: (slice?: any) => get(slice === undefined ? "*" : slice),
       dispatch: (action: any) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,
