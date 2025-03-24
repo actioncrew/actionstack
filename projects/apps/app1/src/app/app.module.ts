@@ -8,7 +8,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
-import { applyMiddleware, combineEnhancers } from 'projects/actionstack/store/src/lib/utils';
+import { applyMiddleware, combineEnhancers } from '@actionstack/store';
 
 export const store = createStore({
   reducer: (state: any = {}) => state,
