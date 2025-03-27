@@ -51,7 +51,7 @@ To create a store, use the createStore function, which initializes the store wit
     };
 
     // Create the store instance
-    const store = export const store = createStore({
+    const store = createStore({
       reducer: rootReducer,
       dependencies: {}
     }, storeSettings, applyMiddleware(logger, epics));
