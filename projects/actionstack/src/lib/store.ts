@@ -120,7 +120,7 @@ export class Store {
   protected currentState = new BehaviorSubject<any>(undefined);
   protected systemActions = { ...systemActions };
   protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
-  protected tracker = new Tracker();
+  protected tracker = this.settings.awaitStatePropagation ? new Tracker() : undefined;
   protected lock = new Lock();
   protected stack = new ExecutionStack();
 
@@ -244,16 +244,18 @@ export class Store {
    */
   select<T = any, R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> {
     let lastValue: any;
-    let selected$: Observable<R> | undefined;
+    let selected$ = selector(this.currentState, this.tracker);
+    this.tracker?.track(selected$);
+
     return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = this.currentState.pipe((state) => (selected$ = selector(state, this.tracker) as Observable<R>)).subscribe(selectedValue => {
+      const subscription = this.currentState.pipe((state) => selected$).subscribe(selectedValue => {
         const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
         if(filteredValue !== lastValue) {
           Promise.resolve(subscriber.next(filteredValue))
             .then(() => lastValue = filteredValue)
-            .finally(() => this.tracker.setStatus(selected$!, true));
+            .finally(() => this.tracker?.setStatus(selected$!, true));
         } else {
-          this.tracker.setStatus(selected$!, true);
+          this.tracker?.setStatus(selected$!, true);
         }
       });
 
@@ -346,7 +348,7 @@ export class Store {
       return;
     }
 
-    this.tracker.reset();
+    this.tracker?.reset();
 
     const next = async <T>(subject: Subject<T>, value: T): Promise<void> => {
       return new Promise<void>(async (resolve) => {
