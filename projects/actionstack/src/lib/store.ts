@@ -11,7 +11,6 @@ import { createTracker, Tracker } from './tracker';
 import {
   Action,
   AnyFn,
-  AsyncAction,
   AsyncReducer,
   FeatureModule,
   isPlainObject,

@@ -1,4 +1,5 @@
-import { Observable, BehaviorSubject } from "rxjs";
+import { Observable } from "rxjs/internal/Observable";
+import { BehaviorSubject } from "rxjs/internal/BehaviorSubject";
 
 /**
  * A utility type for tracking the execution status of Streams.

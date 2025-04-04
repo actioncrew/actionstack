@@ -3,10 +3,11 @@ import {
   action,
   MainModule,
   Observer,
-  Operation,
+  createInstruction,
   Store,
   STORE_ENHANCER,
   StoreEnhancer,
+  Instruction,
 } from '@actioncrew/actionstack';
 import { NgModule } from '@angular/core';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
@@ -24,7 +25,7 @@ export const createSagasMiddleware = ({
   let middlewareDispatch: any;
   let middlewareGetState: any;
 
-  const customDispatch = (dispatch: any) => (sagaOp: Operation) => (action: Action<any>) => {
+  const customDispatch = (dispatch: any) => (sagaOp: Instruction) => (action: Action<any>) => {
     const actionWithSource = Object.assign({}, action, {source: sagaOp});
     dispatch(actionWithSource);
   };
@@ -45,7 +46,7 @@ export const createSagasMiddleware = ({
               throw new Error('saga argument must be a Generator function!');
             }
 
-            const op = Operation.saga(saga);
+            const op = createInstruction.saga(saga);
             const task: Task = runSaga({ context, channel, dispatch: customDispatch(middlewareDispatch)(op), getState: middlewareGetState }, (function*(): Generator<any, void, any> {
               try {
                 stack.push(op); Object.assign(context, dependencies());
