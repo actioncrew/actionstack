@@ -4,13 +4,14 @@ import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
 
 import { action, bindActionCreators } from './actions';
-import { Lock } from './lock';
-import { ExecutionStack } from './stack';
+import { createLock } from './lock';
+import { createExecutionStack } from './stack';
 import { starter } from './starter';
-import { Tracker } from './tracker';
+import { createTracker, Tracker } from './tracker';
 import {
   Action,
   AnyFn,
+  AsyncAction,
   AsyncReducer,
   FeatureModule,
   isPlainObject,
@@ -120,9 +121,9 @@ export class Store {
   protected currentState = new BehaviorSubject<any>(undefined);
   protected systemActions = { ...systemActions };
   protected settings = { ...new StoreSettings(), ...inject(StoreSettings) };
-  protected tracker = this.settings.awaitStatePropagation ? new Tracker() : undefined;
-  protected lock = new Lock();
-  protected stack = new ExecutionStack();
+  protected tracker = this.settings.awaitStatePropagation ? createTracker() : undefined;
+  protected lock = createLock();
+  protected stack = createExecutionStack();
 
   /**
    * Creates a new store instance with the provided mainModule and optional enhancer.
@@ -209,7 +210,7 @@ export class Store {
     }
 
     try {
-      await this.updateState("@global", async (state) => await this.pipeline.reducer(state, action), action);
+      await this.updateState("@global", async (state) => await this.pipeline.reducer(state, action));
     } catch {
       console.warn("Error during processing the action");
     }
@@ -242,9 +243,9 @@ export class Store {
    * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
    * @returns {Observable<any>} An observable stream with the selected value.
    */
-  select<T = any, R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> {
+  select<T = any, R = any>(selector: (obs: Observable<T>) => Observable<R>, defaultValue?: any): Observable<R> {
     let lastValue: any;
-    let selected$ = selector(this.currentState, this.tracker);
+    let selected$ = selector(this.currentState);
     this.tracker?.track(selected$);
 
     return new Observable<R>((subscriber: Observer<R>) => {
@@ -262,8 +263,6 @@ export class Store {
       return () => subscription.unsubscribe();
     });
   }
-
-
 
   /**
    * Gets the current state or a slice of the state from the store.
@@ -331,7 +330,7 @@ export class Store {
    * @protected
    * @template T
    */
-  protected async setState<T = any>(slice: keyof T | string[] | undefined, value: any, action: Action = systemActions.updateState()): Promise<any> {
+  protected async setState<T = any>(slice: keyof T | string[] | undefined, value: any): Promise<any> {
     let newState: any;
     if (slice === undefined || typeof slice === "string" && slice == "@global") {
       // Update the whole state with a shallow copy of the value
@@ -375,7 +374,7 @@ export class Store {
    * @protected
    * @template T
    */
-  protected async updateState<T = any>(slice: keyof T | string[] | undefined, callback: AnyFn, action: Action = systemActions.updateState()): Promise<any> {
+  protected async updateState<T = any>(slice: keyof T | string[] | undefined, callback: AnyFn): Promise<any> {
     if(callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.')
       return;
@@ -383,7 +382,7 @@ export class Store {
 
     let state = await this.getState(slice);
     let result = await callback(state);
-    await this.setState(slice, result, action);
+    await this.setState(slice, result);
 
     return action;
   }
@@ -480,7 +479,7 @@ export class Store {
     this.pipeline.reducer = reducer;
 
     // Update store state
-    return await reducer(state, systemActions.updateState());
+    return await reducer(state, systemActions.updateState() as Action);
   }
 
   /**
