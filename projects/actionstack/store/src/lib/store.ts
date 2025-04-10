@@ -148,7 +148,7 @@ export function createStore<T = any>(
   };
 
   const currentState = new BehaviorSubject<any>({});
-  const tracker = createTracker();
+  const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
 
@@ -362,12 +362,12 @@ export function createStore<T = any>(
       return;
     }
 
-    tracker.reset();
+    tracker?.reset();
 
     currentState.next(newState);
 
     if (settings.awaitStatePropagation) {
-      await tracker.allExecuted;
+      await tracker?.allExecuted;
     }
 
     return newState;
@@ -414,16 +414,14 @@ export function createStore<T = any>(
    */
   const select = <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> => {
     let lastValue: any;
-    let selected$: Observable<R> | undefined;
+    let selected$ = selector(currentState, tracker);
+    tracker?.track(selected$);
     return new Observable<R>((subscriber: Observer<R>) => {
-      const subscription = currentState.pipe((state) => (selected$ = selector(state, tracker) as Observable<R>)).subscribe(selectedValue => {
+      const subscription = selected$.subscribe(selectedValue => {
         const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
         if(filteredValue !== lastValue) {
           Promise.resolve(subscriber.next(filteredValue))
-            .then(() => lastValue = filteredValue)
-            .finally(() => tracker.setStatus(selected$!, true));
-        } else {
-          tracker.setStatus(selected$!, true);
+            .then(() => lastValue = filteredValue);
         }
       });
 
