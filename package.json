@@ -1,6 +1,6 @@
 {
   "name": "actionstack",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "minify": "node terser.mjs",
-    "bundle": "dts-bundle-generator --o ./dist/actionstack/tools/actionstack.d.ts ./dist/actionstack/tools/index.d.ts"
+    "bundle": "dts-bundle-generator --o ./dist/actionstack/store/actionstack.d.ts ./dist/actionstack/store/index.d.ts"
   },
   "dependencies": {
     "@actioncrew/streamix": "^1.0.11",
