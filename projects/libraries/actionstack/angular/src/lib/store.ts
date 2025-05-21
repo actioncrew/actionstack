@@ -53,11 +53,11 @@ export class Store<T = any> {
     return this.store.dispatch(action);
   }
 
-  getState(slice?: keyof T | string[] | "@global"): any {
+  getState(slice?: keyof T | string[] | "*"): any {
     return this.store.getState(slice);
   }
 
-  readSafe(slice: keyof T | string[] | "@global", callback: (state: Readonly<T>) => void | Promise<void>): Promise<void> {
+  readSafe(slice: keyof T | string[] | "*", callback: (state: Readonly<T>) => void | Promise<void>): Promise<void> {
     return this.store.readSafe(slice, callback);
   }
 
