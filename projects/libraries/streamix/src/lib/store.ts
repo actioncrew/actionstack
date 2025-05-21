@@ -7,6 +7,7 @@ import { createTracker, Tracker } from './tracker';
 import {
   Action,
   AnyFn,
+  AsyncAction,
   AsyncReducer,
   defaultMainModule,
   FeatureModule,
@@ -509,7 +510,7 @@ export function createStore<T = any>(
   const getMiddlewareAPI = () =>
     ({
       getState: (slice?: any) => get(slice === undefined ? "*" : slice),
-      dispatch: (action: any) => dispatch(action),
+      dispatch: (action: Action | AsyncAction) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,
       lock: lock,

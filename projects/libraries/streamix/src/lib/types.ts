@@ -18,25 +18,33 @@ export interface Action<T = any> {
 }
 
 /**
- * Interface defining the structure of an asynchronous action.
+ * Interface defining the structure of an asynchronous action function (a "thunk").
  *
- * Asynchronous actions are functions that return promises, allowing for
- * handling asynchronous operations like network requests or timers within actions.
+ * This function is designed to handle side effects and orchestrate further
+ * actions or state updates. It receives a `dispatch` function to dispatch
+ * new actions, a `getState` utility to retrieve the current state, and
+ * the *current* application dependencies object.
  *
- * @typeparam T - Optional type parameter for the action payload type (resolved promise value). Defaults to `any`.
+ * @typeparam TState - The type of the global or relevant slice of application state.
+ * @typeparam TDependencies - The type of the dependencies object (the result of calling `dependencies()`).
+ * @param dispatch - A function that can be used to dispatch new synchronous or asynchronous actions.
+ * @param getState - A function that returns the current state.
+ * @param dependencies - The application's dependencies object, *as returned by the dependencies function*.
+ * @returns A Promise that resolves when the async operation is complete.
  */
-export interface AsyncAction<T = any> {
-  (...args: any[]): Promise<T>;
+export interface AsyncAction<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
+  (dispatch: (action: Action | AsyncAction<TState, TDependencies>) => Promise<void>,
+   getState: () => TState,
+   dependencies: TDependencies): Promise<any>;
 }
 
-/**
- * Represents an action creator.
- * @template T The type of the action payload.
- */
-export type ActionCreator<T = any> = ((...args: any[]) => Action<T> | AsyncAction<T>) & {
+// Your existing ActionCreator interface (needs adjustment to use the new AsyncAction)
+export type ActionCreator<TPayload = any, TState = any, TDependencies extends Record<string, any> = Record<string, any>> = (
+  (...args: any[]) => Action<TPayload> | AsyncAction<TState, TDependencies>
+) & {
   toString(): string;
   type: string;
-  match(action: Action<T>): boolean;
+  match(action: Action<TPayload>): boolean;
 }
 
 /**

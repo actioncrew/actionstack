@@ -3,19 +3,17 @@ import { createInstruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
 
 /**
- * Configuration object for the middleware.
+ * @template TState - The overall type of your application's state.
+ * @template {Record<string, any>} TDependencies - The type of the object containing application dependencies.
  *
- * @typedef {Object} MiddlewareConfig
- * @property {Function} dispatch - Function to dispatch actions.
- * @property {Function} getState - Function to get the current state.
- * @property {Function} dependencies - Function to get dependencies.
- * @property {SimpleLock} lock - Lock instance to manage action processing concurrency.
- * @property {ExecutionStack} stack - Stack instance to track action execution.
+ * Configuration object for the middleware pipeline.
+ * This object provides the necessary context and utilities to each middleware function.
+ * It's the `config` parameter received by middleware functions like `exclusive` and `concurrent`.
  */
-interface MiddlewareConfig {
-  dispatch: Function;
-  getState: Function;
-  dependencies: Function;
+interface MiddlewareConfig<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
+  dispatch: (action: Action | AsyncAction) => Promise<void>;
+  getState: () => TState;
+  dependencies: () => TDependencies;
   lock: SimpleLock;
   stack: ExecutionStack;
 }
@@ -50,9 +48,13 @@ export function createActionHandler(config: MiddlewareConfig) {
         const innerLock = createLock();
 
         // Process async actions asynchronously and track them
-        await action(
-          async (syncAction: Action) => {
-            await handleAction(syncAction, next, innerLock);
+        await (action as AsyncAction)(
+          // This function is the `dispatch` argument being passed *into* the AsyncAction.
+          // It must be able to accept both Action and AsyncAction.
+          async (dispatchedAction: Action | AsyncAction) => {
+            // Here, `handleAction` itself is being used as the internal dispatch mechanism.
+            // Make sure `handleAction` itself can accept both types too (which it already does).
+            await handleAction(dispatchedAction, next, innerLock);
           },
           getState,
           dependencies()
