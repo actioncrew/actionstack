@@ -25,7 +25,7 @@ export class HeroDetailsModule {
   constructor() {
     store.loadModule({
       slice: slice,
-      state: {},
+      state: { hero: undefined, loading: false, error: null },
       actions: {},
       dependencies: { heroService: new HeroService() }
     });

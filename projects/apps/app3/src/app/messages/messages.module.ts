@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { MessagesComponent } from './messages.component';
-import { reducer, slice } from './messages.slice';
+import { slice } from './messages.slice';
 import { store } from '../app.module';
 
 @NgModule({
@@ -20,7 +20,7 @@ export class MessagesModule {
   constructor() {
     store.loadModule({
       slice: slice,
-      state: {},
+      state: { messages: [] },
       actions: {},
     });
   }

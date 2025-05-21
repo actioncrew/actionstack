@@ -25,7 +25,7 @@ export class HeroesModule {
   constructor() {
     store.loadModule({
       slice: slice,
-      state: {},
+      state: { heroes: [] },
       actions: {},
       dependencies: { heroService: new HeroService() }
     });
