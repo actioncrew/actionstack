@@ -58,7 +58,7 @@ export function createFeatureSelector<U = any, T = any>(
  *
  * @param featureSelector$ - This can be either:
  *                             * A selector function that retrieves a slice of the state based on the entire state object.
- *                             * The string "@global" indicating the entire state object should be used.
+ *                             * The string "*" indicating the entire state object should be used.
  * @param selectors - This can be either:
  *                    * A single selector function that takes the state slice and optional props as arguments.
  *                    * An array of selector functions, each taking the state slice and a corresponding prop (from props argument) as arguments.
@@ -68,7 +68,7 @@ export function createFeatureSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
 export function createSelector<U = any, T = any>(
-  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "@global",
+  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
 ): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
@@ -95,7 +95,7 @@ export function createSelector<U = any, T = any>(
       (async () => {
         let sliceState$: Stream<U>;
 
-        if (featureSelector$ === "@global") {
+        if (featureSelector$ === "*") {
           sliceState$ = state$ as any;
         } else {
           sliceState$ = (featureSelector$ as Function)(state$);
@@ -145,7 +145,7 @@ export function createSelector<U = any, T = any>(
  *
  * @param featureSelector$ - This can be either:
  *                             * A selector function that retrieves a slice of the state based on the entire state object.
- *                             * The string "@global" indicating the entire state object should be used.
+ *                             * The string "*" indicating the entire state object should be used.
  * @param selectors - This can be either:
  *                    * A single selector function that takes the state slice and optional props as arguments and can return a Promise or Stream.
  *                    * An array of selector functions, each taking the state slice and a corresponding prop (from props argument) as arguments and can return a Promise or Stream.
@@ -155,7 +155,7 @@ export function createSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
 export function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "@global",
+  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
 ): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
@@ -182,7 +182,7 @@ export function createSelectorAsync<U = any, T = any>(
       (async () => {
         let sliceState$: Stream<U>;
 
-        if (featureSelector$ === "@global") {
+        if (featureSelector$ === "*") {
           sliceState$ = state$ as any;
         } else {
           sliceState$ = (featureSelector$ as Function)(state$);
