@@ -1,4 +1,4 @@
-import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
+import { Action, action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
@@ -10,7 +10,7 @@ export const loadHeroRequest = action('LOAD_HERO_REQUEST');
 export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', (hero: Hero) => ({ hero }));
 export const loadHeroFailure = action('LOAD_HERO_FAILURE', (error: Error) => ({ error }));
 
-export const loadHero = action((id: number) => async (dispatch: Function, getState: Function, dependencies: any) => {
+export const loadHero = (id: number) => thunk('LOAD_HERO', async (dispatch: Function, getState: Function, dependencies: any) => {
   dispatch(loadHeroRequest(id));
   try {
     const heroService = dependencies.heroService;

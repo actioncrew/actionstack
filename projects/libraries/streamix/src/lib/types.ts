@@ -38,7 +38,20 @@ export interface AsyncAction<TState = any, TDependencies extends Record<string, 
    dependencies: TDependencies): Promise<any>;
 }
 
-// Your existing ActionCreator interface (needs adjustment to use the new AsyncAction)
+/**
+ * @template TPayload - The type of the payload for synchronous actions created by this creator.
+ * @template TState - The type of the application state, used by asynchronous actions created by this creator.
+ * @template {Record<string, any>} TDependencies - The type of the application dependencies, used by asynchronous actions created by this creator.
+ *
+ * Represents an action creator function.
+ *
+ * An `ActionCreator` is a callable function that, when invoked,
+ * produces either a synchronous {@link Action} object or
+ * an asynchronous {@link AsyncAction} function (a "thunk").
+ *
+ * It also carries specific properties (`toString`, `type`, `match`)
+ * that provide metadata about the action it creates.
+ */
 export type ActionCreator<TPayload = any, TState = any, TDependencies extends Record<string, any> = Record<string, any>> = (
   (...args: any[]) => Action<TPayload> | AsyncAction<TState, TDependencies>
 ) & {
@@ -46,6 +59,23 @@ export type ActionCreator<TPayload = any, TState = any, TDependencies extends Re
   type: string;
   match(action: Action<TPayload>): boolean;
 }
+
+/**
+ * @template T - The type of the state slice that this handler operates on.
+ *
+ * Defines a function that handles a specific action type to update state.
+ *
+ * An `ActionHandler` receives the current state of a slice and the payload
+ * of the action that triggered it. It is responsible for computing and
+ * returning the new state for that slice. The handler can be synchronous
+ * (returning `T`) or asynchronous (returning `Promise<T>`), though typically
+ * state updates themselves are synchronous results of an async action having completed its side effects.
+ *
+ * @param {T} state - The current state of the slice.
+ * @param {any} [payload] - The payload of the action that triggered this handler. Optional, as not all actions have payloads.
+ * @returns {T | Promise<T>} The new state of the slice, or a Promise resolving to the new state.
+ */
+export type ActionHandler<T = any> = (state: T, payload?: any) => T | Promise<T>;
 
 /**
  * A function that takes the current state and an action, and returns

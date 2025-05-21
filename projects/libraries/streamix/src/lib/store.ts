@@ -1,4 +1,4 @@
-import { action, bindActionCreators } from './actions';
+import { action, bindActionCreators, createAction } from './actions';
 import { applyMiddleware, combineEnhancers, combineReducers, deepMerge, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
@@ -6,6 +6,7 @@ import { starter } from './starter';
 import { createTracker, Tracker } from './tracker';
 import {
   Action,
+  ActionHandler,
   AnyFn,
   AsyncAction,
   AsyncReducer,
@@ -29,6 +30,9 @@ import {
   of,
   Stream,
 } from '@actioncrew/streamix';
+
+export const actionHandlers = new Map<string, ActionHandler>();
+export const actionCreators = new Map<string, (...args: any[]) => Action>();
 
 /**
  * Class representing configuration options for a store.
@@ -74,55 +78,45 @@ export type Store<T = any> = {
   starter: Middleware;
 };
 
-/**
- * Constant array containing system action types as strings.
- * These action types are likely used internally for system events.
- */
-const SYSTEM_ACTION_TYPES = [
-  'INITIALIZE_STATE',
-  'UPDATE_STATE',
-  'STORE_INITIALIZED',
-  'MODULE_LOADED',
-  'MODULE_UNLOADED',
-] as const;
-
-/**
- * Type alias representing all possible system action types.
- * This type is derived from the `SYSTEM_ACTION_TYPES` array using the `typeof` operator and ensures the type is also a string.
- */
-export type SystemActionTypes = (typeof SYSTEM_ACTION_TYPES)[number] & string;
-
-/**
- * Function to check if a given string is a system action type.
- */
-export function isSystemActionType(type: string): type is SystemActionTypes {
-  return SYSTEM_ACTION_TYPES.includes(type as SystemActionTypes);
+export function isSystemActionType(type: string): boolean {
+  return Object.keys(systemActions).includes(type);
 }
 
-/**
- * Private function to create a system action.
- */
-function systemAction<T extends SystemActionTypes>(
-  type: T,
-  payload?: Function
-) {
-  return action(type, payload);
-}
-
-/**
- * Object containing action creator functions for all system action types.
- * Each property name corresponds to a system action type, and the function creates an action object with that type and optional payload.
- */
 const systemActions = {
-  initializeState: systemAction('INITIALIZE_STATE'),
-  updateState: systemAction('UPDATE_STATE'),
-  storeInitialized: systemAction('STORE_INITIALIZED'),
-  moduleLoaded: systemAction('MODULE_LOADED', (module: FeatureModule) => ({
-    module,
-  })),
-  moduleUnloaded: systemAction('MODULE_UNLOADED', (module: FeatureModule) => ({
-    module,
-  })),
+  initializeState: createAction(
+    'INITIALIZE_STATE',
+    (state) => ({ ...state, _initialized: true })
+  ),
+
+  updateState: createAction(
+    'UPDATE_STATE',
+    (state, payload) => ({ ...state, ...payload })
+  ),
+
+  storeInitialized: createAction(
+    'STORE_INITIALIZED',
+    (state) => ({ ...state, _ready: true })
+  ),
+
+  moduleLoaded: createAction(
+    'MODULE_LOADED',
+    (state, payload: { module: FeatureModule }) => {
+      return {
+        ...state,
+        _modules: [...(state._modules || []), payload.module.slice]
+      };
+    }
+  ),
+
+  moduleUnloaded: createAction(
+    'MODULE_UNLOADED',
+    (state, payload: { module: FeatureModule }) => {
+      return {
+        ...state,
+        _modules: (state._modules || []).filter((m: string) => m !== payload.module.slice)
+      };
+    }
+  )
 };
 
 /**
@@ -175,6 +169,15 @@ export function createStore<T = any>(
    * After validation, the action is processed by the reducer, and the global state is updated accordingly.
    */
   let dispatch = async (action: Action | any) => {
+    if (isSystemActionType(action.type)) {
+      const handler = actionHandlers.get(action.type);
+      if (handler) {
+        const newState = await handler(state, action.payload);
+        currentState.next(newState);
+        return;
+      }
+    }
+
     if (!isPlainObject(action)) {
       console.warn(
         `Actions must be plain objects. Instead, the actual type was: '${kindOf(
