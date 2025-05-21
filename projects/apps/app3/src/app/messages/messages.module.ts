@@ -20,7 +20,8 @@ export class MessagesModule {
   constructor() {
     store.loadModule({
       slice: slice,
-      reducer: reducer
+      state: {},
+      actions: {},
     });
   }
 }

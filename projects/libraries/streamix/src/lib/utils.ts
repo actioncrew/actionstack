@@ -115,6 +115,41 @@ function combineEnhancers(...enhancers: StoreEnhancer[]): StoreEnhancer {
 }
 
 /**
+ * Deeply merges two objects, combining nested trees of state.
+ *
+ * This function recursively merges properties of the `source` object into
+ * the `target` object. If a key exists in both and both values are plain
+ * objects, their contents are merged. Arrays and non-object values are overwritten.
+ *
+ * @template T - The type of the target object.
+ * @template S - The type of the source object.
+ * @param {T} target - The target object to merge into.
+ * @param {S} source - The source object to merge from.
+ * @returns {T & S} - A new object that is the result of deeply merging `target` and `source`.
+ *
+ * @example
+ * const a = { foo: { bar: 1 }, baz: 2 };
+ * const b = { foo: { qux: 3 } };
+ * const result = deepMerge(a, b);
+ * // result -> { foo: { bar: 1, qux: 3 }, baz: 2 }
+ */
+export function deepMerge(target: any, source: any): any {
+  const output = { ...target };
+  for (const key of Object.keys(source)) {
+    if (
+      typeof source[key] === 'object' &&
+      source[key] !== null &&
+      !Array.isArray(source[key])
+    ) {
+      output[key] = deepMerge(output[key] ?? {}, source[key]);
+    } else {
+      output[key] = source[key];
+    }
+  }
+  return output;
+}
+
+/**
  * Combines reducers into a single reducer function.
  * Initializes the default state by invoking each reducer with `undefined` and a special `@@INIT` action.
  */

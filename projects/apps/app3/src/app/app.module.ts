@@ -11,8 +11,9 @@ import { MessagesModule } from './messages/messages.module';
 import { applyMiddleware, combineEnhancers } from '@actioncrew/actionstack';
 
 export const store = createStore({
-  reducer: (state: any = {}) => state,
+  state: {},
   dependencies: {},
+  actions: {}
 }, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
 
 @NgModule({

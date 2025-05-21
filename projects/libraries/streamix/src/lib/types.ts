@@ -67,7 +67,7 @@ export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
  * @param reducer - The asynchronous reducer function to be wrapped or modified.
  * @returns Promise<AsyncReducer> - A promise that resolves to a potentially modified asynchronous reducer.
  */
-export type MetaReducer = (reducer: AsyncReducer) => Promise<AsyncReducer>;
+export type MetaReducer = (state: any) => Promise<any>;
 
 /**
  * Defines the methods and properties available to middleware for interacting with the store.
@@ -235,7 +235,9 @@ export type SliceStrategy = "persistent" | "temporary";
  */
 export type FeatureModule = {
   slice: string;
-  reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
+  // reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
+  state: any;
+  actions: Tree<Action | AsyncAction>;
   dependencies?: Tree<any>;
 }
 
@@ -260,7 +262,8 @@ export type MainModule =  Omit<FeatureModule, "slice"> & {
  */
 export const defaultMainModule = {
   slice: "main" as "main",
-  reducer: (state: any = {}) => state as Reducer,
+  //reducer: (state: any = {}) => state as Reducer,
+  state: {},
   metaReducers: [],
   dependencies: {}
 };

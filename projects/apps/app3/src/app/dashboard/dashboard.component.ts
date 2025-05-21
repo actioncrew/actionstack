@@ -21,7 +21,8 @@ export class DashboardComponent implements OnInit {
   constructor() {
     store.loadModule({
       slice: slice,
-      reducer: reducer,
+      state: {},
+      actions: {},
       dependencies: { heroService: new HeroService() },
     });
   }

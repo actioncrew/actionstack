@@ -1,5 +1,5 @@
 import { action, bindActionCreators } from './actions';
-import { applyMiddleware, combineEnhancers, combineReducers, getProperty, setProperty } from './utils';
+import { applyMiddleware, combineEnhancers, combineReducers, deepMerge, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -154,12 +154,13 @@ export function createStore<T = any>(
 
   // Configure store pipeline
   let pipeline = {
-    reducer: combineReducers({ [main.slice!]: main.reducer }),
-    dependencies: {},
+    // reducer: combineReducers({ [main.slice!]: main.reducer }),
+    state: main.state,
+    dependencies: main.dependencies,
     strategy: settings.exclusiveActionProcessing ? 'exclusive' : 'concurrent',
   };
 
-  let state = {} as T;
+  let state = pipeline.state;
   let currentState = createBehaviorSubject<T>(state);
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
@@ -195,11 +196,11 @@ export function createStore<T = any>(
     }
 
     try {
-      await update(
-        '*',
-        async (state: any) => await pipeline.reducer(state, action),
-        action
-      );
+      // await update(
+      //   '*',
+      //   async (state: any) => await pipeline.reducer(state, action),
+      //   action
+      // );
     } catch {
       console.warn('Error during processing the action');
     }
@@ -306,7 +307,7 @@ export function createStore<T = any>(
         // Inject dependencies
         return injectDependencies();
       })
-      .then(() => update('*', (state) => setupReducer(state)))
+      .then(() => update('*', () => setupState()))
       .finally(() => lock.release());
 
     // Dispatch module loaded action
@@ -341,15 +342,15 @@ export function createStore<T = any>(
         // Eject dependencies
         return ejectDependencies(module);
       })
-      .then(() =>
-        update('*', async (state) => {
-          if (clearState) {
-            state = { ...state };
-            delete state[module.slice];
-          }
-          return await setupReducer(state);
-        })
-      )
+      // .then(() =>
+      //   update('*', async (state) => {
+      //     if (clearState) {
+      //       state = { ...state };
+      //       delete state[module.slice];
+      //     }
+      //     return await setupReducer(state);
+      //   })
+      // )
       .finally(() => lock.release());
 
     // Dispatch module unloaded action
@@ -470,55 +471,36 @@ export function createStore<T = any>(
   };
 
   /**
-   * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
-   * Optionally applies meta reducers if enabled.
+   * Collects and composes initial state from main and feature modules.
+   * Applies meta-reducers if provided.
    */
-  const setupReducer = async (state: any = {}): Promise<any> => {
-    let featureReducers = [
-      { slice: mainModule.slice!, reducer: mainModule.reducer },
-      ...modules,
-    ].reduce((reducers, module) => {
-      let moduleReducer: any =
-        module.reducer instanceof Function
-          ? module.reducer
-          : { ...module.reducer };
-      reducers = { ...reducers, [module.slice]: moduleReducer };
-      return reducers;
-    }, {} as Tree<Reducer>);
+  const setupState = async (): Promise<any> => {
+    // Collect initial state from all modules
+    const combinedState = modules.reduce(
+      (acc, mod) => deepMerge(acc, { [mod.slice]: mod.state } ),
+      { [main.slice || 'main']: main.state }
+    );
 
-    let reducer = combineReducers(featureReducers);
+    let finalState = combinedState;
 
-    // Define async compose function to apply meta reducers
-    const asyncCompose =
-      (...fns: MetaReducer[]) =>
-      async (reducer: AsyncReducer) => {
-        for (let i = fns.length - 1; i >= 0; i--) {
-          try {
-            reducer = await fns[i](reducer);
-          } catch (error: any) {
-            console.warn(`Error in metareducer ${i}:`, error.message);
+    // Apply meta-reducers to initial state if enabled
+    if (settings.enableMetaReducers && mainModule.metaReducers?.length) {
+      for (let i = mainModule.metaReducers.length - 1; i >= 0; i--) {
+        try {
+          const meta = mainModule.metaReducers[i];
+          const maybeNewState = await meta(finalState);
+          if (maybeNewState !== undefined) {
+            finalState = maybeNewState;
           }
+        } catch (err: any) {
+          console.warn(`Error in meta-reducer ${i}:`, err.message);
         }
-        return reducer;
-      };
-
-    // Apply meta reducers if enabled
-    if (
-      settings.enableMetaReducers &&
-      mainModule.metaReducers &&
-      mainModule.metaReducers.length
-    ) {
-      try {
-        reducer = await asyncCompose(...mainModule.metaReducers)(reducer);
-      } catch (error: any) {
-        console.warn('Error applying meta reducers:', error.message);
       }
     }
 
-    pipeline.reducer = reducer;
+    pipeline.state = finalState;
 
-    // Update store state
-    return await reducer(state, systemActions.updateState() as Action);
+    return finalState;
   };
 
   /**
@@ -566,7 +548,7 @@ export function createStore<T = any>(
   lock
     .acquire()
     .then(() => injectDependencies())
-    .then(() => setupReducer())
+    .then(() => setupState())
     .then((state) => set('*', state))
     .finally(() => lock.release());
 
