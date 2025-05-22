@@ -4,7 +4,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
-import { loadHeroes, selectTopHeroes, slice } from './dashboard.slice';
+import { initialState, loadHeroes, selectTopHeroes, slice } from './dashboard.slice';
 import { store } from '../app.module';
 import { Stream } from '@actioncrew/streamix';
 
@@ -21,7 +21,7 @@ export class DashboardComponent implements OnInit {
   constructor() {
     store.loadModule({
       slice: slice,
-      state: {},
+      state: initialState,
       actions: {},
       dependencies: { heroService: new HeroService() },
     });

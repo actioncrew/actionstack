@@ -502,8 +502,8 @@ export function createStore<T = any>(
       }
     }
 
-    pipeline.state = finalState;
-
+    state = finalState;
+    currentState.next(state);
     return finalState;
   };
 

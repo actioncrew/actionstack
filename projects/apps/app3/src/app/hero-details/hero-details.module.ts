@@ -5,7 +5,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { HeroService } from '../hero.service';
 import { HeroDetailsComponent } from './hero-details.component';
-import { slice } from './hero-details.slice';
+import { initialState, slice } from './hero-details.slice';
 import { store } from '../app.module';
 
 const routes: Routes = [
@@ -25,7 +25,7 @@ export class HeroDetailsModule {
   constructor() {
     store.loadModule({
       slice: slice,
-      state: { hero: undefined, loading: false, error: null },
+      state: initialState,
       actions: {},
       dependencies: { heroService: new HeroService() }
     });

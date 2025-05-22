@@ -9,7 +9,7 @@ export interface MessagesState {
 }
 
 // --- Initial state
-const initialState: MessagesState = {
+export const initialState: MessagesState = {
   messages: [],
 };
 
