@@ -84,7 +84,7 @@ export function createAction(typeOrThunk: string | Function, handler?: ActionHan
     return action;
   }
 
-  actionCreator.handler = handler;
+  actionCreator.handler = handler ?? (() => {});
   actionCreator.toString = () => `${typeOrThunk}`;
   actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
   actionCreator.match = (action: any) => isAction(action) && action.type === typeOrThunk;

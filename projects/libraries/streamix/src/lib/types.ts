@@ -55,6 +55,7 @@ export interface AsyncAction<TState = any, TDependencies extends Record<string, 
 export type ActionCreator<TPayload = any, TState = any, TDependencies extends Record<string, any> = Record<string, any>> = (
   (...args: any[]) => Action<TPayload> | AsyncAction<TState, TDependencies>
 ) & {
+  handler: ActionHandler;
   toString(): string;
   type: string;
   match(action: Action<TPayload>): boolean;

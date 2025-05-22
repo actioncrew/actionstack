@@ -2,7 +2,8 @@ import { ActionCreator, featureSelector, selector } from '@actioncrew/actionstac
 
 export function createModule<
   State,
-  Actions extends Record<string, ActionCreator & { handler?: (state: State, action: any) => State }>,
+  ActionTypes extends string,
+  Actions extends Record<string, ActionCreator<ActionTypes> | ((...args: any[]) => any)>,
   Selectors extends Record<string, (state: State, ...args: any[]) => any>,
   Dependencies extends Record<string, any> = {}
 >(config: {
@@ -12,91 +13,93 @@ export function createModule<
   selectors: Selectors;
   dependencies?: Dependencies;
 }) {
-  const { slice, actions, selectors, dependencies } = config;
+  const { slice } = config;
 
-  // 1. Extract action handlers from actions, namespace their type
-  const namespacedHandlers = Object.fromEntries(
-    Object.entries(actions)
-      .filter(([_, action]) => typeof action.handler === 'function')
-      .map(([_, action]) => {
-        let type = action.type;
-        // Prefix only if not already prefixed
-        if (!type.startsWith(`${slice}/`)) {
-          type = `${slice}/${type}`;
-        }
-        return [type, action.handler!];
-      })
-  ) as Record<`${typeof slice}/${string}`, (state: State, action: any) => State>;
+  // 1. Process action handlers and namespace action types
+  const actionHandlers = new Map<
+    string,
+    (state: State, payload: any) => State
+  >();
 
-  const namespacedActions = Object.fromEntries(
+  const processedActions = Object.fromEntries(
     Object.entries(config.actions).map(([name, action]) => {
-      const type = `${slice}/${action.type}`;
-
-      if (typeof (action as any).type === 'string') {
-        // Plain action creator — override type with namespaced version
-        return [
-          name,
-          {
-            ...action,
-            type,
-          },
-        ];
-      } else if (typeof action === 'function') {
-        // Thunk-like action creator
-        const wrappedThunk = (...args: any[]) => async (dispatch: any, getState: any, deps: any) => {
-          const result = await (action as any)(...args)(dispatch, getState, {
-            ...deps,
-            ...config.dependencies,
-          });
-          return result;
+      if (isActionCreator(action)) {
+        // Standard action creator
+        const namespacedType = `${slice}/${action.type}`;
+        const namespacedAction = {
+          ...action,
+          type: namespacedType,
+          toString: () => namespacedType
         };
 
-        // Attach a type field to the thunk for consistency/debugging
-        (wrappedThunk as any).type = type;
+        // Register handler if present
+        if (action.handler) {
+          actionHandlers.set(
+            namespacedType,
+            (state, payload) => action.handler!(state, payload)
+          );
+        }
 
-        return [name, wrappedThunk];
+        return [name, namespacedAction];
+      } else {
+        // Thunk action
+        const thunkWithType = (...args: any[]) => {
+          const thunk = action(...args);
+          return Object.assign(
+            async (dispatch: any, getState: any, deps: any) => {
+              return thunk(dispatch, getState, {
+                ...deps,
+                ...config.dependencies
+              });
+            },
+            { type: `${slice}/${name}` }
+          );
+        };
+        return [name, thunkWithType];
       }
+    }
+  )) as Actions;
 
-      throw new Error(`Invalid action for key "${name}"`);
-    })
-  ) as Actions;
-
-  // 3. Create selectors scoped to feature slice
+  // 2. Create selectors with feature scope
   const feature = featureSelector<State>(slice);
-
-  const namespacedSelectors = Object.fromEntries(
-    Object.entries(selectors).map(([name, selectorFn]) => [
+  const processedSelectors = Object.fromEntries(
+    Object.entries(config.selectors).map(([name, selectorFn]) => [
       name,
-      selector((rootState) => feature(rootState), (state) => selectorFn(state)) as typeof selectorFn
+      selector(feature, (state: State) => selectorFn(state))
     ])
-  ) as {
-    [K in keyof Selectors]: Selectors[K]
-  };
+  ) as Selectors;
 
   return {
-    ...config,
-    actionHandlers: namespacedHandlers,
-    actions: namespacedActions,
-    selectors: namespacedSelectors,
-    featureSelector: feature,
+    slice,
+    initialState: config.initialState,
+    actionHandlers,
+    actions: processedActions,
+    selectors: processedSelectors,
+    dependencies: config.dependencies,
     register: (store: {
-      registerActionHandler: (type: string, handler: (state: State, action: any) => State) => void;
-      registerDependencies: (slice: string, deps: Dependencies) => void;
+      registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
+      registerDependencies: (slice: string, deps: any) => void;
     }) => {
-      Object.entries(namespacedHandlers).forEach(([type, handler]) => {
+      // Register all action handlers
+      actionHandlers.forEach((handler, type) => {
         store.registerActionHandler(type, handler);
       });
 
-      // if (dependencies) {
-      //   store.registerDependencies(slice, dependencies);
-      // }
+      // Register dependencies if provided
+      if (config.dependencies) {
+        store.registerDependencies(slice, config.dependencies);
+      }
 
       return {
-        actions: namespacedActions,
-        selectors: namespacedSelectors,
-        slice,
-        featureSelector: feature,
+        actions: processedActions,
+        selectors: processedSelectors,
+        featureSelector: feature
       };
     }
   };
+}
+
+// Helper type guard
+function isActionCreator(obj: any): obj is ActionCreator {
+  return obj && typeof obj.type === 'string';
 }
