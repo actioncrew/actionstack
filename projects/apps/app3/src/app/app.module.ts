@@ -9,14 +9,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
 import { applyMiddleware, combineEnhancers } from '@actioncrew/actionstack';
+import { defaultMainModule } from '@actioncrew/actionstack';
 
-export const store = createStore({
-  state: {},
-  dependencies: {},
-  actions: {},
-  actionHandlers: {},
-  selectors: {}
-}, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
+export const store = createStore(defaultMainModule, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
 
 @NgModule({
   imports: [

@@ -1,5 +1,5 @@
 import { Stream } from '@actioncrew/streamix';
-import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
+import { actionHandlers, ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
  * Interface defining the structure of an action object.
@@ -309,6 +309,9 @@ export const defaultMainModule = {
   slice: "main" as "main",
   //reducer: (state: any = {}) => state as Reducer,
   state: {},
+  actions: {},
+  actionHandlers: {},
+  selectors: {},
   metaReducers: [],
   dependencies: {}
 };
