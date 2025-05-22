@@ -1,41 +1,64 @@
-import { Action, action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
-
+import { action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
 
 export const slice = "hero-details";
 
-export const loadHeroRequest = action('LOAD_HERO_REQUEST');
-export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', (hero: Hero) => ({ hero }));
-export const loadHeroFailure = action('LOAD_HERO_FAILURE', (error: Error) => ({ error }));
+// Typed state interface
+export interface HeroDetailsState {
+  hero?: Hero;
+  loading: boolean;
+  error: Error | null;
+}
 
-export const loadHero = (id: number) => thunk('LOAD_HERO', async (dispatch: Function, getState: Function, dependencies: any) => {
-  dispatch(loadHeroRequest(id));
-  try {
-    const heroService = dependencies.heroService;
-    const hero = await firstValueFrom(heroService.getHero(id));
-    dispatch(addMessage(`HeroService: fetched hero id=${id}`));
-    dispatch(loadHeroSuccess(hero));
-  } catch (error) {
-    dispatch(loadHeroFailure(error));
-  }
-});
-
-const initialState = { hero: undefined, loading: false, error: null };
-
-export const reducer = (state = initialState, action: Action<any>) => {
-  switch (action.type) {
-    case loadHeroRequest.type:
-      return { ...state, loading: true };
-    case loadHeroSuccess.type:
-      return { ...state, loading: false, hero: action.payload.hero };
-    case loadHeroFailure.type:
-      return { ...state, loading: false, error: action.payload.error };
-    default:
-      return state;
-  }
+// Initial state
+export const initialState: HeroDetailsState = {
+  hero: undefined,
+  loading: false,
+  error: null,
 };
 
-export const feature = featureSelector(slice);
+// Action handlers (replace reducer)
+const actionHandlers = {
+  LOAD_HERO_REQUEST: (state: HeroDetailsState) => ({ ...state, loading: true }),
+  LOAD_HERO_SUCCESS: (state: HeroDetailsState, { hero }: { hero: Hero }) => ({
+    ...state,
+    loading: false,
+    hero,
+  }),
+  LOAD_HERO_FAILURE: (state: HeroDetailsState, { error }: { error: Error }) => ({
+    ...state,
+    loading: false,
+    error,
+  }),
+};
+
+// Actions with integrated handlers
+export const loadHeroRequest = action('LOAD_HERO_REQUEST', actionHandlers.LOAD_HERO_REQUEST);
+export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', actionHandlers.LOAD_HERO_SUCCESS);
+export const loadHeroFailure = action('LOAD_HERO_FAILURE', actionHandlers.LOAD_HERO_FAILURE);
+
+export const loadHero = (id: number) =>
+  thunk('LOAD_HERO', async (dispatch, getState, { heroService }) => {
+    dispatch(loadHeroRequest());
+    try {
+      const hero = await firstValueFrom(heroService.getHero(id));
+      dispatch(addMessage(`HeroService: fetched hero id=${id}`));
+      dispatch(loadHeroSuccess({ hero }));
+    } catch (error) {
+      dispatch(loadHeroFailure({ error }));
+    }
+  });
+
+// Selectors
+export const feature = featureSelector<HeroDetailsState>(slice);
 export const heroSelector = selector(feature, (state) => state.hero);
+
+export const heroDetailsModule = {
+  name: slice,
+  initialState,
+  actionHandlers,
+  actions: { loadHeroRequest, loadHeroSuccess, loadHeroFailure, loadHero },
+  selectors: { heroSelector },
+};

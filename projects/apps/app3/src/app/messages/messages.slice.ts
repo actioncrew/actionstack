@@ -1,34 +1,50 @@
-import { Action, action, featureSelector, selector } from "@actioncrew/actionstack";
+import { action, featureSelector, selector } from "@actioncrew/actionstack";
 
+// --- Slice name
 export const slice = "messages";
 
-// Define the actions using action
-export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
-export const clearMessages = action('CLEAR_MESSAGES');
-
-// Define the initial state
-const initialState = {
-  messages: []
-};
-
-export function reducer(state = initialState, action: Action<any>) {
-  switch (action.type) {
-    case addMessage.type:
-      return {
-        ...state,
-        messages: [...state.messages, action.payload.message]
-      };
-    case clearMessages.type:
-      return {
-        ...state,
-        messages: []
-      };
-    default:
-      return state;
-  }
+// --- Typed state interface
+export interface MessagesState {
+  messages: string[];
 }
 
-export const feature = featureSelector(slice);
-export const selectMessages = selector(feature, state => state.messages);
-export const selectMessageCount = selector(feature, state => state.messages.length);
+// --- Initial state
+const initialState: MessagesState = {
+  messages: [],
+};
 
+// --- Action handlers (no reducer needed)
+const actionHandlers = {
+  ADD_MESSAGE: (state: MessagesState, { message }: { message: string }) => ({
+    ...state,
+    messages: [...state.messages, message],
+  }),
+  CLEAR_MESSAGES: (state: MessagesState) => ({
+    ...state,
+    messages: [],
+  }),
+};
+
+// --- Action creators with integrated handlers
+export const addMessage = action("ADD_MESSAGE", actionHandlers.ADD_MESSAGE);
+export const clearMessages = action("CLEAR_MESSAGES", actionHandlers.CLEAR_MESSAGES);
+
+// --- Selectors
+export const feature = featureSelector<MessagesState>(slice);
+export const selectMessages = selector(feature, (state) => state.messages);
+export const selectMessageCount = selector(feature, (state) => state.messages.length);
+
+// --- Feature module export
+export const messagesModule = {
+  name: slice,
+  initialState,
+  actionHandlers,
+  actions: {
+    addMessage,
+    clearMessages,
+  },
+  selectors: {
+    selectMessages,
+    selectMessageCount,
+  },
+};

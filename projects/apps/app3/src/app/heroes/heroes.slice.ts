@@ -1,15 +1,41 @@
-import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
+import { action, featureSelector, selector } from '@actioncrew/actionstack';
 import { ofType } from '@actioncrew/actionstack/epics';
+import { concatMap, firstValueFrom, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
-import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
+import { Action } from '@actionstack/store';
 
+// --- Slice name
 export const slice = "heroes";
 
-export const getHeroesRequest = action("GET_HEROES_REQUEST", (heroes: Hero[]) => ({ heroes }));
-export const getHeroesSuccess = action("GET_HEROES_SUCCESS", (heroes: Hero[]) => ({ heroes }));
+// --- Typed state
+export interface HeroesState {
+  heroes: Hero[];
+}
 
+// --- Initial state
+export const initialState: HeroesState = {
+  heroes: [],
+};
+
+// --- Action handlers
+const actionHandlers = {
+  GET_HEROES_REQUEST: (state: HeroesState, { heroes }: { heroes: Hero[] }) => ({
+    ...state,
+    heroes
+  }),
+  GET_HEROES_SUCCESS: (state: HeroesState, { heroes }: { heroes: Hero[] }) => ({
+    ...state,
+    heroes
+  }),
+};
+
+// --- Action creators
+export const getHeroesRequest = action("GET_HEROES_REQUEST", actionHandlers.GET_HEROES_REQUEST);
+export const getHeroesSuccess = action("GET_HEROES_SUCCESS", actionHandlers.GET_HEROES_SUCCESS);
+
+// --- Epic (side-effect logic)
 export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { heroService }: any): Stream<Action<any>> => {
   return action$.pipe(
     ofType(getHeroesRequest.type),
@@ -26,23 +52,24 @@ export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { 
   );
 };
 
-const initialState = {
-  heroes: [],
+
+// --- Selectors
+export const feature = featureSelector<HeroesState>(slice);
+export const selectHeroes = selector(feature, (state) => state.heroes);
+
+// --- Module export
+export const heroesModule = {
+  name: slice,
+  initialState,
+  actionHandlers,
+  actions: {
+    getHeroesRequest,
+    getHeroesSuccess,
+  },
+  epics: {
+    loadHeroes,
+  },
+  selectors: {
+    selectHeroes,
+  },
 };
-
-// Define the reducer
-export function reducer(state = initialState, action: Action<any>) {
-  switch (action.type) {
-    case getHeroesRequest.type:
-    case getHeroesSuccess.type:
-      return {
-        ...state,
-        heroes: action.payload.heroes
-      };
-    default:
-      return state;
-  }
-}
-
-export const feature = featureSelector(slice);
-export const selectHeroes = selector(feature, state => state.heroes);

@@ -203,9 +203,7 @@ export type AnyFn = (...args: any[]) => any;
  * @param props?: any (optional) - Optional props object that can be used by the selector for additional logic.
  * @returns any - The selected value or derived data from the state.
  */
-export interface SelectorFunction {
-  (state: any, props?: any): any;
-}
+export type SelectorFunction<S = any, R = any> = (state: S, props?: any) => Promise<R> | R;
 
 /**
  * Interface defining the structure of a projection function.
@@ -218,9 +216,8 @@ export interface SelectorFunction {
  * @param props?: any (optional) - Optional props object that can be used by the projection function for additional logic.
  * @returns any - The projected value or derived data from the state.
  */
-export interface ProjectionFunction {
-  (state: any | any[], props?: any): any;
-}
+export type ProjectionFunction<R = any, P = any> = (results: any[], props?: P) => R;
+
 
 /**
  * Type alias representing a recursive tree structure.

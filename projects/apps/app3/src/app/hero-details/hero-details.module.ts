@@ -5,7 +5,7 @@ import { RouterModule, Routes } from '@angular/router';
 
 import { HeroService } from '../hero.service';
 import { HeroDetailsComponent } from './hero-details.component';
-import { reducer, slice } from './hero-details.slice';
+import { slice } from './hero-details.slice';
 import { store } from '../app.module';
 
 const routes: Routes = [

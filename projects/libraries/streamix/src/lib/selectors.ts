@@ -67,73 +67,89 @@ export function createFeatureSelector<U = any, T = any>(
  *                             * An options object (not currently implemented).
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
-export function createSelector<U = any, T = any>(
-  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "*",
-  selectors: SelectorFunction | SelectorFunction[],
-  projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
-
+export function createSelector<
+  FeatureState = any,
+  RootState = any,
+  Result = any
+>(
+  featureSelector$: ((state: Stream<RootState>) => Stream<FeatureState | undefined>) | "*",
+  selectors: SelectorFunction<FeatureState, any>[] | SelectorFunction<FeatureState, any>,
+  projection?: ProjectionFunction<Result, any>
+): (
+  props?: any[] | any,
+  projectionProps?: any
+) => (
+  state$: Stream<RootState>,
+  tracker?: Tracker
+) => Stream<Result | undefined> {
   const isSelectorArray = Array.isArray(selectors);
-  const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
 
-  if (isSelectorArray && !projection) {
-    console.warn("Invalid parameters: When 'selectors' is an array, 'projection' function should be provided.");
+  if (isSelectorArray && typeof projection !== "function") {
+    console.warn("When passing multiple selectors, a projection function is required.");
     return () => () => EMPTY;
   }
 
   return (props?: any[] | any, projectionProps?: any) => {
-    if (Array.isArray(props) && Array.isArray(selectors) && props.length !== selectors.length) {
-      console.warn('Not all selectors are parameterized. The number of props does not match the number of selectors.');
+    if (isSelectorArray && Array.isArray(props) && props.length !== selectors.length) {
+      console.warn("Mismatch: number of props doesn't match number of selectors.");
       return () => EMPTY;
     }
 
-    let lastSliceState: any;
-
-    return (state$: Stream<T>, tracker?: Tracker) => {
-      const outputStream = createSubject<U | undefined>();
+    return (state$: Stream<RootState>, tracker?: Tracker): Stream<Result | undefined> => {
+      const output = createSubject<Result | undefined>();
+      let lastSliceState: FeatureState | undefined;
 
       (async () => {
-        let sliceState$: Stream<U>;
-
-        if (featureSelector$ === "*") {
-          sliceState$ = state$ as any;
-        } else {
-          sliceState$ = (featureSelector$ as Function)(state$);
-        }
+        const sliceState$: Stream<FeatureState | undefined> =
+          featureSelector$ === "*" ? (state$ as any) : featureSelector$(state$);
 
         for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
-            outputStream.next(undefined);
-          } else if (lastSliceState !== sliceState) {
-            lastSliceState = sliceState;
-            let selectorResults: U[] | U;
-
-            try {
-              if (Array.isArray(selectors)) {
-                selectorResults = await Promise.all(selectors.map((selector, index) => selector(sliceState, props ? props[index] : undefined)));
-
-                if (selectorResults.some(result => result === undefined)) {
-                  outputStream.next(undefined);
-                } else {
-                  outputStream.next(projection ? projection(selectorResults as U[], projectionProps) : selectorResults);
-                }
-              } else {
-                selectorResults = await selectors(sliceState, props);
-                outputStream.next(selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults);
-              }
-            } catch (error: any) {
-              console.warn("Error during selector execution:", error.message);
-              outputStream.next(undefined);
-            }
+            output.next(undefined);
+            continue;
           }
 
-          tracker?.setStatus(outputStream, true);
+          if (lastSliceState === sliceState) {
+            continue;
+          }
+
+          lastSliceState = sliceState;
+
+          try {
+            if (isSelectorArray) {
+              const results = await Promise.all(
+                (selectors as SelectorFunction<FeatureState, any>[]).map((fn, i) =>
+                  fn(sliceState, Array.isArray(props) ? props[i] : undefined)
+                )
+              );
+
+              if (results.some(r => r === undefined)) {
+                output.next(undefined);
+              } else {
+                output.next(projection!(results, projectionProps));
+              }
+            } else {
+              const result = await (selectors as SelectorFunction<FeatureState, any>)(sliceState, props);
+              output.next(
+                result === undefined
+                  ? undefined
+                  : projection
+                  ? projection([result], projectionProps)
+                  : result
+              );
+            }
+
+            tracker?.setStatus(output, true);
+          } catch (err: any) {
+            console.warn("Selector error:", err.message);
+            output.next(undefined);
+          }
         }
 
-        tracker?.complete(outputStream);
+        tracker?.complete(output);
       })();
 
-      return outputStream;
+      return output;
     };
   };
 }
@@ -154,74 +170,89 @@ export function createSelector<U = any, T = any>(
  *                             * An options object (not currently implemented).
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state Stream as input and returns a Stream of the projected data.
  */
-export function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Stream<T>) => Stream<U | undefined>) | "*",
-  selectors: SelectorFunction | SelectorFunction[],
-  projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Stream<T>, tracker?: Tracker) => Stream<U | undefined> {
-
+export function createSelectorAsync<
+  FeatureState = any,
+  RootState = any,
+  Result = any
+>(
+  featureSelector$: ((state: Stream<RootState>) => Stream<FeatureState | undefined>) | "*",
+  selectors: SelectorFunction<FeatureState, any>[] | SelectorFunction<FeatureState, any>,
+  projection?: ProjectionFunction<Result, any>
+): (
+  props?: any[] | any,
+  projectionProps?: any
+) => (
+  state$: Stream<RootState>,
+  tracker?: Tracker
+) => Stream<Result | undefined> {
   const isSelectorArray = Array.isArray(selectors);
-  const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
 
-  if (isSelectorArray && !projection) {
-    console.warn("Invalid parameters: When 'selectors' is an array, 'projection' function should be provided.");
+  if (isSelectorArray && typeof projection !== "function") {
+    console.warn("When using an array of selectors, a projection function must be provided.");
     return () => () => EMPTY;
   }
 
   return (props?: any[] | any, projectionProps?: any) => {
-    if (Array.isArray(props) && Array.isArray(selectors) && props.length !== selectors.length) {
-      console.warn('Not all selectors are parameterized. The number of props does not match the number of selectors.');
+    if (isSelectorArray && Array.isArray(props) && props.length !== selectors.length) {
+      console.warn("The number of props does not match the number of selectors.");
       return () => EMPTY;
     }
 
-    let lastSliceState: any;
-
-    return (state$: Stream<T>, tracker?: Tracker) => {
-      const outputStream = createSubject<U | undefined>();
+    return (state$: Stream<RootState>, tracker?: Tracker): Stream<Result | undefined> => {
+      const output = createSubject<Result | undefined>();
+      let lastSliceState: FeatureState | undefined;
 
       (async () => {
-        let sliceState$: Stream<U>;
-
-        if (featureSelector$ === "*") {
-          sliceState$ = state$ as any;
-        } else {
-          sliceState$ = (featureSelector$ as Function)(state$);
-        }
+        const sliceState$: Stream<FeatureState | undefined> =
+          featureSelector$ === "*" ? (state$ as any) : featureSelector$(state$);
 
         for await (const sliceState of eachValueFrom(sliceState$)) {
           if (sliceState === undefined) {
-            outputStream.next(undefined);
-          } else if (lastSliceState !== sliceState) {
-            lastSliceState = sliceState;
-            let selectorResults: U[] | U;
-
-            try {
-              if (Array.isArray(selectors)) {
-                const promises = selectors.map((selector, index) => selector(sliceState, props ? props[index] : undefined));
-                selectorResults = await Promise.all(promises);
-
-                if (selectorResults.some(result => result === undefined)) {
-                  outputStream.next(undefined);
-                } else {
-                  outputStream.next(projection ? projection(selectorResults as U[], projectionProps) : selectorResults);
-                }
-              } else {
-                selectorResults = await selectors(sliceState, props);
-                outputStream.next(selectorResults === undefined ? undefined : projection ? projection(selectorResults, projectionProps) : selectorResults);
-              }
-            } catch (error: any) {
-              console.warn("Error during selector execution:", error.message);
-              outputStream.next(undefined);
-            }
+            output.next(undefined);
+            continue;
           }
 
-          tracker?.setStatus(outputStream, true);
+          if (lastSliceState === sliceState) {
+            continue;
+          }
+
+          lastSliceState = sliceState;
+
+          try {
+            if (isSelectorArray) {
+              const results = await Promise.all(
+                (selectors as SelectorFunction<FeatureState, any>[]).map((fn, i) =>
+                  fn(sliceState, Array.isArray(props) ? props[i] : undefined)
+                )
+              );
+
+              if (results.some(r => r === undefined)) {
+                output.next(undefined);
+              } else {
+                output.next(projection!(results, projectionProps));
+              }
+            } else {
+              const result = await (selectors as SelectorFunction<FeatureState, any>)(sliceState, props);
+              output.next(
+                result === undefined
+                  ? undefined
+                  : projection
+                  ? projection([result], projectionProps)
+                  : result
+              );
+            }
+
+            tracker?.setStatus(output, true);
+          } catch (err: any) {
+            console.warn("Error during async selector execution:", err.message);
+            output.next(undefined);
+          }
         }
 
-        tracker?.complete(outputStream);
+        tracker?.complete(output);
       })();
 
-      return outputStream;
+      return output;
     };
   };
 }
