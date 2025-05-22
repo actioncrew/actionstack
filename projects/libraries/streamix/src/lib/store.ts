@@ -168,14 +168,23 @@ export function createStore<T = any>(
    * After validation, the action is processed by the reducer, and the global state is updated accordingly.
    */
   let dispatch = async (action: Action | any) => {
-    if (isSystemActionType(action.type)) {
-      const handler = actionHandlers.get(action.type);
-      if (handler) {
-        const newState = await handler(state, action.payload);
-        state = newState;
-        currentState.next(newState);
-        return;
-      }
+
+    const handler = actionHandlers.get(action.type);
+
+    if (handler) {
+      // Get the slice name from action type (format: "sliceName/ACTION_TYPE")
+      const [sliceName] = action.type.split('/');
+
+      // Get current slice state
+      const currentSliceState = getProperty(state, sliceName);
+
+      // Call handler with slice state
+      const newSliceState = await handler(currentSliceState, action.payload);
+
+      // Update only the slice state
+      state = setProperty(state, sliceName, newSliceState);
+      currentState.next(state);
+      return;
     }
 
     if (!isPlainObject(action)) {
@@ -322,12 +331,11 @@ export function createStore<T = any>(
         }
 
         // Register action handlers
-        if (module.actionHandlers) {
+        modules.forEach(module => {
           Object.entries(module.actionHandlers).forEach(([type, handler]) => {
-            const fullType = `${module.slice}/${type}`;
-            registerActionHandler(fullType, handler!);
+            registerActionHandler(`${module.slice}/${type}`, handler!);
           });
-        }
+        });
 
         // Inject dependencies
         return injectDependencies();

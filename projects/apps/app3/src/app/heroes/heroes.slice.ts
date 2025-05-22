@@ -33,8 +33,8 @@ const actionHandlers = {
 };
 
 // --- Action creators
-export const getHeroesRequest = action("GET_HEROES_REQUEST", actionHandlers.GET_HEROES_REQUEST);
-export const getHeroesSuccess = action("GET_HEROES_SUCCESS", actionHandlers.GET_HEROES_SUCCESS);
+export const getHeroesRequest = action("heroes/GET_HEROES_REQUEST", actionHandlers.GET_HEROES_REQUEST);
+export const getHeroesSuccess = action("heroes/GET_HEROES_SUCCESS", actionHandlers.GET_HEROES_SUCCESS, (heroes: string[]) => ({ heroes }));
 
 // --- Epic (side-effect logic)
 export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { heroService }: any): Stream<Action<any>> => {

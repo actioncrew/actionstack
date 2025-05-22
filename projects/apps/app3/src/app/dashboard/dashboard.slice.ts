@@ -2,6 +2,7 @@ import { action, featureSelector, selector, FeatureModule } from '@actioncrew/ac
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
+import { HeroService } from '../hero.service';
 
 export const slice = "dashboard";
 
@@ -38,23 +39,23 @@ export const initialState: DashboardState = {
 
 // Action creators with integrated handlers
 export const loadHeroesRequest = action(
-  'LOAD_HEROES_REQUEST',
+  'dashboard/LOAD_HEROES_REQUEST',
   actionHandlers.LOAD_HEROES_REQUEST
 );
 
 export const loadHeroesSuccess = action(
-  'LOAD_HEROES_SUCCESS',
+  'dashboard/LOAD_HEROES_SUCCESS',
   actionHandlers.LOAD_HEROES_SUCCESS
 );
 
 export const loadHeroesFailure = action(
-  'LOAD_HEROES_FAILURE',
+  'dashboard/LOAD_HEROES_FAILURE',
   actionHandlers.LOAD_HEROES_FAILURE
 );
 
 // Thunk remains similar but with better typing
 export const loadHeroes = action(
-  async (dispatch: any, getState: any, { heroService }: any) => {
+  () => async (dispatch: any, getState: any, { heroService }: any) => {
     dispatch(loadHeroesRequest());
     try {
       const heroes = await firstValueFrom(heroService.getHeroes());
@@ -87,5 +88,8 @@ export const dashboardModule = {
   },
   selectors: {
     selectTopHeroes
+  },
+  dependencies: {
+    heroService: new HeroService()
   }
 } as FeatureModule;

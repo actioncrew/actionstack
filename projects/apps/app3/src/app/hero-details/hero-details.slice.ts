@@ -4,7 +4,7 @@ import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
 import { HeroService } from '../hero.service';
 
-export const slice = "hero-details";
+export const slice = "heroDetails";
 
 // Typed state interface
 export interface HeroDetailsState {
@@ -36,12 +36,11 @@ const actionHandlers = {
 };
 
 // Actions with integrated handlers
-export const loadHeroRequest = action('LOAD_HERO_REQUEST', actionHandlers.LOAD_HERO_REQUEST);
-export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', actionHandlers.LOAD_HERO_SUCCESS);
-export const loadHeroFailure = action('LOAD_HERO_FAILURE', actionHandlers.LOAD_HERO_FAILURE);
+export const loadHeroRequest = action('heroDetails/LOAD_HERO_REQUEST', actionHandlers.LOAD_HERO_REQUEST);
+export const loadHeroSuccess = action('heroDetails/LOAD_HERO_SUCCESS', actionHandlers.LOAD_HERO_SUCCESS);
+export const loadHeroFailure = action('heroDetails/LOAD_HERO_FAILURE', actionHandlers.LOAD_HERO_FAILURE);
 
-export const loadHero = (id: number) =>
-  action(async (dispatch: any, getState: any, { heroService }: any) => {
+export const loadHero = action((id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
     dispatch(loadHeroRequest());
     try {
       const hero = await firstValueFrom(heroService.getHero(id));

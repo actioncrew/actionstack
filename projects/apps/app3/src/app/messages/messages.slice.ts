@@ -15,7 +15,7 @@ export const initialState: MessagesState = {
 
 // --- Action handlers (no reducer needed)
 const actionHandlers = {
-  ADD_MESSAGE: (state: MessagesState, { message }: { message: string }) => ({
+  ADD_MESSAGE: (state: MessagesState, { message }: any) => ({
     ...state,
     messages: [...state.messages, message],
   }),
@@ -26,8 +26,8 @@ const actionHandlers = {
 };
 
 // --- Action creators with integrated handlers
-export const addMessage = action("ADD_MESSAGE", actionHandlers.ADD_MESSAGE);
-export const clearMessages = action("CLEAR_MESSAGES", actionHandlers.CLEAR_MESSAGES);
+export const addMessage = action("messages/ADD_MESSAGE", actionHandlers.ADD_MESSAGE, (message: string) => ({ message }));
+export const clearMessages = action("messages/CLEAR_MESSAGES", actionHandlers.CLEAR_MESSAGES);
 
 // --- Selectors
 export const feature = featureSelector<MessagesState>(slice);
@@ -47,4 +47,7 @@ export const messagesModule = {
     selectMessages,
     selectMessageCount,
   },
+  dependencies: {
+
+  }
 } as FeatureModule;
