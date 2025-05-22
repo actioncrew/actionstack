@@ -1,5 +1,6 @@
 export * from "./actions";
 export * from "./hash";
+export * from "./module";
 export * from "./lock";
 export * from "./selectors";
 export * from "./stack";
