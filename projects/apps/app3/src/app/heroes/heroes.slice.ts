@@ -1,4 +1,4 @@
-import { action, featureSelector, selector } from '@actioncrew/actionstack';
+import { action, FeatureModule, featureSelector, selector } from '@actioncrew/actionstack';
 import { ofType } from '@actioncrew/actionstack/epics';
 import { concatMap, firstValueFrom, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
 
@@ -59,8 +59,8 @@ export const selectHeroes = selector(feature, (state) => state.heroes);
 
 // --- Module export
 export const heroesModule = {
-  name: slice,
-  initialState,
+  slice,
+  state: initialState,
   actionHandlers,
   actions: {
     getHeroesRequest,
@@ -72,4 +72,4 @@ export const heroesModule = {
   selectors: {
     selectHeroes,
   },
-};
+} as FeatureModule;

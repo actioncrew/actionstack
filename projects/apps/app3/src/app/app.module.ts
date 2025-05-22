@@ -13,7 +13,9 @@ import { applyMiddleware, combineEnhancers } from '@actioncrew/actionstack';
 export const store = createStore({
   state: {},
   dependencies: {},
-  actions: {}
+  actions: {},
+  actionHandlers: {},
+  selectors: {}
 }, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
 
 @NgModule({

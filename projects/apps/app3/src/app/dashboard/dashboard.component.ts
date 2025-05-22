@@ -4,7 +4,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
-import { initialState, loadHeroes, selectTopHeroes, slice } from './dashboard.slice';
+import { dashboardModule, initialState, loadHeroes, selectTopHeroes, slice } from './dashboard.slice';
 import { store } from '../app.module';
 import { Stream } from '@actioncrew/streamix';
 
@@ -19,12 +19,7 @@ export class DashboardComponent implements OnInit {
   heroes$: Stream<Hero[]> = store.select(selectTopHeroes());
 
   constructor() {
-    store.loadModule({
-      slice: slice,
-      state: initialState,
-      actions: {},
-      dependencies: { heroService: new HeroService() },
-    });
+    store.loadModule(dashboardModule);
   }
 
   ngOnInit(): void {

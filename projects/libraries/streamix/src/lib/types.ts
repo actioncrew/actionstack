@@ -75,7 +75,8 @@ export type ActionCreator<TPayload = any, TState = any, TDependencies extends Re
  * @param {any} [payload] - The payload of the action that triggered this handler. Optional, as not all actions have payloads.
  * @returns {T | Promise<T>} The new state of the slice, or a Promise resolving to the new state.
  */
-export type ActionHandler<T = any> = (state: T, payload?: any) => T | Promise<T>;
+export type ActionHandler<State = any, Payload = any> =
+  (state: State, payload: Payload) => State;
 
 /**
  * A function that takes the current state and an action, and returns
@@ -268,12 +269,21 @@ export type SliceStrategy = "persistent" | "temporary";
  *                     used for dependency injection.
  *                   - The tree structure allows for specifying nested dependencies within the feature.
  */
-export type FeatureModule = {
+export interface FeatureModule<
+  State = any,
+  ActionTypes extends string = string,
+  Actions extends Record<string, (...args: any[]) => Action<ActionTypes>> = any,
+  Selectors extends Record<string, (state: any) => any> = any,
+  Dependencies = any
+> {
   slice: string;
-  // reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
-  state: any;
-  actions: Tree<Action | AsyncAction>;
-  dependencies?: Tree<any>;
+  state: State;
+  actionHandlers: {
+    [K in ActionTypes]?: ActionHandler<State, any>;
+  };
+  actions: Actions;
+  selectors: Selectors;
+  dependencies?: Dependencies;
 }
 
 /**

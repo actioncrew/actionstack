@@ -1,7 +1,8 @@
-import { action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, thunk, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
+import { HeroService } from '../hero.service';
 
 export const slice = "hero-details";
 
@@ -56,9 +57,10 @@ export const feature = featureSelector<HeroDetailsState>(slice);
 export const heroSelector = selector(feature, (state) => state.hero);
 
 export const heroDetailsModule = {
-  name: slice,
-  initialState,
+  slice,
+  state: initialState,
   actionHandlers,
   actions: { loadHeroRequest, loadHeroSuccess, loadHeroFailure, loadHero },
   selectors: { heroSelector },
-};
+  dependencies: { heroService: new HeroService() }
+} as FeatureModule;

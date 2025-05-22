@@ -1,4 +1,4 @@
-import { action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, thunk, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
@@ -77,8 +77,8 @@ export const selectTopHeroes = selector(
 
 // Export for registration
 export const dashboardModule = {
-  name: slice,
-  initialState,
+  slice,
+  state: initialState,
   actionHandlers,
   actions: {
     loadHeroesRequest,
@@ -89,4 +89,4 @@ export const dashboardModule = {
   selectors: {
     selectTopHeroes
   }
-};
+} as FeatureModule;

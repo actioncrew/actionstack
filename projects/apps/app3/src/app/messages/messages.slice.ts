@@ -1,4 +1,4 @@
-import { action, featureSelector, selector } from "@actioncrew/actionstack";
+import { action, featureSelector, selector, FeatureModule } from "@actioncrew/actionstack";
 
 // --- Slice name
 export const slice = "messages";
@@ -36,8 +36,8 @@ export const selectMessageCount = selector(feature, (state) => state.messages.le
 
 // --- Feature module export
 export const messagesModule = {
-  name: slice,
-  initialState,
+  slice,
+  state: initialState,
   actionHandlers,
   actions: {
     addMessage,
@@ -47,4 +47,4 @@ export const messagesModule = {
     selectMessages,
     selectMessageCount,
   },
-};
+} as FeatureModule;
