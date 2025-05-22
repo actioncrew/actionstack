@@ -1,9 +1,10 @@
-import { actionHandlers } from './store';
 import { Action, ActionCreator, ActionHandler, AsyncAction, isAction, kindOf } from './types';
 
 export { createAction as action };
 export { createThunkAction as thunk };
 
+export const actionHandlers = new Map<string, ActionHandler>();
+export const actionCreators = new Map<string, (...args: any[]) => Action>();
 
 export function createAction<T extends string, P = void>(
   type: T,

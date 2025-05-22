@@ -1,4 +1,4 @@
-import { action, bindActionCreators, createAction } from './actions';
+import { action, actionHandlers, bindActionCreators, createAction } from './actions';
 import { applyMiddleware, combineEnhancers, combineReducers, deepMerge, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
@@ -30,9 +30,6 @@ import {
   of,
   Stream,
 } from '@actioncrew/streamix';
-
-export const actionHandlers = new Map<string, ActionHandler>();
-export const actionCreators = new Map<string, (...args: any[]) => Action>();
 
 /**
  * Class representing configuration options for a store.
@@ -79,7 +76,7 @@ export type Store<T = any> = {
 };
 
 export function isSystemActionType(type: string): boolean {
-  return Object.keys(systemActions).includes(type);
+  return Object.values(systemActions).map(t => t.type).includes(type);
 }
 
 const systemActions = {
@@ -118,6 +115,8 @@ const systemActions = {
     }
   )
 };
+
+let globalStoreInitialized = false;
 
 /**
  * Creates a new store instance.
@@ -173,6 +172,7 @@ export function createStore<T = any>(
       const handler = actionHandlers.get(action.type);
       if (handler) {
         const newState = await handler(state, action.payload);
+        state = newState;
         currentState.next(newState);
         return;
       }
@@ -520,6 +520,45 @@ export function createStore<T = any>(
       stack: stack,
     } as MiddlewareAPI);
 
+  let store = {
+    starter,
+    dispatch,
+    getState,
+    select,
+    loadModule,
+    unloadModule,
+    getMiddlewareAPI,
+  } as Store<any>;
+
+
+  /**
+   * Initializes the store with system actions and state setup
+   */
+  const initializeStore = (storeInstance: Store<any>) => {
+    // Bind system actions using the store's dispatch method
+    const sysActions = bindActionCreators(
+      systemActions,
+      (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
+    );
+
+    // Initialize state and mark store as initialized
+    sysActions.initializeState();
+
+    console.log(
+      '%cYou are using ActionStack. Happy coding! 🎉',
+      'font-weight: bold;'
+    );
+
+    lock
+      .acquire()
+      .then(() => injectDependencies())
+      .then(() => setupState())
+      .then((state) => set('*', state))
+      .finally(() => lock.release());
+
+    sysActions.storeInitialized();
+  };
+
   // Apply enhancer if provided
   if (typeof enhancer === 'function') {
     // Check if the enhancer contains applyMiddleware
@@ -531,40 +570,15 @@ export function createStore<T = any>(
     if (!hasMiddlewareEnhancer) {
       enhancer = combineEnhancers(enhancer, applyMiddleware());
     }
-
-    return enhancer(createStore)(main, settings);
+  } else {
+    enhancer = combineEnhancers(applyMiddleware());
   }
 
-  // Bind system actions
-  sysActions = bindActionCreators(
-    systemActions,
-    (action: Action) => settings.dispatchSystemActions && dispatch(action)
-  );
+  if(!globalStoreInitialized) {
+    globalStoreInitialized = true;
+    store = enhancer(createStore)(main, settings);
+    initializeStore(store);
+  }
 
-  // Initialize state and mark store as initialized
-  sysActions.initializeState();
-
-  console.log(
-    '%cYou are using ActionStack. Happy coding! 🎉',
-    'font-weight: bold;'
-  );
-
-  lock
-    .acquire()
-    .then(() => injectDependencies())
-    .then(() => setupState())
-    .then((state) => set('*', state))
-    .finally(() => lock.release());
-
-  sysActions.storeInitialized();
-
-  return {
-    starter,
-    dispatch,
-    getState,
-    select,
-    loadModule,
-    unloadModule,
-    getMiddlewareAPI,
-  } as Store<any>;
+  return store;
 }
