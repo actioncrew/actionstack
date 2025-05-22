@@ -1,5 +1,5 @@
 import { Stream } from '@actioncrew/streamix';
-import { actionHandlers, ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
+import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
  * Interface defining the structure of an action object.

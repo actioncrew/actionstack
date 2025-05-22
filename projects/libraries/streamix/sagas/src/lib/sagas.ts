@@ -83,8 +83,8 @@ createSagasMiddleware.signature = "u.p.l.2.y.m.b.1.d.7";
 
 export const sagas = createSagasMiddleware({});
 
-export const run = action('RUN_ENTITIES', (...sagas: any[]) => ({sagas}));
-export const stop = action('STOP_ENTITIES', (...sagas: any[]) => ({sagas}));
+export const run = action('RUN_ENTITIES', (...sagas: Saga[]) => ({ payload: { sagas }}));
+export const stop = action('STOP_ENTITIES', (...sagas: Saga[]) => ({ payload: { sagas }}));
 
 /**
  * A store enhancer that adds method to spawn sagas.

@@ -5,6 +5,7 @@ import { concatMap, firstValueFrom, from, Stream, take, withLatestFrom } from '@
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { Action } from '@actionstack/store';
+import { HeroService } from '../hero.service';
 
 // --- Slice name
 export const slice = "heroes";
@@ -72,4 +73,7 @@ export const heroesModule = {
   selectors: {
     selectHeroes,
   },
+  dependencies: {
+    heroService: new HeroService()
+  }
 } as FeatureModule;

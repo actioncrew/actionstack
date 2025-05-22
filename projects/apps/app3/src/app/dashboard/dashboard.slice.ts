@@ -1,4 +1,4 @@
-import { action, featureSelector, selector, thunk, FeatureModule } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
@@ -53,9 +53,8 @@ export const loadHeroesFailure = action(
 );
 
 // Thunk remains similar but with better typing
-export const loadHeroes = () => thunk(
-  'LOAD_HEROES',
-  async (dispatch, getState, { heroService }) => {
+export const loadHeroes = action(
+  async (dispatch: any, getState: any, { heroService }: any) => {
     dispatch(loadHeroesRequest());
     try {
       const heroes = await firstValueFrom(heroService.getHeroes());

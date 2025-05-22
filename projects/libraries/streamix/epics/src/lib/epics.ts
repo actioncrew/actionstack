@@ -231,21 +231,38 @@ export const createEpicsMiddleware = () => {
  */
 export const epics = createEpicsMiddleware();
 
+interface EpicsState {
+  payload: {
+    epics: Epic[];
+  }
+}
+
+const actionHandlers = {
+  RUN_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
+    ...state,
+    payload: { epics: [...payload.epics, ...payload.epics.filter(e => !payload.epics.includes(e))]},
+  }),
+
+  STOP_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
+    ...state,
+    payload: { epics: payload.epics.filter(e => !payload.epics.includes(e)) },
+  }),
+};
+
 /**
  * Action creator for adding epics.
  *
  * @param {...Epic[]} epics - The epics to add.
  * @returns {Action<any>} - The action object.
  */
-export const run = action('RUN_ENTITIES', (...epics: Epic[]) => ({ epics }));
-
+export const run = action('RUN_ENTITIES', actionHandlers.RUN_ENTITIES, (...epics: Epic[]) => ({ epics }));
 /**
  * Action creator for removing epics.
  *
  * @param {...Epic[]} epics - The epics to remove.
  * @returns {Action<any>} - The action object.
  */
-export const stop = action('STOP_ENTITIES', (...epics: Epic[]) => ({ epics }));
+export const stop = action('STOP_ENTITIES', actionHandlers.STOP_ENTITIES, (...epics: Epic[]) => ({ epics }));
 
 /**
  * A store enhancer that extends the store with support for epics.

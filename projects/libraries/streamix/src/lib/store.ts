@@ -87,7 +87,7 @@ const systemActions = {
 
   updateState: createAction(
     'UPDATE_STATE',
-    (state, payload) => ({ ...state, ...payload })
+    (state, payload: any) => ({ ...state, ...payload })
   ),
 
   storeInitialized: createAction(
@@ -291,33 +291,54 @@ export function createStore<T = any>(
     pipeline.dependencies = remainingDependencies;
   };
 
+  const registerActionHandler = (
+    type: string,
+    handler: (state: any, payload?: any) => any
+  ) => {
+    if (actionHandlers.has(type)) {
+      console.warn(`Action handler for "${type}" already registered - overwriting`);
+    }
+    actionHandlers.set(type, handler);
+  }
+
   /**
    * Loads a new feature module into the store if it isn't already loaded.
    * It ensures that dependencies are injected, the global state is updated,
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
-    // Check if the module already exists
     if (modules.some((m) => m.slice === module.slice)) {
-      return Promise.resolve(); // Module already exists, return without changes
+      return Promise.resolve(); // Already loaded
     }
 
-    const promise = lock
-      .acquire()
+    const promise = lock.acquire()
       .then(() => {
-        // Create a new array with the module added
+        // Register the module
         modules = [...modules, module];
+
+        // Register initial state
+        if (module.state !== undefined) {
+          setupState(); // You need to define this helper
+        }
+
+        // Register action handlers
+        if (module.actionHandlers) {
+          Object.entries(module.actionHandlers).forEach(([type, handler]) => {
+            const fullType = `${module.slice}/${type}`;
+            registerActionHandler(fullType, handler!);
+          });
+        }
 
         // Inject dependencies
         return injectDependencies();
       })
-      .then(() => update('*', () => setupState()))
+      .then(() => update('*', () => setupState())) // Rebuild global state
       .finally(() => lock.release());
 
-    // Dispatch module loaded action
     systemActions.moduleLoaded(module);
     return promise;
   };
+
 
   /**
    * Unloads a feature module from the store, optionally clearing its state.
@@ -402,7 +423,7 @@ export function createStore<T = any>(
   const update = async (
     slice: keyof T | string[] | '*',
     callback: AnyFn,
-    action = systemActions.updateState() as Action
+    action = systemActions.updateState({}) as Action
   ): Promise<any> => {
     if (callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.');

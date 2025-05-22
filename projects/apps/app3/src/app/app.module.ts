@@ -8,7 +8,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
-import { applyMiddleware, combineEnhancers } from '@actioncrew/actionstack';
+import { applyMiddleware } from '@actioncrew/actionstack';
 import { defaultMainModule } from '@actioncrew/actionstack';
 
 export const store = createStore(defaultMainModule, { exclusiveActionProcessing: true }, applyMiddleware(logger, epics));

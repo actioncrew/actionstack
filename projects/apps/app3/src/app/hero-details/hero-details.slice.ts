@@ -1,4 +1,4 @@
-import { action, featureSelector, selector, thunk, FeatureModule } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
@@ -41,7 +41,7 @@ export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', actionHandlers.LOAD_H
 export const loadHeroFailure = action('LOAD_HERO_FAILURE', actionHandlers.LOAD_HERO_FAILURE);
 
 export const loadHero = (id: number) =>
-  thunk('LOAD_HERO', async (dispatch, getState, { heroService }) => {
+  action(async (dispatch: any, getState: any, { heroService }: any) => {
     dispatch(loadHeroRequest());
     try {
       const hero = await firstValueFrom(heroService.getHero(id));
