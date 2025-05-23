@@ -188,14 +188,14 @@ export const createEpicsMiddleware = () => {
   }) => (next: any) => async (action: any) => {
     const result = await next(action);
 
-    if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
-      if (action.type === 'RUN_ENTITIES') {
+    if (action.type === 'epics/RUN_ENTITIES' || action.type === 'epics/STOP_ENTITIES') {
+      if (action.type === 'epics/RUN_ENTITIES') {
         action.payload.epics.forEach((epic: Epic) => {
           if (!activeEpics.includes(epic)) {
             activeEpics.push(epic);
           }
         });
-      } else if (action.type === 'STOP_ENTITIES') {
+      } else if (action.type === 'epics/STOP_ENTITIES') {
         action.payload.epics.forEach((epic: Epic) => {
           const epicIndex = activeEpics.indexOf(epic);
           if (epicIndex !== -1) {

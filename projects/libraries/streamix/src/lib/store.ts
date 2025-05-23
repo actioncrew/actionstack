@@ -349,8 +349,8 @@ export function createStore<T = any>(
 
         // Register action handlers
         modules.forEach(module => {
-          Object.entries(module.actionHandlers).forEach(([type, handler]) => {
-            registerActionHandler(type, handler!);
+          Object.values(module.actions).forEach((action: any) => {
+            registerActionHandler(action.type, action.handler!);
           });
         });
 
@@ -580,28 +580,29 @@ export function createStore<T = any>(
    * Initializes the store with system actions and state setup
    */
   const initializeStore = (storeInstance: Store<any>) => {
-    // Bind system actions using the store's dispatch method
-    sysActions = bindActionCreators(
-      systemModule.actions,
-      (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
-    );
-
-    // Initialize state and mark store as initialized
-    sysActions.initializeState();
-
-    console.log(
-      '%cYou are using ActionStack. Happy coding! 🎉',
-      'font-weight: bold;'
-    );
-
     lock
       .acquire()
+      .then(() => loadModule(systemModule))
+      .then(() => {
+        // Bind system actions using the store's dispatch method
+        sysActions = bindActionCreators(
+          systemModule.actions,
+          (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
+        );
+
+        // Initialize state and mark store as initialized
+        sysActions.initializeState();
+
+        console.log(
+          '%cYou are using ActionStack. Happy coding! 🎉',
+          'font-weight: bold;'
+        );
+      })
       .then(() => injectDependencies())
       .then(() => setupState())
       .then((state) => set('*', state))
+      .then(() => sysActions.storeInitialized())
       .finally(() => lock.release());
-
-    sysActions.storeInitialized();
   };
 
   // Apply enhancer if provided

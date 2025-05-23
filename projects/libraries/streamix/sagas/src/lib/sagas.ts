@@ -44,8 +44,8 @@ export const createSagasMiddleware = ({
 
     channel.put(action);
 
-    if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
-      if (action.type === 'RUN_ENTITIES') {
+    if (action.type === 'sagas/RUN_ENTITIES' || action.type === 'sagas/STOP_ENTITIES') {
+      if (action.type === 'sagas/RUN_ENTITIES') {
         action.payload.sagas.forEach((saga: Saga) => {
           if (!activeSagas.has(saga)) {
             if (typeof saga !== 'function') {
@@ -69,7 +69,7 @@ export const createSagasMiddleware = ({
             activeSagas.set(saga, task);
           }
         });
-      } else if (action.type === 'STOP_ENTITIES') {
+      } else if (action.type === 'sagas/STOP_ENTITIES') {
         action.payload.sagas.forEach((saga: any) => {
           const task = activeSagas.get(saga);
           if (task) {
