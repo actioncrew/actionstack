@@ -30,6 +30,7 @@ import {
   of,
   Stream,
 } from '@actioncrew/streamix';
+import { createModule } from './module';
 
 /**
  * Class representing configuration options for a store.
@@ -75,46 +76,62 @@ export type Store<T = any> = {
   starter: Middleware;
 };
 
-export function isSystemActionType(type: string): boolean {
-  return Object.values(systemActions).map(t => t.type).includes(type);
+interface SystemState {
+  _initialized: boolean;
+  _ready: boolean;
+  _modules: string[];
 }
 
-const systemActions = {
-  initializeState: createAction(
-    'INITIALIZE_STATE',
-    (state) => ({ ...state, _initialized: true })
-  ),
+const systemModule = createModule({
+  slice: "system",
+  initialState: {
+    _initialized: false,
+    _ready: false,
+    _modules: []
+  } as SystemState,
+  actions: {
+    initializeState: createAction(
+      'INITIALIZE_STATE',
+      (state: SystemState) => ({ ...state, _initialized: true })
+    ),
 
-  updateState: createAction(
-    'UPDATE_STATE',
-    (state, payload: any) => ({ ...state, ...payload })
-  ),
+    updateState: createAction(
+      'UPDATE_STATE',
+      (state: SystemState, payload: Partial<SystemState>) => ({ ...state, ...payload })
+    ),
 
-  storeInitialized: createAction(
-    'STORE_INITIALIZED',
-    (state) => ({ ...state, _ready: true })
-  ),
+    storeInitialized: createAction(
+      'STORE_INITIALIZED',
+      (state: SystemState) => ({ ...state, _ready: true })
+    ),
 
-  moduleLoaded: createAction(
-    'MODULE_LOADED',
-    (state, payload: { module: FeatureModule }) => {
-      return {
+    moduleLoaded: createAction(
+      'MODULE_LOADED',
+      (state: SystemState, payload: { module: { slice: string } }) => ({
         ...state,
-        _modules: [...(state._modules || []), payload.module.slice]
-      };
-    }
-  ),
+        _modules: [...state._modules, payload.module.slice]
+      })
+    ),
 
-  moduleUnloaded: createAction(
-    'MODULE_UNLOADED',
-    (state, payload: { module: FeatureModule }) => {
-      return {
+    moduleUnloaded: createAction(
+      'MODULE_UNLOADED',
+      (state: SystemState, payload: { module: { slice: string } }) => ({
         ...state,
-        _modules: (state._modules || []).filter((m: string) => m !== payload.module.slice)
-      };
-    }
-  )
-};
+        _modules: state._modules.filter(m => m !== payload.module.slice)
+      })
+    )
+  },
+  selectors: {
+    isInitialized: (state: SystemState) => state._initialized,
+    isReady: (state: SystemState) => state._ready,
+    loadedModules: (state: SystemState) => state._modules
+  },
+  dependencies: {}
+});
+
+export function isSystemActionType(type: string): boolean {
+  return Object.values(systemModule.actions).map(t => t.type).includes(type);
+}
 
 let globalStoreInitialized = false;
 
@@ -133,7 +150,7 @@ export function createStore<T = any>(
   let main = { ...defaultMainModule, ...mainModule };
   let modules: FeatureModule[] = [];
 
-  let sysActions = { ...systemActions };
+  let sysActions = { ...systemModule.actions };
 
   // Determine if the second argument is storeSettings or enhancer
   let settings: StoreSettings;
@@ -343,7 +360,7 @@ export function createStore<T = any>(
       .then(() => update('*', () => setupState())) // Rebuild global state
       .finally(() => lock.release());
 
-    systemActions.moduleLoaded(module);
+    sysActions.moduleLoaded(module);
     return promise;
   };
 
@@ -387,7 +404,7 @@ export function createStore<T = any>(
       .finally(() => lock.release());
 
     // Dispatch module unloaded action
-    systemActions.moduleUnloaded(module);
+    sysActions.moduleUnloaded(module);
     return promise;
   };
 
@@ -431,7 +448,7 @@ export function createStore<T = any>(
   const update = async (
     slice: keyof T | string[] | '*',
     callback: AnyFn,
-    action = systemActions.updateState({}) as Action
+    action = sysActions.updateState({}) as Action
   ): Promise<any> => {
     if (callback === undefined) {
       console.warn('Callback function is missing. State will not be updated.');
@@ -565,8 +582,8 @@ export function createStore<T = any>(
    */
   const initializeStore = (storeInstance: Store<any>) => {
     // Bind system actions using the store's dispatch method
-    const sysActions = bindActionCreators(
-      systemActions,
+    sysActions = bindActionCreators(
+      systemModule.actions,
       (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
     );
 

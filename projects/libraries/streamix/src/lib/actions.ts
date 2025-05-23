@@ -131,36 +131,30 @@ export function bindActionCreator(actionCreator: Function, dispatch: Function): 
  * This utility simplifies the process of binding all action creators from a module or file
  * to the dispatch function, resulting in cleaner and more concise component code.
  */
-export function bindActionCreators(actionCreators: Record<string, Function> | Function, dispatch: Function): any {
-  if (typeof actionCreators !== "object" || actionCreators === null) {
-    console.warn(`bindActionCreators expected an object or a function, but instead received: '${kindOf(actionCreators)}'. Did you write "import ActionCreators from" instead of "import * as ActionCreators from"?`);
-    return undefined;
-  }
-
-  actionCreators = { ...actionCreators };
+export function bindActionCreators(
+  actionCreators: Record<string, Function> | Function,
+  dispatch: Function
+): any {
   if (typeof actionCreators === "function") {
+    // Single action creator function
     return bindActionCreator(actionCreators, dispatch);
   }
 
-  const keys = Object.keys(actionCreators);
-  const numKeys = keys.length;
-
-  if (numKeys === 1) {
-    const actionCreator = actionCreators[keys[0]];
-
-    if (typeof actionCreator === "function") {
-      return bindActionCreator(actionCreator, dispatch);
-    }
+  if (typeof actionCreators !== "object" || actionCreators === null) {
+    console.warn(
+      `bindActionCreators expected an object or a function, but received: '${Object.prototype.toString.call(actionCreators)}'.`
+    );
+    return undefined;
   }
 
-  for (let i = 0; i < numKeys; i++) {
-    const key = keys[i];
+  const boundActionCreators: Record<string, Function> = {};
+
+  for (const key in actionCreators) {
     const actionCreator = actionCreators[key];
-
     if (typeof actionCreator === "function") {
-      actionCreators[key] = bindActionCreator(actionCreator, dispatch);
+      boundActionCreators[key] = bindActionCreator(actionCreator, dispatch);
     }
   }
 
-  return actionCreators;
+  return boundActionCreators;
 }

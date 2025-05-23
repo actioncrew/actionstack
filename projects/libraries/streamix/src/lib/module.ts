@@ -26,11 +26,14 @@ export function createModule<
       if (isActionCreator(action)) {
         // Standard action creator
         const namespacedType = `${slice}/${action.type}`;
-        const namespacedAction = {
-          ...action,
+
+        const namespacedAction = (...args: any[]) => action(...args);
+
+        // Preserve metadata and override type and toString
+        Object.assign(namespacedAction, action, {
           type: namespacedType,
-          toString: () => namespacedType
-        };
+          toString: () => namespacedType,
+        });
 
         // Register handler if present
         if (action.handler) {
@@ -61,20 +64,20 @@ export function createModule<
   )) as Actions;
 
   // 2. Create selectors with feature scope
-  const feature = featureSelector<State>(slice);
-  const processedSelectors = Object.fromEntries(
-    Object.entries(config.selectors).map(([name, selectorFn]) => [
-      name,
-      selector(feature, (state: State) => selectorFn(state))
-    ])
-  ) as Selectors;
+  // const feature = featureSelector<State>(slice);
+  // const processedSelectors = Object.fromEntries(
+  //   Object.entries(config.selectors).map(([name, selectorFn]) => [
+  //     name,
+  //     selector(feature, (state: State) => selectorFn(state))
+  //   ])
+  // ) as Selectors;
 
   return {
     slice,
     initialState: config.initialState,
     actionHandlers,
     actions: processedActions,
-    selectors: processedSelectors,
+    selectors: {},
     dependencies: config.dependencies,
     register: (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
@@ -89,12 +92,6 @@ export function createModule<
       if (config.dependencies) {
         store.registerDependencies(slice, config.dependencies);
       }
-
-      return {
-        actions: processedActions,
-        selectors: processedSelectors,
-        featureSelector: feature
-      };
     }
   };
 }
