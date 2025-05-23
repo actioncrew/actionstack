@@ -127,13 +127,20 @@ export const createStarter = () => {
   const defaultStrategy = 'concurrent';
 
   // Create a method to select the strategy
-  const selectStrategy = ({ dispatch, getState, dependencies, strategy, lock, stack }: any) => (next: Function) => async (action: Action) => {
-    let strategyFunc = strategies[strategy()];
+  const selectStrategy = (api: {
+    dispatch: Function;
+    getState: () => any;
+    dependencies: any;
+    strategy: () => string;
+    lock: any;
+    stack: any;
+  }) => (next: Function) => async (action: Action) => {
+    let strategyFunc = strategies[api.strategy()];
     if (!strategyFunc) {
-      console.warn(`Unknown strategy: ${strategy}, default is used: ${defaultStrategy}`);
+      console.warn(`Unknown strategy: ${api.strategy}, default is used: ${defaultStrategy}`);
       strategyFunc = strategies[defaultStrategy];
     }
-    return strategyFunc({ dispatch, getState, dependencies, lock, stack })(next)(action);
+    return strategyFunc(api)(next)(action);
   };
 
   selectStrategy.signature = 'i.p.5.j.7.0.2.1.8.b';

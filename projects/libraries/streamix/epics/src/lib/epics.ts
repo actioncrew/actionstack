@@ -177,7 +177,14 @@ export const createEpicsMiddleware = () => {
   let currentState = createSubject<any>();
   let subscriptions: any[] = [];
 
-  return ({ dispatch, getState, dependencies, strategy, stack }: any) => (next: any) => async (action: any) => {
+  return (api: {
+    dispatch: Function;
+    getState: () => any;
+    dependencies: any;
+    strategy: () => string;
+    lock: any;
+    stack: any;
+  }) => (next: any) => async (action: any) => {
     const result = await next(action);
 
     if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
@@ -201,11 +208,11 @@ export const createEpicsMiddleware = () => {
         subscriptions = [];
       }
 
-      const epicStream = (strategy === 'concurrent' ? merge : concat)(stack, ...activeEpics);
-      const subscription = epicStream(currentAction, currentState, dependencies()).subscribe({
+      const epicStream = (api.strategy() === 'concurrent' ? merge : concat)(api.stack, ...activeEpics);
+      const subscription = epicStream(currentAction, currentState, api.dependencies()).subscribe({
         next: (childAction: any) => {
           if (isAction(childAction)) {
-            dispatch(childAction);
+            api.dispatch(childAction);
           }
         },
         error: (err: any) => {
@@ -220,7 +227,7 @@ export const createEpicsMiddleware = () => {
     }
 
     currentAction.next(action);
-    currentState.next(getState());
+    currentState.next(api.getState());
 
     return result;
   };
