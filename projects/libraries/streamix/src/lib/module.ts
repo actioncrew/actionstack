@@ -1,4 +1,4 @@
-import { ActionCreator, featureSelector, selector } from '@actioncrew/actionstack';
+import { ActionCreator, featureSelector, selector } from '../lib';
 
 export function createModule<
   State,
@@ -64,13 +64,13 @@ export function createModule<
   )) as Actions;
 
   // 2. Create selectors with feature scope
-  // const feature = featureSelector<State>(slice);
-  // const processedSelectors = Object.fromEntries(
-  //   Object.entries(config.selectors).map(([name, selectorFn]) => [
-  //     name,
-  //     selector(feature, (state: State) => selectorFn(state))
-  //   ])
-  // ) as Selectors;
+  const feature = featureSelector<State>(slice);
+  const processedSelectors = Object.fromEntries(
+    Object.entries(config.selectors).map(([name, selectorFn]) => [
+      name,
+      selector(feature, selectorFn)
+    ])
+  ) as Selectors;
 
   return {
     slice,
