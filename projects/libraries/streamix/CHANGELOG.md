@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.5
+
+Fixed an issue where the store was being initialized twice and middlewares were receiving a stale dispatch due to premature destructuring of middlewareAPI; corrected the logic to initialize the store only once and ensure that all middlewares receive the final composed dispatch via a shared, lazily-evaluated reference.
+
 ## 2.1.1
 
 In version 2.1.1, several improvements were made to enhance functionality and reliability. The `getProperty` and `setProperty` methods in the utils module were added, providing better support for accessing and modifying object properties consistently across different environments. Additionally, updates were made to the configuration files, improving compatibility with various setups and ensuring smoother operation.
