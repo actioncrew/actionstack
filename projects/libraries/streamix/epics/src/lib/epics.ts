@@ -8,6 +8,7 @@ import {
   Store,
   StoreSettings,
   StoreEnhancer,
+  createModule,
 } from '@actioncrew/actionstack';
 import { Operator, Stream, Subscription, createOperator, createStream, createSubject, eachValueFrom } from '@actioncrew/streamix';
 
@@ -242,25 +243,20 @@ export interface EpicsState {
   epics: Epic[];
 }
 
-export const actionHandlers = {
-  RUN_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
-    ...state,
-    epics: [...state.epics, ...state.epics.filter(e => !payload.epics.includes(e))],
-  }),
-
-  STOP_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
-    ...state,
-    epics: [...state.epics.filter(e => !payload.epics.includes(e))]
-  }),
-};
-
 /**
  * Action creator for adding epics.
  *
  * @param {...Epic[]} epics - The epics to add.
  * @returns {Action<any>} - The action object.
  */
-export const run = action('RUN_ENTITIES', actionHandlers.RUN_ENTITIES, (...epics: Epic[]) => ({ epics }));
+export const run = action(
+  'RUN_ENTITIES',
+  (state: EpicsState, { epics }: { epics: Epic[] }): EpicsState => ({
+    ...state,
+    epics: [...state.epics, ...state.epics.filter(e => !epics.includes(e))],
+  }),
+  (...epics: Epic[]) => ({ epics })
+);
 
 /**
  * Action creator for removing epics.
@@ -268,7 +264,27 @@ export const run = action('RUN_ENTITIES', actionHandlers.RUN_ENTITIES, (...epics
  * @param {...Epic[]} epics - The epics to remove.
  * @returns {Action<any>} - The action object.
  */
-export const stop = action('STOP_ENTITIES', actionHandlers.STOP_ENTITIES, (...epics: Epic[]) => ({ epics }));
+export const stop = action(
+  'STOP_ENTITIES',
+  (state: EpicsState, { epics }: { epics: Epic[] }): EpicsState => ({
+    ...state,
+    epics: state.epics.filter(e => !epics.includes(e)),
+  }),
+  (...epics: Epic[]) => ({ epics })
+);
+
+export const epicsModule = createModule({
+  slice: "epics",
+  initialState: {
+    epics: []
+  },
+  actions: {
+    run,
+    stop
+  },
+  selectors: {},
+  dependencies: {}
+});
 
 /**
  * A store enhancer that extends the store with support for epics.

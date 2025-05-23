@@ -7,6 +7,7 @@ import {
   StoreSettings,
   StoreEnhancer,
   createInstruction,
+  createModule,
 } from '@actioncrew/actionstack';
 import { runSaga, Saga, SagaMiddlewareOptions, stdChannel, Task } from 'redux-saga';
 import { call, cancelled } from 'redux-saga/effects';
@@ -93,20 +94,36 @@ export interface SagasState {
   sagas: Saga[];
 }
 
-export const actionHandlers = {
-  RUN_ENTITIES: (state: SagasState, payload: { sagas: Saga[] }): SagasState => ({
+export const run = action(
+  'RUN_ENTITIES',
+  (state: SagasState, { sagas }: { sagas: Saga[] }): SagasState => ({
     ...state,
-    sagas: [...state.sagas, ...state.sagas.filter(s => !payload.sagas.includes(s))],
+    sagas: [...state.sagas, ...state.sagas.filter(s => !sagas.includes(s))],
   }),
+  (...sagas: Saga[]) => ({ sagas })
+);
 
-  STOP_ENTITIES: (state: SagasState, payload: { sagas: Saga[] }): SagasState => ({
+export const stop = action(
+  'STOP_ENTITIES',
+  (state: SagasState, { sagas }: { sagas: Saga[] }): SagasState => ({
     ...state,
-    sagas: [...state.sagas.filter(s => !payload.sagas.includes(s))]
+    sagas: state.sagas.filter(s => !sagas.includes(s)),
   }),
-};
+  (...sagas: Saga[]) => ({ sagas })
+);
 
-export const run = action('RUN_ENTITIES', actionHandlers.RUN_ENTITIES, (...sagas: Saga[]) => ({ sagas }));
-export const stop = action('STOP_ENTITIES', actionHandlers.STOP_ENTITIES, (...sagas: Saga[]) => ({ sagas }));
+export const sagasModule = createModule({
+  slice: "sagas",
+  initialState: {
+    sagas: []
+  },
+  actions: {
+    run,
+    stop
+  },
+  selectors: {},
+  dependencies: {}
+});
 
 /**
  * A store enhancer that adds method to spawn sagas.

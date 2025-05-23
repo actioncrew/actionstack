@@ -83,7 +83,7 @@ export function createModule<
     initialState: config.initialState,
     actionHandlers,
     actions: processedActions,
-    selectors: processedSelectors,
+    selectors: config.selectors,
     dependencies: config.dependencies,
     register: (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
