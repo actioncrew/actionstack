@@ -177,7 +177,14 @@ export const createEpicsMiddleware = () => {
   let currentState = createSubject<any>();
   let subscriptions: any[] = [];
 
-  return ({ dispatch, getState, dependencies, strategy, stack }: any) => (next: any) => async (action: any) => {
+  return (api: {
+    dispatch: Function;
+    getState: () => any;
+    dependencies: any;
+    strategy: () => string;
+    lock: any;
+    stack: any;
+  }) => (next: any) => async (action: any) => {
     const result = await next(action);
 
     if (action.type === 'RUN_ENTITIES' || action.type === 'STOP_ENTITIES') {
@@ -201,11 +208,11 @@ export const createEpicsMiddleware = () => {
         subscriptions = [];
       }
 
-      const epicStream = (strategy === 'concurrent' ? merge : concat)(stack, ...activeEpics);
-      const subscription = epicStream(currentAction, currentState, dependencies()).subscribe({
+      const epicStream = (api.strategy() === 'concurrent' ? merge : concat)(api.stack, ...activeEpics);
+      const subscription = epicStream(currentAction, currentState, api.dependencies()).subscribe({
         next: (childAction: any) => {
           if (isAction(childAction)) {
-            dispatch(childAction);
+            api.dispatch(childAction);
           }
         },
         error: (err: any) => {
@@ -220,7 +227,7 @@ export const createEpicsMiddleware = () => {
     }
 
     currentAction.next(action);
-    currentState.next(getState());
+    currentState.next(api.getState());
 
     return result;
   };
@@ -231,21 +238,19 @@ export const createEpicsMiddleware = () => {
  */
 export const epics = createEpicsMiddleware();
 
-interface EpicsState {
-  payload: {
-    epics: Epic[];
-  }
+export interface EpicsState {
+  epics: Epic[];
 }
 
-const actionHandlers = {
+export const actionHandlers = {
   RUN_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
     ...state,
-    payload: { epics: [...payload.epics, ...payload.epics.filter(e => !payload.epics.includes(e))]},
+    epics: [...state.epics, ...state.epics.filter(e => !payload.epics.includes(e))],
   }),
 
   STOP_ENTITIES: (state: EpicsState, payload: { epics: Epic[] }): EpicsState => ({
     ...state,
-    payload: { epics: payload.epics.filter(e => !payload.epics.includes(e)) },
+    epics: [...state.epics.filter(e => !payload.epics.includes(e))]
   }),
 };
 
@@ -256,6 +261,7 @@ const actionHandlers = {
  * @returns {Action<any>} - The action object.
  */
 export const run = action('RUN_ENTITIES', actionHandlers.RUN_ENTITIES, (...epics: Epic[]) => ({ epics }));
+
 /**
  * Action creator for removing epics.
  *

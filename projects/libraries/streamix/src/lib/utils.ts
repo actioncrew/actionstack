@@ -285,16 +285,18 @@ const applyMiddleware = (...middlewares: Function[]): StoreEnhancer => {
     const store = next(mainModule, settings, enhancer);
 
     // Define starter and middleware APIs
-    const middlewareAPI = store.getMiddlewareAPI();
+    const middlewareAPI = store.middlewareAPI;
 
     // Build middleware chain
-    const chain = [store.starter(middlewareAPI), ...middlewares.map(middleware => middleware(middlewareAPI))] as any[];
+    const chain = [store.starter, ...middlewares].map(middleware => middleware(middlewareAPI));
 
     // Compose the middleware chain into a single dispatch function
     let dispatch = chain.reduceRight(
       (next, middleware) => middleware(next),
       store.dispatch
     );
+
+    store.middlewareAPI.dispatch = dispatch;
 
     // Return the enhanced store
     return {

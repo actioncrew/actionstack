@@ -72,7 +72,7 @@ export type Store<T = any> = {
   ) => Stream<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
-  getMiddlewareAPI: () => any;
+  middlewareAPI: MiddlewareAPI;
   starter: Middleware;
 };
 
@@ -556,15 +556,14 @@ export function createStore<T = any>(
   /**
    * Creates the middleware API object for use in the middleware pipeline.
    */
-  const getMiddlewareAPI = () =>
-    ({
+  const middlewareAPI = {
       getState: (slice?: any) => get(slice === undefined ? "*" : slice),
       dispatch: (action: Action | AsyncAction) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,
       lock: lock,
       stack: stack,
-    } as MiddlewareAPI);
+    } as MiddlewareAPI;
 
   let store = {
     starter,
@@ -573,7 +572,7 @@ export function createStore<T = any>(
     select,
     loadModule,
     unloadModule,
-    getMiddlewareAPI,
+    middlewareAPI,
   } as Store<any>;
 
 
