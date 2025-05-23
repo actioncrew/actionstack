@@ -254,21 +254,24 @@ export type ProcessingStrategy = "exclusive" | "concurrent";
 export type SliceStrategy = "persistent" | "temporary";
 
 /**
- * Interface defining the structure of a feature module.
+ * Represents a feature module that organizes state, logic, and dependencies
+ * for a specific part of an application.
  *
- * Feature modules are used to organize state and logic for specific parts of an application.
- * This interface defines the expected properties for a feature module.
+ * @template State - The type of the feature state slice.
+ * @template ActionTypes - The union type of action type strings.
+ * @template Actions - The shape of action creator functions.
+ * @template Selectors - The shape of selector functions.
+ * @template Dependencies - The type representing dependencies required by the feature.
  *
- * @property slice - A unique string identifier for the feature module's state slice in the store.
- * @property reducer - The reducer function or a tree of reducers responsible for managing the state of the feature.
- *                  - A reducer function takes the current state slice and an action object,
- *                    and returns the updated state slice based on the action.
- *                  - A tree of reducers allows for defining nested reducers for complex state structures.
- * @property dependencies?: Tree<any> (optional) -
- *                   An optional tree representing the dependencies required by the feature module.
- *                   - These dependencies can be types (like classes or interfaces) or injection tokens
- *                     used for dependency injection.
- *                   - The tree structure allows for specifying nested dependencies within the feature.
+ * @property slice - A unique identifier string for the feature's state slice in the store.
+ * @property initialState - The initial state value for this feature slice.
+ * @property actionHandlers - A map of action type strings to their respective reducer functions
+ *                            that handle updates to the feature state.
+ * @property actions - An object containing action creator functions.
+ * @property selectors - An object containing selector functions to derive data from the state.
+ * @property dependencies? - Optional dependencies tree, such as types or injection tokens,
+ *                           which the feature module requires.
+ * @property [key: string] - Allows for additional arbitrary properties.
  */
 export interface FeatureModule<
   State = any,
@@ -283,6 +286,7 @@ export interface FeatureModule<
   actions: Actions;
   selectors: Selectors;
   dependencies?: Dependencies;
+  [key: string]: any;
 }
 
 /**
