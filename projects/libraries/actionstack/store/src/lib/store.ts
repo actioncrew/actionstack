@@ -111,6 +111,8 @@ const systemActions = {
   moduleUnloaded: systemAction("MODULE_UNLOADED", (module: FeatureModule) => ({module}))
 };
 
+let globalStoreInitialized = false;
+
 /**
  * Creates a new store instance.
  *
@@ -460,7 +462,7 @@ export function createStore<T = any>(
    * Creates the middleware API object for use in the middleware pipeline.
    */
   const middlewareAPI = {
-    getState: (slice?: any) => getState(slice),
+    getState: (slice?: any) => getState(slice === undefined ? "*" : slice),
     dispatch: (action: any) => dispatch(action),
     dependencies: () => pipeline.dependencies,
     strategy: () => pipeline.strategy,
@@ -468,43 +470,64 @@ export function createStore<T = any>(
     stack: stack,
   } as MiddlewareAPI;
 
+  /**
+   * Initializes the store with system actions and state setup
+   */
+  const initializeStore = (storeInstance: Store<any>) => {
+    // Bind system actions using the store's dispatch method
+    sysActions = bindActionCreators(
+      systemActions,
+      (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
+    );
+
+    // Initialize state and mark store as initialized
+    sysActions.initializeState();
+
+    console.log(
+      '%cYou are using ActionStack. Happy coding! 🎉',
+      'font-weight: bold;'
+    );
+
+    lock
+      .acquire()
+      .then(() => injectDependencies())
+      .then(() => setupReducer())
+      .then((state) => setState('*', state))
+      .finally(() => lock.release());
+
+    sysActions.storeInitialized();
+  };
+
+  let store = {
+    starter,
+    dispatch,
+    getState,
+    select,
+    loadModule,
+    unloadModule,
+    middlewareAPI,
+  } as Store<any>;
+
   // Apply enhancer if provided
-  if (typeof enhancer === "function") {
+  if (typeof enhancer === 'function') {
     // Check if the enhancer contains applyMiddleware
-    const hasMiddlewareEnhancer = enhancer.name === 'applyMiddleware' || (enhancer as any).names?.includes('applyMiddleware');
+    const hasMiddlewareEnhancer =
+      (enhancer as any).name === 'applyMiddleware' ||
+      (enhancer as any).names?.includes('applyMiddleware');
 
     // If no middleware enhancer is present, apply applyMiddleware explicitly with an empty array
     if (!hasMiddlewareEnhancer) {
       enhancer = combineEnhancers(enhancer, applyMiddleware());
     }
-
-    return enhancer(createStore)(main, settings);
+  } else {
+    enhancer = applyMiddleware();
   }
 
-  // Bind system actions
-  sysActions = bindActionCreators(systemActions, (action: Action) => settings.dispatchSystemActions && dispatch(action));
+  if(!globalStoreInitialized) {
+    globalStoreInitialized = true;
+    store = enhancer(createStore)(main, settings);
+    initializeStore(store);
+  }
 
-  // Initialize state and mark store as initialized
-  sysActions.initializeState();
-
-  console.log("%cYou are using ActionStack. Happy coding! 🎉", "font-weight: bold;");
-
-  lock.acquire()
-    .then(() => injectDependencies())
-    .then(() => setupReducer())
-    .then(state => setState("*", state))
-    .finally(() => lock.release());
-
-  sysActions.storeInitialized();
-
-  return {
-    dispatch,
-    getState,
-    readSafe,
-    select,
-    loadModule,
-    unloadModule,
-    starter,
-    middlewareAPI,
-  } as Store<any>;
+  return store;
 }
