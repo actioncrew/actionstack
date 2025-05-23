@@ -27,13 +27,13 @@ export function createModule<
         // Standard action creator
         const namespacedType = `${slice}/${action.type}`;
 
-        const namespacedAction = (...args: any[]) => action(...args);
-
-        // Preserve metadata and override type and toString
-        Object.assign(namespacedAction, action, {
-          type: namespacedType,
-          toString: () => namespacedType,
-        });
+        const namespacedAction = (...args: any[]) => {
+          const act = action(...args);
+          return {
+            ...act,
+            type: namespacedType,
+          };
+        };
 
         // Register handler if present
         if (action.handler) {
@@ -42,6 +42,12 @@ export function createModule<
             (state, payload) => action.handler!(state, payload)
           );
         }
+
+        // Preserve metadata and override type and toString
+        Object.assign(namespacedAction, action, {
+          type: namespacedType,
+          toString: () => namespacedType,
+        });
 
         return [name, namespacedAction];
       } else {

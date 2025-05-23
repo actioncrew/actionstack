@@ -5,7 +5,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 
 import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
-import { getHeroesRequest, loadHeroes, selectHeroes } from './heroes.slice';
+import { getHeroesRequest, loadHeroes, selectHeroes, heroesModule } from './heroes.slice';
 import { store } from '../app.module';
 import { Subscription } from '@actioncrew/streamix';
 
@@ -23,7 +23,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     store.dispatch(run(loadHeroes));
 
-    this.subscription = store.select(selectHeroes()).subscribe(value => {
+    this.subscription = store.select(heroesModule.selectors.selectHeroes()).subscribe(value => {
       this.heroes = value;
     });
 
@@ -31,7 +31,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   getHeroes(): void {
-    store.dispatch(getHeroesRequest(this.heroes));
+    store.dispatch(heroesModule.actions.getHeroesRequest(this.heroes));
   }
 
   ngOnDestroy(): void {

@@ -1,3 +1,5 @@
+import { messagesModule } from './../messages/messages.slice';
+import { createModule } from '@actioncrew/actionstack';
 import { action, featureSelector, selector, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
@@ -20,34 +22,40 @@ export const initialState: HeroDetailsState = {
   error: null,
 };
 
-// Action handlers (replace reducer)
-const actionHandlers = {
-  LOAD_HERO_REQUEST: (state: HeroDetailsState) => ({ ...state, loading: true }),
-  LOAD_HERO_SUCCESS: (state: HeroDetailsState, { hero }: { hero: Hero }) => ({
+export const loadHeroRequest = action(
+  'LOAD_HERO_REQUEST',
+  (state: HeroDetailsState) => ({
     ...state,
-    loading: false,
-    hero,
-  }),
-  LOAD_HERO_FAILURE: (state: HeroDetailsState, { error }: { error: Error }) => ({
-    ...state,
-    loading: false,
-    error,
-  }),
-};
+    loading: true
+  })
+);
 
-// Actions with integrated handlers
-export const loadHeroRequest = action('heroDetails/LOAD_HERO_REQUEST', actionHandlers.LOAD_HERO_REQUEST);
-export const loadHeroSuccess = action('heroDetails/LOAD_HERO_SUCCESS', actionHandlers.LOAD_HERO_SUCCESS);
-export const loadHeroFailure = action('heroDetails/LOAD_HERO_FAILURE', actionHandlers.LOAD_HERO_FAILURE);
+export const loadHeroSuccess = action(
+  'LOAD_HERO_SUCCESS',
+  (state: HeroDetailsState, { hero }: { hero: Hero }) => ({
+    ...state,
+    loading: false,
+    hero
+  })
+);
+
+export const loadHeroFailure = action(
+  'LOAD_HERO_FAILURE',
+  (state: HeroDetailsState, { error }: { error: Error }) => ({
+    ...state,
+    loading: false,
+    error
+  })
+);
 
 export const loadHero = action((id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
-    dispatch(loadHeroRequest());
+    dispatch(heroDetailsModule.actions.loadHeroRequest());
     try {
       const hero = await firstValueFrom(heroService.getHero(id));
-      dispatch(addMessage(`HeroService: fetched hero id=${id}`));
-      dispatch(loadHeroSuccess({ hero }));
+      dispatch(messagesModule.actions.addMessage(`HeroService: fetched hero id=${id}`));
+      dispatch(heroDetailsModule.actions.loadHeroSuccess({ hero }));
     } catch (error) {
-      dispatch(loadHeroFailure({ error }));
+      dispatch(heroDetailsModule.actions.loadHeroFailure({ error }));
     }
   });
 
@@ -55,11 +63,10 @@ export const loadHero = action((id: number) => async (dispatch: any, getState: a
 export const feature = featureSelector<HeroDetailsState>(slice);
 export const heroSelector = selector(feature, (state) => state.hero);
 
-export const heroDetailsModule = {
+export const heroDetailsModule = createModule({
   slice,
-  state: initialState,
-  actionHandlers,
+  initialState,
   actions: { loadHeroRequest, loadHeroSuccess, loadHeroFailure, loadHero },
   selectors: { heroSelector },
   dependencies: { heroService: new HeroService() }
-} as FeatureModule;
+});

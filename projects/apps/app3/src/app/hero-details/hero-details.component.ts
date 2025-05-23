@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { Hero } from '../hero';
-import { heroSelector, loadHero } from './hero-details.slice';
+import { heroSelector, loadHero, heroDetailsModule } from './hero-details.slice';
 import { store } from '../app.module';
 import { Stream } from '@actioncrew/streamix';
 import { map, Subscription, tap } from 'rxjs';
@@ -23,11 +23,11 @@ export class HeroDetailsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.hero$ = store.select(heroSelector());
+    this.hero$ = store.select(heroDetailsModule.selectors.heroSelector());
 
     this.subscription = this.route.paramMap.pipe(
       map(params => Number(params.get('id'))),
-      tap(id => store.dispatch(loadHero(id)))
+      tap(id => store.dispatch(heroDetailsModule.actions.loadHero(id)))
     ).subscribe();
   }
 

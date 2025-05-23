@@ -1,4 +1,4 @@
-import { action, featureSelector, selector, FeatureModule } from "@actioncrew/actionstack";
+import { action, featureSelector, selector, FeatureModule, createModule } from "@actioncrew/actionstack";
 
 // --- Slice name
 export const slice = "messages";
@@ -13,21 +13,23 @@ export const initialState: MessagesState = {
   messages: [],
 };
 
-// --- Action handlers (no reducer needed)
-const actionHandlers = {
-  ADD_MESSAGE: (state: MessagesState, { message }: any) => ({
+// --- Action creators with integrated handlers
+export const addMessage = action(
+  "ADD_MESSAGE",
+  (state: MessagesState, { message }: any) => ({
     ...state,
     messages: [...state.messages, message],
   }),
-  CLEAR_MESSAGES: (state: MessagesState) => ({
+  (message: string) => ({ message })
+);
+
+export const clearMessages = action(
+  "CLEAR_MESSAGES",
+  (state: MessagesState) => ({
     ...state,
     messages: [],
-  }),
-};
-
-// --- Action creators with integrated handlers
-export const addMessage = action("messages/ADD_MESSAGE", actionHandlers.ADD_MESSAGE, (message: string) => ({ message }));
-export const clearMessages = action("messages/CLEAR_MESSAGES", actionHandlers.CLEAR_MESSAGES);
+  })
+);
 
 // --- Selectors
 export const feature = featureSelector<MessagesState>(slice);
@@ -35,10 +37,9 @@ export const selectMessages = selector(feature, (state) => state.messages);
 export const selectMessageCount = selector(feature, (state) => state.messages.length);
 
 // --- Feature module export
-export const messagesModule = {
+export const messagesModule = createModule({
   slice,
-  state: initialState,
-  actionHandlers,
+  initialState,
   actions: {
     addMessage,
     clearMessages,
@@ -50,4 +51,4 @@ export const messagesModule = {
   dependencies: {
 
   }
-} as FeatureModule;
+});

@@ -278,10 +278,8 @@ export interface FeatureModule<
   Dependencies = any
 > {
   slice: string;
-  state: State;
-  actionHandlers: {
-    [K in ActionTypes]?: ActionHandler<State, any>;
-  };
+  initialState: State;
+  actionHandlers: Map<ActionTypes, ActionHandler<State, any>>;
   actions: Actions;
   selectors: Selectors;
   dependencies?: Dependencies;
@@ -308,10 +306,9 @@ export type MainModule =  Omit<FeatureModule, "slice"> & {
  */
 export const defaultMainModule = {
   slice: "main" as "main",
-  //reducer: (state: any = {}) => state as Reducer,
-  state: {},
+  initialState: {},
   actions: {},
-  actionHandlers: {},
+  actionHandlers: new Map(),
   selectors: {},
   metaReducers: [],
   dependencies: {}

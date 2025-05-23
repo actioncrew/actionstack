@@ -1,28 +1,11 @@
-import { action, featureSelector, selector, FeatureModule } from '@actioncrew/actionstack';
+import { messagesModule } from './../messages/messages.slice';
+import { action, featureSelector, selector, FeatureModule, createModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
 import { HeroService } from '../hero.service';
 
 export const slice = "dashboard";
-
-// Action handlers (replaces reducer)
-const actionHandlers = {
-  LOAD_HEROES_REQUEST: (state: DashboardState) => ({
-    ...state,
-    loading: true
-  }),
-  LOAD_HEROES_SUCCESS: (state: DashboardState, { heroes }: { heroes: Hero[] }) => ({
-    ...state,
-    loading: false,
-    heroes
-  }),
-  LOAD_HEROES_FAILURE: (state: DashboardState, { error }: { error: Error }) => ({
-    ...state,
-    loading: false,
-    error
-  })
-};
 
 // Typed state interface
 export interface DashboardState {
@@ -39,30 +22,41 @@ export const initialState: DashboardState = {
 
 // Action creators with integrated handlers
 export const loadHeroesRequest = action(
-  'dashboard/LOAD_HEROES_REQUEST',
-  actionHandlers.LOAD_HEROES_REQUEST
+  'LOAD_HEROES_REQUEST',
+  (state: DashboardState) => ({
+    ...state,
+    loading: true
+  })
 );
 
 export const loadHeroesSuccess = action(
-  'dashboard/LOAD_HEROES_SUCCESS',
-  actionHandlers.LOAD_HEROES_SUCCESS
+  'LOAD_HEROES_SUCCESS',
+  (state: DashboardState, { heroes }: { heroes: Hero[] }) => ({
+    ...state,
+    loading: false,
+    heroes
+  })
 );
 
 export const loadHeroesFailure = action(
-  'dashboard/LOAD_HEROES_FAILURE',
-  actionHandlers.LOAD_HEROES_FAILURE
+  'LOAD_HEROES_FAILURE',
+  (state: DashboardState, { error }: { error: Error }) => ({
+    ...state,
+    loading: false,
+    error
+  })
 );
 
 // Thunk remains similar but with better typing
 export const loadHeroes = action(
   () => async (dispatch: any, getState: any, { heroService }: any) => {
-    dispatch(loadHeroesRequest());
+    dispatch(dashboardModule.actions.loadHeroesRequest());
     try {
       const heroes = await firstValueFrom(heroService.getHeroes());
-      dispatch(loadHeroesSuccess({ heroes }));
-      dispatch(addMessage('HeroService: fetched heroes'));
+      dispatch(dashboardModule.actions.loadHeroesSuccess({ heroes }));
+      dispatch(messagesModule.actions.addMessage('HeroService: fetched heroes'));
     } catch (error) {
-      dispatch(loadHeroesFailure({ error }));
+      dispatch(dashboardModule.actions.loadHeroesFailure({ error }));
       throw error;
     }
   }
@@ -76,10 +70,9 @@ export const selectTopHeroes = selector(
 );
 
 // Export for registration
-export const dashboardModule = {
+export const dashboardModule = createModule({
   slice,
-  state: initialState,
-  actionHandlers,
+  initialState,
   actions: {
     loadHeroesRequest,
     loadHeroesSuccess,
@@ -92,4 +85,4 @@ export const dashboardModule = {
   dependencies: {
     heroService: new HeroService()
   }
-} as FeatureModule;
+});

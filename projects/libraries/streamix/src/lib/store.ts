@@ -166,13 +166,13 @@ export function createStore<T = any>(
   // Configure store pipeline
   let pipeline = {
     // reducer: combineReducers({ [main.slice!]: main.reducer }),
-    state: main.state,
+    state: main.initialState,
     dependencies: main.dependencies,
     strategy: settings.exclusiveActionProcessing ? 'exclusive' : 'concurrent',
   };
 
-  let state = pipeline.state;
-  let currentState = createBehaviorSubject<T>(state);
+  let state = pipeline.state as T;
+  let currentState = createBehaviorSubject<T>(state as T);
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
@@ -200,7 +200,7 @@ export function createStore<T = any>(
 
       // Update only the slice state
       state = setProperty(state, sliceName, newSliceState);
-      currentState.next(state);
+      currentState.next(state as T);
       return;
     }
 
@@ -343,14 +343,14 @@ export function createStore<T = any>(
         modules = [...modules, module];
 
         // Register initial state
-        if (module.state !== undefined) {
+        if (module.initialState !== undefined) {
           setupState(); // You need to define this helper
         }
 
         // Register action handlers
         modules.forEach(module => {
           Object.entries(module.actionHandlers).forEach(([type, handler]) => {
-            registerActionHandler(`${module.slice}/${type}`, handler!);
+            registerActionHandler(type, handler!);
           });
         });
 
@@ -527,8 +527,8 @@ export function createStore<T = any>(
   const setupState = async (): Promise<any> => {
     // Collect initial state from all modules
     const combinedState = modules.reduce(
-      (acc, mod) => deepMerge(acc, { [mod.slice]: mod.state } ),
-      { [main.slice || 'main']: main.state }
+      (acc, mod) => deepMerge(acc, { [mod.slice]: mod.initialState } ),
+      { [main.slice || 'main']: main.initialState }
     );
 
     let finalState = combinedState;
@@ -548,7 +548,7 @@ export function createStore<T = any>(
       }
     }
 
-    state = finalState;
+    state = finalState as T;
     currentState.next(state);
     return finalState;
   };
