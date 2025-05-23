@@ -27,7 +27,7 @@ export class HeroDetailsComponent implements OnInit {
 
     this.subscription = this.route.paramMap.pipe(
       map(params => Number(params.get('id'))),
-      tap(id => store.dispatch(heroDetailsModule.actions.loadHero(id)))
+      tap(id => store.dispatch(loadHero(id)))
     ).subscribe();
   }
 

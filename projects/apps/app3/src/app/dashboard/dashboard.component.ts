@@ -23,7 +23,7 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    store.dispatch(dashboardModule.actions.loadHeroes());
+    store.dispatch(loadHeroes());
   }
 
   ngOnDestroy(): void {

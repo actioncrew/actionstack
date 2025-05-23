@@ -66,7 +66,7 @@ export const heroSelector = selector(feature, (state) => state.hero);
 export const heroDetailsModule = createModule({
   slice,
   initialState,
-  actions: { loadHeroRequest, loadHeroSuccess, loadHeroFailure, loadHero },
+  actions: { loadHeroRequest, loadHeroSuccess, loadHeroFailure },
   selectors: { heroSelector },
   dependencies: { heroService: new HeroService() }
 });

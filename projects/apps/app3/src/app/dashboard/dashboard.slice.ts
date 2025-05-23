@@ -77,7 +77,6 @@ export const dashboardModule = createModule({
     loadHeroesRequest,
     loadHeroesSuccess,
     loadHeroesFailure,
-    loadHeroes
   },
   selectors: {
     selectTopHeroes
