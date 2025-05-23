@@ -582,7 +582,6 @@ export function createStore<T = any>(
   const initializeStore = (storeInstance: Store<any>) => {
     lock
       .acquire()
-      .then(() => loadModule(systemModule))
       .then(() => {
         // Bind system actions using the store's dispatch method
         sysActions = bindActionCreators(
