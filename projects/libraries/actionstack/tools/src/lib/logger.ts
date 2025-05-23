@@ -219,9 +219,9 @@ const createLogger = (options: CreateLoggerOptions = {}) => {
   if (logger !== 'undefined') {
     const logBuffer: LogEntry[] = [];
 
-    loggerCreator = ({ getState }: any) => (next: any) => async (action: any) => {
+    loggerCreator = (api: { getState : any }) => (next: any) => async (action: any) => {
       // Exit early if predicate function returns 'false'
-      if (typeof predicate === 'function' && !predicate(getState, action)) {
+      if (typeof predicate === 'function' && !predicate(api.getState, action)) {
         return await next(action);
       }
 
@@ -231,7 +231,7 @@ const createLogger = (options: CreateLoggerOptions = {}) => {
 
       logEntry.started = timer.now();
       logEntry.startedTime = new Date();
-      logEntry.prevState = stateTransformer!(getState());
+      logEntry.prevState = stateTransformer!(api.getState());
       logEntry.action = action;
 
       let returnedValue;
@@ -246,7 +246,7 @@ const createLogger = (options: CreateLoggerOptions = {}) => {
       }
 
       logEntry.took = timer.now() - logEntry.started;
-      logEntry.nextState = stateTransformer!(getState());
+      logEntry.nextState = stateTransformer!(api.getState());
 
       printBuffer(logBuffer, loggerOptions);
       logBuffer.length = 0;

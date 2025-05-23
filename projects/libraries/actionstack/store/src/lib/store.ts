@@ -63,7 +63,7 @@ export type Store<T = any> = {
   select: <R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any) => Observable<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
-  getMiddlewareAPI: () => any;
+  middlewareAPI: MiddlewareAPI;
   starter: Middleware;
 };
 
@@ -459,14 +459,14 @@ export function createStore<T = any>(
   /**
    * Creates the middleware API object for use in the middleware pipeline.
    */
-  const getMiddlewareAPI = () => ({
+  const middlewareAPI = {
     getState: (slice?: any) => getState(slice),
     dispatch: (action: any) => dispatch(action),
     dependencies: () => pipeline.dependencies,
     strategy: () => pipeline.strategy,
     lock: lock,
     stack: stack,
-  } as MiddlewareAPI);
+  } as MiddlewareAPI;
 
   // Apply enhancer if provided
   if (typeof enhancer === "function") {
@@ -498,13 +498,13 @@ export function createStore<T = any>(
   sysActions.storeInitialized();
 
   return {
-    starter,
     dispatch,
     getState,
     readSafe,
     select,
     loadModule,
     unloadModule,
-    getMiddlewareAPI,
+    starter,
+    middlewareAPI,
   } as Store<any>;
 }
