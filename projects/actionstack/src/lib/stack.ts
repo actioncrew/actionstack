@@ -1,4 +1,5 @@
-import { createBehaviorSubject, Stream } from '@actioncrew/streamix';
+import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
+import { Observable } from 'rxjs/internal/Observable';
 import { Action, AsyncAction } from './types';
 
 /**
@@ -67,7 +68,7 @@ export type ExecutionStack = {
   findLast: (condition: (element: Instruction) => boolean) => Instruction | undefined;
   waitForEmpty: () => Promise<Instruction[]>;
   waitForIdle: () => Promise<Instruction[]>;
-  stream: Stream<Instruction[]>;
+  stream: Observable<Instruction[]>;
 }
 
 /**
@@ -77,7 +78,7 @@ export type ExecutionStack = {
  */
 export const createExecutionStack = () => {
   let currentStack: Instruction[] = [];
-  const stack$ = createBehaviorSubject<Instruction[]>([]);
+  const stack$ = new BehaviorSubject<Instruction[]>([]);
 
   return {
     /**
@@ -164,7 +165,7 @@ export const createExecutionStack = () => {
     /**
      * Exposes the underlying Stream stream for external subscription.
      */
-    get stream(): Stream<Instruction[]> {
+    get stream(): Observable<Instruction[]> {
       return stack$;
     },
   };
@@ -177,7 +178,7 @@ export const createExecutionStack = () => {
  * @param predicate A predicate function to evaluate each emitted value.
  * @returns A promise that resolves when the condition is met.
  */
-function waitFor<T>(obs: Stream<T>, predicate: (value: T) => boolean): Promise<T> {
+function waitFor<T>(obs: Observable<T>, predicate: (value: T) => boolean): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const subscription = obs.subscribe({
       next: value => {
