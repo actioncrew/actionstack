@@ -55,10 +55,10 @@ function createFeatureSelector<U = any, T = any> (
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 function createSelector<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
+  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -76,8 +76,8 @@ function createSelector<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>) => {
-      const trackable = new Observable<U>((observer: Observer<U | undefined>) => {
-        let sliceState$: Observable<U>;
+      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
+        let sliceState$: Observable<U | undefined>;
         if (featureSelector$ === "@global") {
           sliceState$ = state$ as any;
         } else {
@@ -120,7 +120,7 @@ function createSelector<U = any, T = any>(
         return () => subscription.unsubscribe();
       });
 
-      return trackable as Observable<U>;
+      return trackable as Observable<U | undefined>;
     };
   };
 }
@@ -143,10 +143,10 @@ function createSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
+  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -164,7 +164,7 @@ function createSelectorAsync<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>) => {
-      const trackable = new Observable<U>((observer: Observer<U | undefined>) => {
+      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
 
         let unsubscribed = false;
         let didCancel = false;
