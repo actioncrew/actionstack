@@ -42,7 +42,7 @@ async function deleteFiles(filePaths) {
   }
 }
 
-let allFiles = getAllFiles("./dist/streamix");
+let allFiles = getAllFiles("./dist/actionstack");
 
 let maps = allFiles.filter(path => path.match(/\.map$/));
 await deleteFiles(maps);
@@ -51,7 +51,7 @@ let js = allFiles.filter(path => path.match(/\.[mc]?js$/));
 // await minifyFiles(js);
 
 let definitions = allFiles.filter(path => !path.includes('@actioncrew') && path.match(/\.d\.ts$/));
-await deleteFiles(definitions);
+// await deleteFiles(definitions);
 
 fs.rmSync('./dist/streamix/esm2020', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/fesm2015', {recursive: true, force: true});

@@ -22,9 +22,9 @@ export {
  */
 export function createFeatureSelector<U = any, T = any> (
   slice: keyof T | string[]
-): (state$: Observable<T>) => Observable<U | undefined> {
+): (state$: Observable<T>) => Observable<U> {
   let lastValue: U | undefined;
-  return (source: Observable<T>) => new Observable<U | undefined>(subscriber => {
+  return (source: Observable<T>) => new Observable<U>(subscriber => {
     subscriber.next(lastValue!);
     const subscription = source.subscribe((state: T) => {
       const selectedValue = (Array.isArray(slice)
@@ -45,7 +45,7 @@ export function createFeatureSelector<U = any, T = any> (
  *
  * @param featureSelector$ - This can be either:
  *                             * A selector function that retrieves a slice of the state based on the entire state object.
- *                             * The string "*" indicating the entire state object should be used.
+ *                             * The string "@global" indicating the entire state object should be used.
  * @param selectors - This can be either:
  *                    * A single selector function that takes the state slice and optional props as arguments.
  *                    * An array of selector functions, each taking the state slice and a corresponding prop (from props argument) as arguments.
@@ -55,10 +55,10 @@ export function createFeatureSelector<U = any, T = any> (
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 export function createSelector<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U>) | "*",
+  featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<keyof U | undefined> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -76,9 +76,9 @@ export function createSelector<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<keyof U | undefined>((observer: Observer<keyof U | undefined>) => {
+      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
         let sliceState$: Observable<U | undefined>;
-        if (featureSelector$ === "*") {
+        if (featureSelector$ === "@global") {
           sliceState$ = state$ as any;
         } else {
           sliceState$ = (featureSelector$ as Function)(state$);
@@ -121,7 +121,7 @@ export function createSelector<U = any, T = any>(
       });
 
       tracker?.setStatus(trackable, true);
-      return trackable as Observable<keyof U | undefined>;
+      return trackable as Observable<U>;
     };
   };
 }
@@ -134,7 +134,7 @@ export function createSelector<U = any, T = any>(
  *
  * @param featureSelector$ - This can be either:
  *                             * A selector function that retrieves a slice of the state based on the entire state object.
- *                             * The string "*" indicating the entire state object should be used.
+ *                             * The string "@global" indicating the entire state object should be used.
  * @param selectors - This can be either:
  *                    * A single selector function that takes the state slice and optional props as arguments and can return a Promise or Observable.
  *                    * An array of selector functions, each taking the state slice and a corresponding prop (from props argument) as arguments and can return a Promise or Observable.
@@ -144,10 +144,10 @@ export function createSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 export function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "*",
+  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<keyof U | undefined> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -165,14 +165,14 @@ export function createSelectorAsync<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<keyof U | undefined>((observer: Observer<keyof U | undefined>) => {
+      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
 
         let unsubscribed = false;
         let didCancel = false;
 
         const runSelectors = async (sliceState: any) => {
           if (sliceState === undefined) {
-            observer.next(undefined as any);
+            observer.next(undefined);
             return;
           }
 
@@ -230,7 +230,7 @@ export function createSelectorAsync<U = any, T = any>(
           }
         };
 
-        const subscription = (featureSelector$ === "*" ? state$ : (featureSelector$(state$)) as any).subscribe({
+        const subscription = (featureSelector$ === "@global" ? state$ : (featureSelector$(state$)) as any).subscribe({
           next: (sliceState: any) => {
             runSelectors(sliceState);
             tracker?.setStatus(trackable, true);
