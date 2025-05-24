@@ -35,7 +35,7 @@ export interface Action<T = any> {
 export interface AsyncAction<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
   (dispatch: (action: Action | AsyncAction<TState, TDependencies>) => Promise<void>,
    getState: () => TState,
-   dependencies: TDependencies): Promise<any>;
+   dependencies: TDependencies): Promise<void>;
 }
 
 /**
@@ -60,6 +60,31 @@ export type ActionCreator<TPayload = any, TState = any, TDependencies extends Re
   type: string;
   match(action: Action<TPayload>): boolean;
 }
+
+/**
+ * @template {string} [T=string] - The action type.
+ * @template {AsyncAction} [Thunk=AsyncAction] - The type of the thunk function.
+ * @template {any[]} [Args=any[]] - Arguments for the thunk creator.
+ *
+ * @typedef {object} ThunkCreator
+ * @property {(...args: Args) => Thunk} callSignature - Invoking with `Args` returns the {@link AsyncAction} (thunk).
+ * @property {T} type - The unique string identifier for this thunk.
+ * @property {() => T} toString - Returns the string type.
+ * @property {(action: Action<any> | AsyncAction) => boolean} match - Checks if an action or thunk matches this type.
+ * @property {boolean} isThunk - Flag set to `true` for thunk creators.
+ *
+ * @description
+ * A specialized action creator for asynchronous operations. When called, it returns an {@link AsyncAction} (thunk)
+ * that contains the async logic and receives `dispatch`, `getState`, and `dependencies` when executed by middleware.
+ * It also includes static properties for identification and matching.
+ */
+export type ThunkCreator<T extends string = string, Thunk extends AsyncAction = AsyncAction, Args extends any[] = any[]> = {
+  (...args: Args): Thunk;
+  type: T;
+  toString: () => T;
+  match: (action: Action<any> | AsyncAction) => boolean;
+  isThunk: boolean;
+};
 
 /**
  * @template T - The type of the state slice that this handler operates on.

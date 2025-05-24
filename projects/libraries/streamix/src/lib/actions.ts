@@ -1,67 +1,30 @@
-import { Action, ActionCreator, ActionHandler, isAction, kindOf } from './types';
+import { Action, ActionCreator, ActionHandler, AsyncAction, isAction, kindOf, ThunkCreator } from './types';
 
-export { createAction as action };
+export { createAction as action, createThunk as thunk };
 
 export const actionHandlers = new Map<string, ActionHandler>();
 export const actionCreators = new Map<string, (...args: any[]) => Action>();
 
 /**
- * Creates an action creator function for Actionstack actions, supporting both synchronous and asynchronous use cases.
+ * Creates a **synchronous** action creator function.
+ * This action creator will generate a plain action object when called.
  *
- * @param {string|Function} typeOrThunk   - A string representing the action type for synchronous actions,
- *                                          or a function representing a thunk for asynchronous actions.
- * @param {Function} [payloadCreator]     - (Optional) A function to generate the payload for the action.
- * @returns {Function}                    - An action creator function that generates action objects or dispatchable thunks.
- *
- * This function allows the creation of action creators for both synchronous and asynchronous workflows:
- *
- * - **Synchronous Actions**: When `typeOrThunk` is a string, the returned action creator generates objects
- *   with a `type` property and optionally a `payload`, `meta`, and `error` property.
- *   - If a `payloadCreator` is provided, it is used to generate the payload.
- *   - If no `payloadCreator` is provided, the first argument passed to the action creator is used as the payload.
- *
- * - **Asynchronous Actions (Thunks)**: When `typeOrThunk` is a function, the returned action creator creates
- *   a dispatchable thunk. The thunk receives `dispatch`, `getState`, and optional `dependencies` as arguments,
- *   allowing for asynchronous logic.
- *   - Errors in the thunk are caught and logged with a warning.
- *
- * **Example Usage:**
- *
- * Synchronous:
- * ```typescript
- * const increment = createAction('INCREMENT', (amount) => ({ amount }));
- * dispatch(increment(1));
- * // Output: { type: 'INCREMENT', payload: { amount: 1 } }
- * ```
- *
- * Asynchronous:
- * ```typescript
- * const fetchData = createAction(async (dispatch, getState) => {
- *   const data = await fetch('/api/data');
- *   dispatch({ type: 'DATA_FETCHED', payload: await data.json() });
- * });
- * dispatch(fetchData);
- * ```
- *
- * Warnings:
- * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
- * - For thunks, an error in execution logs a warning.
+ * @param type The string action type (e.g., 'USERS/ADD_USER').
+ * @param handler (Optional) A SliceActionHandler function to handle this action in a reducer.
+ * @param payloadCreator (Optional) A function to generate the action's payload.
+ * If not provided, the first argument to the action creator becomes the payload.
+ * @returns A RegularActionCreator function.
  */
-export function createAction(typeOrThunk: string | Function, handler?: ActionHandler, payloadCreator?: Function): ActionCreator {
-  function actionCreator(...args: any[]) {
-    let action: Action = {
-      type: typeOrThunk as string,
-    };
+export function createAction<P = any, T extends string = string, Args extends any[] = any[]>(
+  type: T,
+  handler?: ActionHandler<P, P>,
+  payloadCreator?: (...args: Args) => any
+): ActionCreator<P, T, Args> {
 
-    if (typeof typeOrThunk === 'function') {
-      return async (dispatch: Function, getState: Function, dependencies: any) => {
-        try {
-          return await typeOrThunk(...args)(dispatch, getState, dependencies);
-        } catch (error: any) {
-          console.warn(`Error in action: ${error.message}. If dependencies object provided does not contain required property, it is possible that the slice name obtained from the tag name does not match the one declared in the slice file.`);
-        }
-      }
-    } else if (payloadCreator) {
+  const actionCreator: ActionCreator<P, T, Args> = ((...args: Args) => {
+    let action: Action<P> = { type };
+
+    if (payloadCreator) {
       let result = payloadCreator(...args);
       if (result === undefined || result === null) {
         console.warn('payloadCreator did not return an object. Did you forget to initialize an action with params?');
@@ -82,14 +45,69 @@ export function createAction(typeOrThunk: string | Function, handler?: ActionHan
     }
 
     return action;
-  }
+  }) as ActionCreator<P, T, Args>; // Cast to the specific ActionCreator type
 
-  actionCreator.handler = handler ?? (() => {});
-  actionCreator.toString = () => `${typeOrThunk}`;
-  actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
-  actionCreator.match = (action: any) => isAction(action) && action.type === typeOrThunk;
+  // Attach static properties and methods
+  actionCreator.handler = handler ?? (() => {}); // Assign handler
+  actionCreator.type = type;
+  actionCreator.toString = () => type;
+  actionCreator.match = (action: any) => isAction(action) && action.type === type;
 
   return actionCreator;
+}
+
+/**
+ * Creates an **asynchronous** (thunk) action creator function.
+ * This action creator will return an `AsyncAction` (thunk) when called.
+ *
+ * @param type The string action type for the thunk (e.g., 'USERS/FETCH_PROFILE').
+ * @param thunk The actual AsyncAction function that contains the asynchronous logic.
+ * @returns A ThunkCreator function.
+ */
+export function createThunk<
+  T extends string = string,
+  // ThunkBody is the actual AsyncAction function: (dispatch, getState, dependencies) => result
+  ThunkBody extends AsyncAction = AsyncAction,
+  // Args are the parameters passed to the *outer* thunk creator function
+  Args extends any[] = any[]
+>(
+  type: T,
+  thunkBodyCreator: (...args: Args) => ThunkBody // This is the function that returns the AsyncAction
+): ThunkCreator<T, ThunkBody, Args> {
+
+  // The `thunkCreator` is the outer function that consumers will call
+  // (e.g., `WorkspaceUserById('some-id')`)
+  const thunkCreator: ThunkCreator<T, ThunkBody, Args> = ((...args: Args) => {
+
+    // When `thunkCreator(...args)` is called, it returns the actual `AsyncAction` (thunk)
+    // which captures `args` in its closure.
+    const actualThunk: ThunkBody = ((dispatch, getState, dependencies) => {
+      try {
+        // Execute the `thunkBodyCreator` with `args` to get the specific thunk instance,
+        // then invoke that thunk with dispatch, getState, and dependencies.
+        return thunkBodyCreator(...args)(dispatch, getState, dependencies);
+      } catch (error: any) {
+        console.warn(`Error in thunk action "${type}": ${error.message}.`);
+        throw error; // Re-throw to propagate the error
+      }
+    }) as ThunkBody; // Cast to ensure correct type inference for ThunkBody
+
+    // Attach properties to the actual thunk function for debugging/matching
+    (actualThunk as any).type = type;
+    (actualThunk as any).toString = () => type;
+    (actualThunk as any).match = (action: any) => isAction(action) && action.type === type;
+    (actualThunk as any).isThunk = true; // Mark as thunk for identification
+
+    return actualThunk;
+  }) as ThunkCreator<T, ThunkBody, Args>; // Cast to the ThunkCreator type
+
+  // Attach static properties to the thunkCreator itself
+  thunkCreator.type = type;
+  thunkCreator.toString = () => type;
+  thunkCreator.match = (action: any) => isAction(action) && action.type === type;
+  thunkCreator.isThunk = true; // Mark this creator as a thunk creator
+
+  return thunkCreator;
 }
 
 /**

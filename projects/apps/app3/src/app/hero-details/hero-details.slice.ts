@@ -1,5 +1,5 @@
 import { messagesModule } from './../messages/messages.slice';
-import { createModule } from '@actioncrew/actionstack';
+import { createModule, thunk } from '@actioncrew/actionstack';
 import { action, featureSelector, selector, FeatureModule } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
@@ -48,7 +48,7 @@ export const loadHeroFailure = action(
   })
 );
 
-export const loadHero = action((id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
+export const loadHero = thunk("LOAD_HEROES", (id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
     dispatch(heroDetailsModule.actions.loadHeroRequest());
     try {
       const hero = await firstValueFrom(heroService.getHero(id));
