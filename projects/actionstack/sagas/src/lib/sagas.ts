@@ -30,8 +30,15 @@ export const createSagasMiddleware = ({
     dispatch(actionWithSource);
   };
 
-  const sagaMiddleware = ({ dispatch, getState, dependencies, stack }: any) => (next: any) => async (action: Action<any>) => {
-    middlewareDispatch = dispatch; middlewareGetState = getState;
+  const sagaMiddleware = (api: {
+    dispatch: Function;
+    getState: () => any;
+    dependencies: any;
+    strategy: () => string;
+    lock: any;
+    stack: any;
+  }) => (next: any) => async (action: Action<any>) => {
+    middlewareDispatch = api.dispatch; middlewareGetState = api.getState;
 
     // Proceed to the next action
     const result = await next(action);
@@ -49,12 +56,12 @@ export const createSagasMiddleware = ({
             const op = createInstruction.saga(saga);
             const task: Task = runSaga({ context, channel, dispatch: customDispatch(middlewareDispatch)(op), getState: middlewareGetState }, (function*(): Generator<any, void, any> {
               try {
-                stack.push(op); Object.assign(context, dependencies());
+                api.stack.push(op); Object.assign(context, api.dependencies());
                 yield call(saga);
               } catch (error) {
                 console.error('Saga error:', error);
               } finally {
-                stack.pop(op);
+                api.stack.pop(op);
                 if (yield cancelled()) {
                   return;
                 }

@@ -595,7 +595,7 @@ export class Store {
     // Define starter and middleware APIs
     const middlewareAPI = {
       getState: () => this.getState(),
-      dispatch: async (action: any) => await dispatch(action),
+      dispatch: async (action: any) => await this.dispatch(action),
       dependencies: () => this.pipeline.dependencies,
       strategy: () => this.pipeline.strategy,
       lock: this.lock,

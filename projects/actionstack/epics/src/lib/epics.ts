@@ -182,7 +182,14 @@ export const createEpicsMiddleware = () => {
   let currentState = new Subject<any>();
   let subscriptions: Subscription[] = [];
 
-  return ({ dispatch, getState, dependencies, strategy, stack }: any) => (next: any) => async (action: any) => {
+  return (api: {
+    dispatch: Function;
+    getState: () => any;
+    dependencies: any;
+    strategy: () => string;
+    lock: any;
+    stack: any;
+  }) => (next: any) => async (action: any) => {
     // Proceed to the next action
     const result = await next(action);
 
@@ -211,11 +218,11 @@ export const createEpicsMiddleware = () => {
       let subscription: Subscription;
       // Create a new subscription
       subscription = currentAction.pipe(
-        () => (strategy === "concurrent" ? merge : concat)(stack, ...activeEpics)(currentAction, currentState, dependencies())
+        () => (api.strategy() === "concurrent" ? merge : concat)(api.stack, ...activeEpics)(currentAction, currentState, api.dependencies())
       ).subscribe({
         next: (childAction: any) => {
           if (isAction(childAction)) {
-            dispatch(childAction);
+            api.dispatch(childAction);
           }
         },
         error: (err: any) => {
@@ -237,7 +244,7 @@ export const createEpicsMiddleware = () => {
     }
 
     currentAction.next(action);
-    currentState.next(getState());
+    currentState.next(api.getState());
 
     return result;
   };

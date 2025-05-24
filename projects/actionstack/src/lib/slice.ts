@@ -4,7 +4,7 @@ import { Subscription } from 'rxjs/internal/Subscription';
 
 import { StoreModule } from './module';
 import { Store } from './store';
-import { Action, Reducer, SliceStrategy } from './types';
+import { Action, AsyncAction, Reducer, SliceStrategy } from './types';
 
 /**
  * Interface defining configuration options for a Slice.
@@ -71,7 +71,7 @@ export class Slice implements OnDestroy {
    *
    * @param action - The action to dispatch.
    */
-  dispatch(action: Action): void {
+  dispatch(action: Action | AsyncAction): void {
     this.store.dispatch(action);
   }
 
