@@ -110,7 +110,7 @@ const systemModule = createModule({
       (state: SystemState, payload: { module: { slice: string } }) => ({
         ...state,
         _modules: [...state._modules, payload.module.slice]
-      })
+      }),
     ),
 
     moduleUnloaded: createAction(

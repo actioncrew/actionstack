@@ -9,49 +9,44 @@ export const actionCreators = new Map<string, (...args: any[]) => Action>();
  * Creates a **synchronous** action creator function.
  * This action creator will generate a plain action object when called.
  *
- * @param type The string action type (e.g., 'USERS/ADD_USER').
- * @param handler (Optional) A SliceActionHandler function to handle this action in a reducer.
+ * @param type The string action type (e.g., 'ADD_USER').
+ * @param handler (Optional) A ActionHandler function to handle this action in a reducer.
  * @param payloadCreator (Optional) A function to generate the action's payload.
  * If not provided, the first argument to the action creator becomes the payload.
- * @returns A RegularActionCreator function.
+ * @returns A ActionCreator function.
  */
-export function createAction<P = any, T extends string = string, Args extends any[] = any[]>(
+export function createAction<
+  P = any,
+  T extends string = string,
+  Args extends any[] = any[]
+>(
   type: T,
-  handler?: ActionHandler<P, P>,
-  payloadCreator?: (...args: Args) => any
+  handler?: ActionHandler<any, P>,
+  payloadCreator?: (...args: Args) => P
 ): ActionCreator<P, T, Args> {
+  const actionCreator = ((...args: Args) => {
+    const result = payloadCreator?.(...args);
+    const action: Action<P> = { type };
 
-  const actionCreator: ActionCreator<P, T, Args> = ((...args: Args) => {
-    let action: Action<P> = { type };
+    if (result !== undefined && result !== null) {
+      action.payload = result;
 
-    if (payloadCreator) {
-      let result = payloadCreator(...args);
-      if (result === undefined || result === null) {
-        console.warn('payloadCreator did not return an object. Did you forget to initialize an action with params?');
+      if (typeof result === 'object') {
+        if ('meta' in result) action.meta = (result as any).meta;
+        if ('error' in result) action.error = (result as any).error;
       }
-
-      // Do not return payload if it is undefined
-      if (result !== undefined && result !== null) {
-        action.payload = result;
-        'meta' in result && (action.meta = result.meta);
-        'error' in result && (action.error = result.error);
-      }
-    }
-    else {
-      // Do not return payload if it is undefined
-      if (args[0] !== undefined) {
-        action.payload = args[0];
-      }
+    } else if (args[0] !== undefined) {
+      action.payload = args[0] as P;
     }
 
     return action;
-  }) as ActionCreator<P, T, Args>; // Cast to the specific ActionCreator type
+  }) as ActionCreator<P, T, Args>;
 
-  // Attach static properties and methods
-  actionCreator.handler = handler ?? (() => {}); // Assign handler
   actionCreator.type = type;
+  actionCreator.handler = handler ?? (() => {});
   actionCreator.toString = () => type;
-  actionCreator.match = (action: any) => isAction(action) && action.type === type;
+  actionCreator.match = (action: any): action is Action<P> =>
+    isAction(action) && action.type === type;
 
   return actionCreator;
 }
