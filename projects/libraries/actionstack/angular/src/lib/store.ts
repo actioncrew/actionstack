@@ -82,8 +82,8 @@ export class Store<T = any> {
     return this.store.unloadModule(featureModule, clearState);
   }
 
-  getMiddlewareAPI() {
-    return this.store.getMiddlewareAPI();
+  get middlewareAPI() {
+    return this.store.middlewareAPI;
   }
 
   get starter() {

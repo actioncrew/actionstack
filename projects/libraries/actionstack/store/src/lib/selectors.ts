@@ -22,9 +22,9 @@ export {
  */
 export function createFeatureSelector<U = any, T = any> (
   slice: keyof T | string[]
-): (state$: Observable<T>) => Observable<U> {
+): (state$: Observable<T>) => Observable<U | undefined> {
   let lastValue: U | undefined;
-  return (source: Observable<T>) => new Observable<U>(subscriber => {
+  return (source: Observable<T>) => new Observable<U | undefined>(subscriber => {
     subscriber.next(lastValue!);
     const subscription = source.subscribe((state: T) => {
       const selectedValue = (Array.isArray(slice)
@@ -58,7 +58,7 @@ export function createSelector<U = any, T = any>(
   featureSelector$: ((state: Observable<T>) => Observable<U>) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<keyof U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -76,8 +76,8 @@ export function createSelector<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<U>((observer: Observer<U>) => {
-        let sliceState$: Observable<U>;
+      const trackable = new Observable<keyof U | undefined>((observer: Observer<keyof U | undefined>) => {
+        let sliceState$: Observable<U | undefined>;
         if (featureSelector$ === "*") {
           sliceState$ = state$ as any;
         } else {
@@ -86,7 +86,7 @@ export function createSelector<U = any, T = any>(
 
         const subscription: Subscription = sliceState$.subscribe(sliceState => {
           if (sliceState === undefined) {
-            observer.next(undefined as U);
+            observer.next(undefined);
           } else if (lastSliceState !== sliceState) {
             lastSliceState = sliceState;
             let selectorResults: U[] | U;
@@ -97,7 +97,7 @@ export function createSelector<U = any, T = any>(
                 // Check if any result is undefined and emit undefined immediately
                 if (selectorResults.some(result => result === undefined)) {
                   subscription.unsubscribe(); // Unsubscribe immediately to prevent further emissions
-                  observer.next(undefined as U);
+                  observer.next(undefined);
                 } else {
                   // If all results are defined, continue with projection or emit results directly
                   observer.next(projection ? projection(selectorResults, projectionProps) : selectorResults);
@@ -106,7 +106,7 @@ export function createSelector<U = any, T = any>(
                 selectorResults = selectors && selectors(sliceState, props);
 
                 if (selectorResults === undefined) {
-                  observer.next(undefined as U);
+                  observer.next(undefined);
                 } else {
                   observer.next(projection ? projection(projectionProps) : selectorResults);
                 }
@@ -121,7 +121,7 @@ export function createSelector<U = any, T = any>(
       });
 
       tracker?.setStatus(trackable, true);
-      return trackable as Observable<U>;
+      return trackable as Observable<keyof U | undefined>;
     };
   };
 }
@@ -144,10 +144,10 @@ export function createSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 export function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U>) | "*",
+  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<keyof U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -165,7 +165,7 @@ export function createSelectorAsync<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<U>((observer: Observer<U>) => {
+      const trackable = new Observable<keyof U | undefined>((observer: Observer<keyof U | undefined>) => {
 
         let unsubscribed = false;
         let didCancel = false;
