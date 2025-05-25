@@ -127,10 +127,9 @@ export function createFeatureSelector<
  * - `R`: the resulting projected type.
  *
  * @template U The selected feature slice type
- * @template T The full state object type
- * @template R The resulting projected output type
+ * @template T The resulting projected output type
  *
- * @param {(state$: Observable<T>) => Observable<U | undefined> | "@global"} featureSelector$
+ * @param {(state$: Observable<any>) => Observable<T | undefined> | "@global"} featureSelector$
  *   Either a selector function that extracts a feature slice observable from the full state observable,
  *   or the string "@global" to indicate the entire state observable should be used.
  *
@@ -142,15 +141,15 @@ export function createFeatureSelector<
  *   A projection function that takes the array of selector results and optional projection props and returns the final projected result,
  *   or an options object (not currently implemented).
  *
- * @returns {(props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<R | undefined>}
- *   A function that takes optional props and projection props, returning a function that takes the state observable and optional tracker,
+ * @returns {(props?: any[] | any, projectionProps?: any) => (state$: Observable<any>) => Observable<U | undefined>}
+ *   A function that takes optional props and projection props, returning a function that takes the state observable
  *   and returns an observable of the projected data.
  */
-function createSelector<U = any, T = any, R = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
+function createSelector<T = any, U = any>(
+  featureSelector$: ((state: Observable<any>) => Observable<T | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>) => Observable<R | undefined> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<any>) => Observable<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -168,8 +167,8 @@ function createSelector<U = any, T = any, R = any>(
 
     let lastSliceState: any;
 
-    return (state$: Observable<T>) => {
-      return new Observable<R | undefined>((observer) => {
+    return (state$: Observable<any>) => {
+      return new Observable<U | undefined>((observer) => {
         const sliceState$: Observable<U | undefined> =
           featureSelector$ === "@global"
             ? (state$ as Observable<any>)
@@ -225,10 +224,9 @@ function createSelector<U = any, T = any, R = any>(
  * that return Promises or Observables, allowing for async computations.
  *
  * @template U The selected feature slice type
- * @template T The full state object type
- * @template R The resulting projected output type
+ * @template T The resulting projected output type
  *
- * @param {(state$: Observable<T>) => Observable<U | undefined> | "@global"} featureSelector$
+ * @param {(state$: Observable<any>) => Observable<T | undefined> | "@global"} featureSelector$
  *   Either a selector function that extracts a feature slice observable from the full state observable,
  *   or the string "@global" to indicate the entire state observable should be used.
  *
@@ -240,15 +238,15 @@ function createSelector<U = any, T = any, R = any>(
  *   A projection function that takes the array of selector results and optional projection props and returns the final projected result,
  *   or an options object (not currently implemented).
  *
- * @returns {(props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<R | undefined>}
- *   A function that takes optional props and projection props, returning a function that takes the state observable and optional tracker,
+ * @returns {(props?: any[] | any, projectionProps?: any) => (state$: Observable<any>) => Observable<U | undefined>}
+ *   A function that takes optional props and projection props, returning a function that takes the state observable
  *   and returns an observable of the projected data.
  */
-function createSelectorAsync<U = any, T = any, R = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
+function createSelectorAsync<T = any, U = any>(
+  featureSelector$: ((state: Observable<any>) => Observable<T | undefined>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>) => Observable<R | undefined> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>) => Observable<U | undefined> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -266,8 +264,8 @@ function createSelectorAsync<U = any, T = any, R = any>(
 
     let lastSliceState: any;
 
-    return (state$: Observable<T>) => {
-      return new Observable<R | undefined>((observer) => {
+    return (state$: Observable<any>) => {
+      return new Observable<U | undefined>((observer) => {
         let unsubscribed = false;
 
         const runSelectors = async (sliceState: any) => {
@@ -307,9 +305,9 @@ function createSelectorAsync<U = any, T = any, R = any>(
           }
         };
 
-        const sliceState$: Observable<U | undefined> =
+        const sliceState$: Observable<T | undefined> =
           featureSelector$ === "@global"
-            ? (state$ as unknown as Observable<U | undefined>)
+            ? (state$ as unknown as Observable<T | undefined>)
             : featureSelector$(state$);
 
         const subscription = sliceState$.subscribe({
