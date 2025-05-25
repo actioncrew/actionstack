@@ -242,24 +242,35 @@ export class Store {
    * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
    * @returns {Observable<any>} An observable stream with the selected value.
    */
-  select<T = any, R = any>(selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>, defaultValue?: any): Observable<R> {
-    let lastValue: any;
-    let selected$ = selector(this.currentState, this.tracker);
+  select<T = any, R = any>(
+    selector: (state$: Observable<T>) => Observable<R>,
+    defaultValue?: R
+  ): Observable<R> {
+    const selected$ = selector(this.currentState);
     this.tracker?.track(selected$);
 
-    return new Observable<R>((subscriber: Observer<R>) => {
+    return new Observable<R>((subscriber) => {
+      let lastValue: R | undefined;
+
       const subscription = selected$.subscribe({
         next: (selectedValue) => {
-          const filteredValue = selectedValue === undefined ? defaultValue : selectedValue;
-          if(filteredValue !== lastValue) {
-            subscriber.next(filteredValue);
-            lastValue = filteredValue;
+          const value = selectedValue === undefined ? defaultValue : selectedValue;
+
+          if (value !== lastValue) {
+            lastValue = value;
+            subscriber.next(value as R);
           }
 
           this.tracker?.setStatus(selected$, true);
         },
-        error: () => this.tracker?.setStatus(selected$, true),
-        complete: () => this.tracker?.complete(selected$)
+        error: (err) => {
+          this.tracker?.setStatus(selected$, true);
+          subscriber.error(err);
+        },
+        complete: () => {
+          this.tracker?.complete(selected$);
+          subscriber.complete();
+        }
       });
 
       return () => subscription.unsubscribe();
