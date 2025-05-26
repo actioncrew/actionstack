@@ -1,3 +1,4 @@
+import { Subscription } from 'rxjs/internal/Subscription';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 import { Subject } from 'rxjs/internal/Subject';
@@ -149,7 +150,7 @@ export function createStore<T = any>(
   };
 
   const currentState = new BehaviorSubject<any>({});
-  const tracker = createTracker();
+  const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
 
@@ -336,8 +337,8 @@ export function createStore<T = any>(
     currentState.next(newState);
 
     if (settings.awaitStatePropagation) {
-      await tracker.allExecuted;
-      tracker.reset();
+      await tracker?.allExecuted;
+      tracker?.reset();
     }
 
     return newState;
@@ -382,37 +383,64 @@ export function createStore<T = any>(
   /**
    * Selects a value from the store's state using the provided selector function.
    */
-  function select<T, R = any>(
-    selector: (obs: Observable<T>, tracker?: Tracker) => Observable<R>,
+  function /**
+   * Selects a value from the store's state using the provided selector function.
+   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
+   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
+   * @returns {Observable<any>} An observable stream with the selected value.
+   */
+  select<T, R = any>(
+    selector: (obs$: Observable<T>, tracker?: Tracker) => Observable<R>,
     defaultValue?: R,
-    tracker?: Tracker,
+    tracker?: Tracker
   ): Observable<R> {
     const subject = new Subject<R>();
-    let selected$ = selector(currentState, tracker);
-    tracker?.track(selected$);
+    let selectedSubscription: Subscription | null = null;
+    let subjectSubscriberCount = 0;
 
-    const subscription = selected$ // Create an inner subscription
-      .subscribe({
-        next: (value) => {
-          const filteredValue = value === undefined ? defaultValue : value;
-          if (filteredValue !== undefined) {
-            subject.next(filteredValue);
-            tracker?.setStatus(selected$, true);
+    const selected$ = selector(currentState, tracker);
+    tracker?.track(subject);
+
+    // Override subject's subscribe to track subscriber count
+    const originalSubscribe = subject.subscribe.bind(subject);
+    subject.subscribe = (...args: any[]) => {
+      // Start selected$ subscription on first subject subscriber
+      if (subjectSubscriberCount === 0) {
+        selectedSubscription = selected$.subscribe({
+          next: (value) => {
+            const v = value === undefined ? defaultValue : value;
+            if (v !== undefined) subject.next(v);
+            tracker?.setStatus(subject, true);
+          },
+          error: (err) => {
+            tracker?.setStatus(subject, true);
+            subject.error(err);
+          },
+          complete: () => {
+            tracker?.complete(subject);
+            subject.complete();
           }
-        },
-        error: (err) => {
-          subject.error(err)
-          tracker?.setStatus(selected$, true);
-        },
-        complete: () => {
-          tracker?.complete(selected$);
-          subject.complete();
-        }
-      });
+        });
+      }
 
-    if (subscription) { // Add inner subscription to the outer subscription
-      subscription.add(subscription);
-    }
+      subjectSubscriberCount++;
+      const subscription = originalSubscribe(...args);
+
+      // Wrap the unsubscribe to track when subscribers leave
+      const originalUnsubscribe = subscription.unsubscribe.bind(subscription);
+      subscription.unsubscribe = () => {
+        originalUnsubscribe();
+        subjectSubscriberCount--;
+
+        // Last subscriber left - cleanup selected$ subscription
+        if (subjectSubscriberCount === 0 && selectedSubscription) {
+          selectedSubscription.unsubscribe();
+          selectedSubscription = null;
+        }
+      };
+
+      return subscription;
+    };
 
     return subject.asObservable();
   }
