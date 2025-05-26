@@ -42,7 +42,7 @@ async function deleteFiles(filePaths) {
   }
 }
 
-let allFiles = getAllFiles("./dist/actionstack");
+let allFiles = getAllFiles("./dist/streamix");
 
 let maps = allFiles.filter(path => path.match(/\.map$/));
 await deleteFiles(maps);
