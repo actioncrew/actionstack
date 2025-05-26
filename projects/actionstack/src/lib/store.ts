@@ -1,3 +1,4 @@
+import { Subscription } from 'rxjs/internal/Subscription';
 import { inject, InjectionToken, Injector, Type } from '@angular/core';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
@@ -242,39 +243,60 @@ export class Store {
    * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
    * @returns {Observable<any>} An observable stream with the selected value.
    */
-  select<T = any, R = any>(
-    selector: (state$: Observable<T>) => Observable<R>,
-    defaultValue?: R
+  select<T, R = any>(
+    selector: (obs$: Observable<T>, tracker?: Tracker) => Observable<R>,
+    defaultValue?: R,
+    tracker?: Tracker
   ): Observable<R> {
-    const selected$ = selector(this.currentState);
-    this.tracker?.track(selected$);
+    const subject = new Subject<R>();
+    let selectedSubscription: Subscription | null = null;
+    let subjectSubscriberCount = 0;
 
-    return new Observable<R>((subscriber) => {
-      let lastValue: R | undefined;
+    const selected$ = selector(this.currentState, tracker);
+    tracker?.track(subject);
 
-      const subscription = selected$.subscribe({
-        next: (selectedValue) => {
-          const value = selectedValue === undefined ? defaultValue : selectedValue;
-
-          if (value !== lastValue) {
-            lastValue = value;
-            subscriber.next(value as R);
+    // Override subject's subscribe to track subscriber count
+    const originalSubscribe = subject.subscribe.bind(subject);
+    subject.subscribe = (...args: any[]) => {
+      // Start selected$ subscription on first subject subscriber
+      if (subjectSubscriberCount === 0) {
+        selectedSubscription = selected$.subscribe({
+          next: (value) => {
+            const v = value === undefined ? defaultValue : value;
+            if (v !== undefined) subject.next(v);
+            tracker?.setStatus(subject, true);
+          },
+          error: (err) => {
+            tracker?.setStatus(subject, true);
+            subject.error(err);
+          },
+          complete: () => {
+            tracker?.complete(subject);
+            subject.complete();
           }
+        });
+      }
 
-          this.tracker?.setStatus(selected$, true);
-        },
-        error: (err) => {
-          this.tracker?.setStatus(selected$, true);
-          subscriber.error(err);
-        },
-        complete: () => {
-          this.tracker?.complete(selected$);
-          subscriber.complete();
+      subjectSubscriberCount++;
+      const subscription = originalSubscribe(...args);
+
+      // Wrap the unsubscribe to track when subscribers leave
+      const originalUnsubscribe = subscription.unsubscribe.bind(subscription);
+      subscription.unsubscribe = () => {
+        originalUnsubscribe();
+        subjectSubscriberCount--;
+
+        // Last subscriber left - cleanup selected$ subscription
+        if (subjectSubscriberCount === 0 && selectedSubscription) {
+          selectedSubscription.unsubscribe();
+          selectedSubscription = null;
         }
-      });
+      };
 
-      return () => subscription.unsubscribe();
-    });
+      return subscription;
+    };
+
+    return subject.asObservable();
   }
 
   /**
