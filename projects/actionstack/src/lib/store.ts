@@ -243,57 +243,97 @@ export class Store {
    * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
    * @returns {Observable<any>} An observable stream with the selected value.
    */
+  /**
+ * Selects a slice of the state by projecting each emitted state value.
+ * The selector runs synchronously on each state emission and pushes the
+ * result into the returned observable.
+ *
+ * Subscription is lazy: the state stream is only subscribed to when the
+ * first subscriber subscribes to the result. Automatically cleans up
+ * when all subscribers unsubscribe.
+ *
+ * @template T - The full state type.
+ * @template R - The selected value type.
+ * @param selector - A function that receives the current state and returns a derived value.
+ * @param defaultValue - An optional default value to emit if selector returns undefined.
+ * @param tracker - Optional tracker used for status tracking of the observable.
+ * @returns An observable that emits the selected value whenever state changes.
+ */
   select<T, R = any>(
-    selector: (obs$: Observable<T>, tracker?: Tracker) => Observable<R>,
+    selector: (state: T, tracker?: Tracker) => R | Promise<R>,
     defaultValue?: R,
     tracker?: Tracker
   ): Observable<R> {
     const subject = new Subject<R>();
-    let selectedSubscription: Subscription | null = null;
-    let subjectSubscriberCount = 0;
+    let subscription: Subscription | null = null;
+    let subscriberCount = 0;
 
-    const selected$ = selector(this.currentState, tracker);
-    tracker?.track(subject);
+    tracker?.track();
 
-    // Override subject's subscribe to track subscriber count
     const originalSubscribe = subject.subscribe.bind(subject);
     subject.subscribe = (...args: any[]) => {
-      // Start selected$ subscription on first subject subscriber
-      if (subjectSubscriberCount === 0) {
-        selectedSubscription = selected$.subscribe({
-          next: (value) => {
-            const v = value === undefined ? defaultValue : value;
-            if (v !== undefined) subject.next(v);
-            tracker?.setStatus(subject, true);
+      if (subscriberCount === 0) {
+        subscription = this.currentState.subscribe({
+          next: (state: T) => {
+            if (state === undefined || state === null) {
+              // Optional: emit defaultValue or skip
+              if (defaultValue !== undefined) {
+                subject.next(defaultValue);
+              }
+
+              tracker?.setProcessed();
+              return;
+            }
+            try {
+              const result = selector(state, tracker);
+
+              if (result instanceof Promise) {
+                result
+                  .then((value) => {
+                    const v = value === undefined ? defaultValue : value;
+                    if (v !== undefined) subject.next(v);
+                    tracker?.setProcessed();
+                })
+                  .catch((err) => {
+                    tracker?.setProcessed();
+                    subject.error(err);
+                  });
+              } else {
+                const v = result === undefined ? defaultValue : result;
+                if (v !== undefined) subject.next(v);
+                tracker?.setProcessed();
+              }
+            } catch (err) {
+              tracker?.setProcessed();
+              subject.error(err);
+            }
           },
           error: (err) => {
-            tracker?.setStatus(subject, true);
+            tracker?.setProcessed();
             subject.error(err);
           },
           complete: () => {
-            tracker?.complete(subject);
+            tracker?.complete();
             subject.complete();
           }
         });
       }
 
-      subjectSubscriberCount++;
-      const subscription = originalSubscribe(...args);
+      subscriberCount++;
+      const sub = originalSubscribe(...args);
 
-      // Wrap the unsubscribe to track when subscribers leave
-      const originalUnsubscribe = subscription.unsubscribe.bind(subscription);
-      subscription.unsubscribe = () => {
+      const originalUnsubscribe = sub.unsubscribe.bind(sub);
+      sub.unsubscribe = () => {
         originalUnsubscribe();
-        subjectSubscriberCount--;
+        subscriberCount--;
 
-        // Last subscriber left - cleanup selected$ subscription
-        if (subjectSubscriberCount === 0 && selectedSubscription) {
-          selectedSubscription.unsubscribe();
-          selectedSubscription = null;
+        if (subscriberCount === 0 && subscription) {
+          subscription.unsubscribe();
+          subscription = null;
         }
       };
 
-      return subscription;
+      return sub;
     };
 
     return subject.asObservable();
