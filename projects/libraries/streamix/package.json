@@ -1,11 +1,11 @@
 {
   "name": "@actioncrew/actionstack",
-  "version": "2.1.6",
+  "version": "2.2.0",
   "dependencies": {
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "@actioncrew/streamix": "^1.0.23"
+    "@actioncrew/streamix": "^2.0.2"
   },
   "license": "MIT",
   "repository": {

@@ -136,34 +136,36 @@ export function merge(
 }
 
 /**
- * `ofType` operator filters emissions based on the type of action contained in the emission.
- * It only allows emissions whose `value` is an action and whose `type` matches the provided type(s).
+ * Filters actions from the stream based on their `type` property.
  *
- * @param {string | string[]} types - The action type(s) to match. Can be a single string or an array of strings.
- * @returns {Operator} - The operator that processes each emission.
+ * This operator passes through only those values that are valid actions
+ * (`isAction(value)` returns `true`) and whose `type` matches one of the provided type(s).
+ * Non-matching or non-action values are skipped.
+ *
+ * @param {string | string[]} types - The action type or list of types to allow through.
+ * @returns {Operator} An operator that filters actions based on their `type`.
  *
  * @example
- * const filteredStream = sourceStream.pipe(ofType(['USER_LOGIN', 'USER_LOGOUT']));
- * // Only actions of type 'USER_LOGIN' or 'USER_LOGOUT' will pass through.
+ * const filtered = stream.pipe(ofType(['USER_LOGIN', 'USER_LOGOUT']));
+ * // Only USER_LOGIN and USER_LOGOUT actions will be emitted.
  */
 export const ofType = <T extends Action<any>>(types: string | string[]): Operator => {
-  const handle = (value: T | undefined): T | undefined => {
-    const action = value as Action<any>; // Access the actual Action from the Emission
+  const typeSet = typeof types === 'string' ? new Set([types]) : new Set(types);
 
-    if (isAction(action)) {
-      const matches =
-        typeof types === 'string' ? types === action.type : types.includes(action.type);
+  return createOperator<T, T>('ofType', (source) => {
+    return {
+      async next(): Promise<IteratorResult<T>> {
+        while (true) {
+          const { value, done } = await source.next();
+          if (done) return { done: true, value: undefined as any };
 
-      // If the action type doesn't match, mark the emission as phantom
-      if (!matches) value = undefined;
-    } else {
-      value = undefined; // If it's not an action, mark it as phantom
-    }
-
-    return value;
-  };
-
-  return createOperator('ofType', handle);
+          if (isAction(value) && typeSet.has(value.type)) {
+            return { done: false, value };
+          }
+        }
+      }
+    };
+  });
 };
 
 /**

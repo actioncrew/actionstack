@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+Support for Streamix `v2.0.1`. Actionstack now fully integrates with the updated async iterator–based operators introduced in Streamix 2.0.1, improving compatibility, performance, and debugging clarity.
+
 ## 2.1.5
 
 Fixed an issue where the store was being initialized twice and middlewares were receiving a stale dispatch due to premature destructuring of middlewareAPI; corrected the logic to initialize the store only once and ensure that all middlewares receive the final composed dispatch via a shared, lazily-evaluated reference.
