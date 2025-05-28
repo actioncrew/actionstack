@@ -63,7 +63,7 @@ export const loadHeroes = thunk(
 );
 
 // Selectors remain the same
-export const feature = featureSelector<DashboardState>(slice);
+export const feature = featureSelector(slice);
 export const selectTopHeroes = selector(
   feature,
   state => state.heroes.slice(1, 5)

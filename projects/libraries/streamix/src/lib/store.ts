@@ -29,6 +29,7 @@ import {
   eachValueFrom,
   of,
   Stream,
+  Subscription,
 } from '@actioncrew/streamix';
 import { createModule } from './module';
 
@@ -66,10 +67,10 @@ export type Store<T = any> = {
     slice: keyof T | string[] | '*',
     callback: (state: Readonly<T>) => void | Promise<void>
   ) => Promise<void>;
-  select: <R = any>(
-    selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>,
-    defaultValue?: any
-  ) => Stream<R>;
+  select<T, R = any>(
+    selector: (state: T) => R | Promise<R>,
+    defaultValue?: R,
+  ): Stream<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
   middlewareAPI: MiddlewareAPI;
@@ -485,40 +486,89 @@ export function createStore<T = any>(
 
   /**
    * Selects a value from the store's state using the provided selector function.
+   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
+   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
+   * @returns {Observable<any>} An observable stream with the selected value.
    */
   const select = <R = any>(
-    selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>,
-    defaultValue?: any
+    selector: (state: T) => R | Promise<R>,
+    defaultValue?: R,
   ): Stream<R> => {
     const subject = createSubject<R>();
-    let selected$ = selector(currentState, tracker);
-    tracker?.track(selected$);
+    let subscription: Subscription | null = null;
+    let subscriberCount = 0;
 
-    (async () => {
-      try {
-        let lastValue: any;
-        for await (const value of eachValueFrom(selected$)) {
-          const selectedValue = value;
-          const filteredValue =
-            selectedValue === undefined ? defaultValue : selectedValue;
+    tracker?.track(subject);
 
-          if (filteredValue !== lastValue) {
-            subject.next(filteredValue);
-            lastValue = filteredValue;
+    const originalSubscribe = subject.subscribe.bind(subject);
+    subject.subscribe = (...args: any[]) => {
+      if (subscriberCount === 0) {
+        subscription = currentState.subscribe({
+          next: (value: T) => {
+            if (state === undefined || state === null) {
+              // Optional: emit defaultValue or skip
+              if (defaultValue !== undefined) {
+                subject.next(defaultValue);
+              }
+
+              tracker?.setStatus(subject, true);
+              return;
+            }
+            try {
+              const result = selector(state);
+
+              if (result instanceof Promise) {
+                result
+                  .then((value) => {
+                    const v = value === undefined ? defaultValue : value;
+                    if (v !== undefined) subject.next(v);
+                    tracker?.setStatus(subject, true);
+                })
+                  .catch((err) => {
+                    tracker?.setStatus(subject, true);
+                    subject.error(err);
+                  });
+              } else {
+                const v = result === undefined ? defaultValue : result;
+                if (v !== undefined) subject.next(v);
+                tracker?.setStatus(subject, true);
+              }
+            } catch (err) {
+              tracker?.setStatus(subject, true);
+              subject.error(err);
+            }
+          },
+          error: (err) => {
+            tracker?.setStatus(subject, true);
+            subject.error(err);
+          },
+          complete: () => {
+            tracker?.complete(subject);
+            subject.complete();
           }
-
-          tracker?.setStatus(selected$, true);
-        }
-      } catch (error) {
-        subject.error(error);
-      } finally {
-        tracker?.complete(selected$); // Ensure tracker knows this stream is done
-        subject.complete();
+        });
       }
-    })();
+
+      subscriberCount++;
+      const sub = originalSubscribe(...args);
+
+      const originalUnsubscribe = sub.unsubscribe.bind(sub);
+      sub.unsubscribe = () => {
+        originalUnsubscribe();
+        subscriberCount--;
+
+        if (subscriberCount === 0 && subscription) {
+          subscription.unsubscribe();
+          subscription = null;
+        }
+      };
+
+      return sub;
+    };
 
     return subject;
-  };
+  }
+
 
   /**
    * Collects and composes initial state from main and feature modules.

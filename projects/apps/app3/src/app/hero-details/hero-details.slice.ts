@@ -60,7 +60,7 @@ export const loadHero = thunk("LOAD_HEROES", (id: number) => async (dispatch: an
   });
 
 // Selectors
-export const feature = featureSelector<HeroDetailsState>(slice);
+export const feature = featureSelector(slice);
 export const heroSelector = selector(feature, (state) => state.hero);
 
 export const heroDetailsModule = createModule({

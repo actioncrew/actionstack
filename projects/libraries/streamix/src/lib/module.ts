@@ -70,7 +70,7 @@ export function createModule<
   )) as Actions;
 
   // 2. Create selectors with feature scope
-  const feature = featureSelector<State>(slice);
+  const feature = featureSelector(slice);
   const processedSelectors = Object.fromEntries(
     Object.entries(config.selectors).map(([name, selectorFn]) => [
       name,
