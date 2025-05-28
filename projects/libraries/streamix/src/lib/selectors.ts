@@ -135,7 +135,7 @@ function createSelectorAsync<T = any, U = any>(
           if (results.some(r => r === undefined)) return undefined;
           return projection!(results, projectionProps);
         } else {
-          const result = await selectors(sliceState, props);
+          const result = await selectors(sliceState);
           return result === undefined
             ? undefined
             : projection

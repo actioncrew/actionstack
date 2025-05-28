@@ -20,10 +20,11 @@ export class HeroesComponent implements OnInit, OnDestroy {
 
   constructor(private heroService: HeroService) { }
 
-  ngOnInit(): void {
+  async ngOnInit() {
+    await store.loadModule(epicsModule);
     store.dispatch(epicsModule.actions.run(loadHeroes));
 
-    this.subscription = store.select(heroesModule.selectors.selectHeroes()).subscribe(value => {
+    heroesModule.streams$.selectHeroes().subscribe(value => {
       this.heroes = value;
     });
 
@@ -35,7 +36,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.subscription.unsubscribe();
+    heroesModule.destroy$.next();
 
     store.dispatch(epicsModule.actions.stop(loadHeroes));
   }

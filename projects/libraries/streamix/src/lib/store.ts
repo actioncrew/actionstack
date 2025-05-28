@@ -123,9 +123,9 @@ const systemModule = createModule({
     )
   },
   selectors: {
-    isInitialized: (state: SystemState) => state._initialized,
-    isReady: (state: SystemState) => state._ready,
-    loadedModules: (state: SystemState) => state._modules
+    isInitialized: () => (state: SystemState) => state._initialized,
+    isReady: () => (state: SystemState) => state._ready,
+    loadedModules: () => (state: SystemState) => state._modules
   },
   dependencies: {}
 });
@@ -328,6 +328,15 @@ export function createStore<T = any>(
     actionHandlers.set(type, handler);
   }
 
+  const dependenciesMap = new Map<string, any>();
+
+  const registerDependencies = (slice: string, deps: any) => {
+    if (dependenciesMap.has(slice)) {
+      console.warn(`Dependencies for slice "${slice}" already registered - overwriting`);
+    }
+    dependenciesMap.set(slice, deps);
+  };
+
   /**
    * Loads a new feature module into the store if it isn't already loaded.
    * It ensures that dependencies are injected, the global state is updated,
@@ -350,9 +359,7 @@ export function createStore<T = any>(
 
         // Register action handlers
         modules.forEach(module => {
-          Object.values(module.actions).forEach((action: any) => {
-            registerActionHandler(action.type, action.handler!);
-          });
+          (module as any).register(store)
         });
 
         // Inject dependencies
@@ -510,16 +517,15 @@ export function createStore<T = any>(
     subject.subscribe = (...args: any[]) => {
       if (subscriberCount === 0) {
         subscription = currentState.subscribe({
-          next: (value: T) => {
+          next: async (state: T) => { // Use `state` from emitted value
             if (state === undefined || state === null) {
-              // Optional: emit defaultValue or skip
               if (defaultValue !== undefined) {
                 subject.next(defaultValue);
               }
-
               tracker?.setStatus(subject, true);
               return;
             }
+
             try {
               const result = selector(state);
 
@@ -529,7 +535,7 @@ export function createStore<T = any>(
                     const v = value === undefined ? defaultValue : value;
                     if (v !== undefined) subject.next(v);
                     tracker?.setStatus(subject, true);
-                })
+                  })
                   .catch((err) => {
                     tracker?.setStatus(subject, true);
                     subject.error(err);
@@ -547,11 +553,13 @@ export function createStore<T = any>(
           error: (err) => {
             tracker?.setStatus(subject, true);
             subject.error(err);
+            subscription?.unsubscribe(); // Cleanup
           },
           complete: () => {
             tracker?.complete(subject);
             subject.complete();
-          }
+            subscription?.unsubscribe(); // Cleanup
+          },
         });
       }
 
@@ -573,7 +581,7 @@ export function createStore<T = any>(
     };
 
     return subject;
-  }
+  };
 
   /**
    * Collects and composes initial state from main and feature modules.
@@ -627,6 +635,8 @@ export function createStore<T = any>(
     select,
     loadModule,
     unloadModule,
+    registerActionHandler,
+    registerDependencies,
     middlewareAPI,
   } as Store<any>;
 

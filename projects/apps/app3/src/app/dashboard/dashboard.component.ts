@@ -16,13 +16,15 @@ import { Stream } from '@actioncrew/streamix';
   imports: [CommonModule, RouterModule],
 })
 export class DashboardComponent implements OnInit {
-  heroes$: Stream<Hero[]> = store.select(dashboardModule.selectors.selectTopHeroes());
+  heroes$!: Stream<Hero[]>;
 
   constructor() {
-    store.loadModule(dashboardModule);
+
   }
 
-  ngOnInit(): void {
+  async ngOnInit() {
+    await store.loadModule(dashboardModule);
+    this.heroes$ = dashboardModule.streams$.selectTopHeroes();
     store.dispatch(loadHeroes());
   }
 

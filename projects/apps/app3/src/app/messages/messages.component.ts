@@ -1,7 +1,7 @@
-import { Store } from '@actioncrew/actionstack';
 import { Component } from '@angular/core';
-import { addMessage, clearMessages, selectMessages, messagesModule } from './messages.slice';
+import { messagesModule } from './messages.slice';
 import { store } from '../app.module';
+import { Stream } from '@actioncrew/streamix';
 
 @Component({
   selector: 'app-messages',
@@ -9,9 +9,15 @@ import { store } from '../app.module';
   styleUrls: ['./messages.component.css']
 })
 export class MessagesComponent {
-  messages$ = store.select(messagesModule.selectors.selectMessages());
+  messages$!: Stream<any>;
 
-  constructor() {}
+  constructor() {
+  }
+
+  async ngOnInit() {
+    await store.loadModule(messagesModule);
+    this.messages$ = messagesModule.streams$.selectMessages();
+  }
 
   addMessage(message: string) {
     store.dispatch(messagesModule.actions.addMessage(message));

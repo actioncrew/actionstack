@@ -22,13 +22,16 @@ export class HeroDetailsComponent implements OnInit {
     private location: Location
   ) {}
 
-  ngOnInit(): void {
-    this.hero$ = store.select(heroDetailsModule.selectors.heroSelector());
+    async ngOnInit() {
+      await store.loadModule(heroDetailsModule);
+      this.hero$ = heroDetailsModule.streams$.heroSelector();
 
-    this.subscription = this.route.paramMap.pipe(
-      map(params => Number(params.get('id'))),
-      tap(id => store.dispatch(loadHero(id)))
-    ).subscribe();
+      this.subscription = this.route.paramMap
+        .pipe(
+          map((params) => Number(params.get('id'))),
+          tap((id) => store.dispatch(loadHero(id)))
+        )
+        .subscribe();
   }
 
   goBack(): void {
