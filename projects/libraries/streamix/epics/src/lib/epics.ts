@@ -148,23 +148,22 @@ export function merge(
  * // Only actions of type 'USER_LOGIN' or 'USER_LOGOUT' will pass through.
  */
 export const ofType = <T extends Action<any>>(types: string | string[]): Operator => {
-  const handle = (value: T | undefined): T | undefined => {
-    const action = value as Action<any>; // Access the actual Action from the Emission
+  const typeSet = typeof types === 'string' ? new Set([types]) : new Set(types);
 
-    if (isAction(action)) {
-      const matches =
-        typeof types === 'string' ? types === action.type : types.includes(action.type);
+  return createOperator<T, T>('ofType', (source) => {
+    return {
+      async next(): Promise<IteratorResult<T>> {
+        while (true) {
+          const { value, done } = await source.next();
+          if (done) return { done: true, value: undefined as any };
 
-      // If the action type doesn't match, mark the emission as phantom
-      if (!matches) value = undefined;
-    } else {
-      value = undefined; // If it's not an action, mark it as phantom
-    }
-
-    return value;
-  };
-
-  return createOperator('ofType', handle);
+          if (isAction(value) && typeSet.has(value.type)) {
+            return { done: false, value };
+          }
+        }
+      }
+    };
+  });
 };
 
 /**
