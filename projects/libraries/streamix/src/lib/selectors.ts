@@ -58,14 +58,14 @@ export function createFeatureSelector<
  * @template T Slice type extracted from state.
  * @template U Final return type after projection.
  *
- * @param featureSelector Selector for extracting the slice from full state, or "@global" for entire state.
+ * @param featureSelector Selector for extracting the slice from full state, or "*" for entire state.
  * @param selectors A selector or array of selectors for extracting intermediate values.
  * @param projection Optional function to project intermediate values into a final result.
  *
  * @returns A selector that computes a derived value from the slice using the specified selectors.
  */
 function createSelector<T = any, U = any>(
-  featureSelector: ((state: any) => T | undefined) | "@global",
+  featureSelector: ((state: any) => T | undefined) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
 ): (props?: any[] | any, projectionProps?: any) => (state: any) => U | undefined {
@@ -75,7 +75,7 @@ function createSelector<T = any, U = any>(
 
   return (props?: any[] | any, projectionProps?: any) => {
     return (state: any): U | undefined => {
-      const sliceState = featureSelector === "@global" ? state : featureSelector(state);
+      const sliceState = featureSelector === "*" ? state : featureSelector(state);
       if (sliceState === undefined) return undefined;
 
       try {
@@ -107,14 +107,14 @@ function createSelector<T = any, U = any>(
  * @template T Slice type extracted from state.
  * @template U Final return type after projection.
  *
- * @param featureSelector Selector for extracting the slice from full state, or "@global" for entire state.
+ * @param featureSelector Selector for extracting the slice from full state, or "*" for entire state.
  * @param selectors A selector or array of selectors returning a value, Promise, or Observable-like.
  * @param projection Optional function to project intermediate values into a final result.
  *
  * @returns A selector that returns a Promise of a derived value from the state.
  */
 function createSelectorAsync<T = any, U = any>(
-  featureSelector: ((state: any) => T | undefined) | "@global",
+  featureSelector: ((state: any) => T | undefined) | "*",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
 ): (props?: any[] | any, projectionProps?: any) => (state: any) => Promise<U | undefined> {
@@ -124,7 +124,7 @@ function createSelectorAsync<T = any, U = any>(
 
   return (props?: any[] | any, projectionProps?: any) => {
     return async (state: any): Promise<U | undefined> => {
-      const sliceState = featureSelector === "@global" ? state : featureSelector(state);
+      const sliceState = featureSelector === "*" ? state : featureSelector(state);
       if (sliceState === undefined) return undefined;
 
       try {
