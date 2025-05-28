@@ -27,6 +27,7 @@ import {
   eachValueFrom,
   of,
   Stream,
+  Subscription,
 } from '@actioncrew/streamix';
 
 /**
@@ -435,41 +436,95 @@ export function createStore<T = any>(
   };
 
   /**
-   * Selects a value from the store's state using the provided selector function.
+   * Selects and derives a value from the store's current state using the provided selector.
+   *
+   * The selector can return either a synchronous value or a Promise. If the result is `undefined`,
+   * the `defaultValue` (if provided) will be used instead. The returned stream emits updates
+   * whenever the selected value changes.
+   *
+   * @template R The type of the derived value.
+   * @param {(state: T) => R | Promise<R>} selector - A function that selects or derives a value from the current state.
+   * @param {R} [defaultValue] - A fallback value to emit when the selected value is `undefined`.
+   * @returns {Stream<R>} A stream emitting selected (and optionally transformed) values.
    */
   const select = <R = any>(
-    selector: (obs: Stream<T>, tracker?: Tracker) => Stream<R>,
-    defaultValue?: any
+    selector: (state: T) => R | Promise<R>,
+    defaultValue?: R,
   ): Stream<R> => {
     const subject = createSubject<R>();
-    let selected$ = selector(currentState, tracker);
-    tracker?.track(selected$);
+    let subscription: Subscription | null = null;
+    let subscriberCount = 0;
 
-    (async () => {
-      try {
-        let lastValue: any;
-        for await (const value of eachValueFrom(selected$)) {
-          const selectedValue = value;
-          const filteredValue =
-            selectedValue === undefined ? defaultValue : selectedValue;
+    tracker?.track(subject);
 
-          if (filteredValue !== lastValue) {
-            subject.next(filteredValue);
-            lastValue = filteredValue;
+    const originalSubscribe = subject.subscribe.bind(subject);
+    subject.subscribe = (...args: any[]) => {
+      if (subscriberCount === 0) {
+        subscription = currentState.subscribe({
+          next: (value: T) => {
+            if (state === undefined || state === null) {
+              // Optional: emit defaultValue or skip
+              if (defaultValue !== undefined) {
+                subject.next(defaultValue);
+              }
+
+              tracker?.setStatus(subject, true);
+              return;
+            }
+            try {
+              const result = selector(state);
+
+              if (result instanceof Promise) {
+                result
+                  .then((value) => {
+                    const v = value === undefined ? defaultValue : value;
+                    if (v !== undefined) subject.next(v);
+                    tracker?.setStatus(subject, true);
+                })
+                  .catch((err) => {
+                    tracker?.setStatus(subject, true);
+                    subject.error(err);
+                  });
+              } else {
+                const v = result === undefined ? defaultValue : result;
+                if (v !== undefined) subject.next(v);
+                tracker?.setStatus(subject, true);
+              }
+            } catch (err) {
+              tracker?.setStatus(subject, true);
+              subject.error(err);
+            }
+          },
+          error: (err) => {
+            tracker?.setStatus(subject, true);
+            subject.error(err);
+          },
+          complete: () => {
+            tracker?.complete(subject);
+            subject.complete();
           }
-
-          tracker?.setStatus(selected$, true);
-        }
-      } catch (error) {
-        subject.error(error);
-      } finally {
-        tracker?.complete(selected$); // Ensure tracker knows this stream is done
-        subject.complete();
+        });
       }
-    })();
+
+      subscriberCount++;
+      const sub = originalSubscribe(...args);
+
+      const originalUnsubscribe = sub.unsubscribe.bind(sub);
+      sub.unsubscribe = () => {
+        originalUnsubscribe();
+        subscriberCount--;
+
+        if (subscriberCount === 0 && subscription) {
+          subscription.unsubscribe();
+          subscription = null;
+        }
+      };
+
+      return sub;
+    };
 
     return subject;
-  };
+  }
 
   /**
    * Sets up and applies reducers for the feature modules, combining them into a single reducer function.
