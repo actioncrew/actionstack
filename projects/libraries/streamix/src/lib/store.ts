@@ -67,7 +67,7 @@ export type Store<T = any> = {
     slice: keyof T | string[] | '*',
     callback: (state: Readonly<T>) => void | Promise<void>
   ) => Promise<void>;
-  select<T, R = any>(
+  select<R = any>(
     selector: (state: T) => R | Promise<R>,
     defaultValue?: R,
   ): Stream<R>;
@@ -485,10 +485,16 @@ export function createStore<T = any>(
   };
 
   /**
-   * Selects a value from the store's state using the provided selector function.
-   * @param {(obs: Observable<any>) => Observable<any>} selector - The selector function to apply on the state observable.
-   * @param {*} [defaultValue] - The default value to use if the selected value is undefined.
-   * @returns {Observable<any>} An observable stream with the selected value.
+   * Selects and derives a value from the store's current state using the provided selector.
+   *
+   * The selector can return either a synchronous value or a Promise. If the result is `undefined`,
+   * the `defaultValue` (if provided) will be used instead. The returned stream emits updates
+   * whenever the selected value changes.
+   *
+   * @template R The type of the derived value.
+   * @param {(state: T) => R | Promise<R>} selector - A function that selects or derives a value from the current state.
+   * @param {R} [defaultValue] - A fallback value to emit when the selected value is `undefined`.
+   * @returns {Stream<R>} A stream emitting selected (and optionally transformed) values.
    */
   const select = <R = any>(
     selector: (state: T) => R | Promise<R>,
@@ -568,7 +574,6 @@ export function createStore<T = any>(
 
     return subject;
   }
-
 
   /**
    * Collects and composes initial state from main and feature modules.
