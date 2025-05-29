@@ -63,11 +63,7 @@ export const loadHeroes = thunk(
 );
 
 // Selectors remain the same
-export const feature = featureSelector(slice);
-export const selectTopHeroes = selector(
-  feature,
-  state => state.heroes.slice(1, 5)
-);
+export const selectTopHeroes = selector(state => state.heroes.slice(1, 5));
 
 // Export for registration
 export const dashboardModule = createModule({

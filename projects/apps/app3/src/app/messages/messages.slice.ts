@@ -32,9 +32,8 @@ export const clearMessages = action(
 );
 
 // --- Selectors
-export const feature = featureSelector<MessagesState>(slice);
-export const selectMessages = selector(feature, (state) => state.messages);
-export const selectMessageCount = selector(feature, (state) => state.messages.length);
+export const selectMessages = selector((state) => state.messages);
+export const selectMessageCount = selector((state) => state.messages.length);
 
 // --- Feature module export
 export const messagesModule = createModule({

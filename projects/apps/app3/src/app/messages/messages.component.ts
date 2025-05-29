@@ -16,7 +16,7 @@ export class MessagesComponent {
 
   async ngOnInit() {
     await store.loadModule(messagesModule);
-    this.messages$ = messagesModule.streams$.selectMessages();
+    this.messages$ = messagesModule.data$.selectMessages();
   }
 
   addMessage(message: string) {

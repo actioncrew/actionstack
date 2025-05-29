@@ -58,43 +58,32 @@ export function createFeatureSelector<
  * @template T Slice type extracted from state.
  * @template U Final return type after projection.
  *
- * @param featureSelector Selector for extracting the slice from full state, or "*" for entire state.
  * @param selectors A selector or array of selectors for extracting intermediate values.
  * @param projection Optional function to project intermediate values into a final result.
  *
  * @returns A selector that computes a derived value from the slice using the specified selectors.
  */
 function createSelector<T = any, U = any>(
-  featureSelector: ((state: any) => T | undefined) | "*",
   selectors: SelectorFunction | SelectorFunction[],
-  projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state: any) => U | undefined {
-
+  projection?: ProjectionFunction
+): (props?: any[] | any) => (state: T) => U | undefined {
   const isSelectorArray = Array.isArray(selectors);
-  const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
 
-  return (props?: any[] | any, projectionProps?: any) => {
-    return (state: any): U | undefined => {
-      const sliceState = featureSelector === "*" ? state : featureSelector(state);
-      if (sliceState === undefined) return undefined;
-
+  return (props?: any[] | any) => {
+    return (state: T) => {
       try {
         if (isSelectorArray) {
-          const results = selectors.map((selector, i) =>
-            selector(sliceState, props?.[i])
+          const results = (selectors as SelectorFunction[]).map((sel, i) =>
+            sel(state, props?.[i])
           );
           if (results.some(r => r === undefined)) return undefined;
-          return projection!(results, projectionProps);
+          return projection ? projection(results, props) : results as any;
         } else {
-          const result = selectors(sliceState, props);
-          return result === undefined
-            ? undefined
-            : projection
-              ? projection(result, projectionProps)
-              : result;
+          const result = (selectors as SelectorFunction)(state, props);
+          return result === undefined ? undefined : (projection ? projection(result) : result);
         }
-      } catch (error: any) {
-        console.warn("Selector execution error:", error.message);
+      } catch (err) {
+        console.warn('Selector error:', (err as Error).message);
         return undefined;
       }
     };
@@ -107,43 +96,35 @@ function createSelector<T = any, U = any>(
  * @template T Slice type extracted from state.
  * @template U Final return type after projection.
  *
- * @param featureSelector Selector for extracting the slice from full state, or "*" for entire state.
  * @param selectors A selector or array of selectors returning a value, Promise, or Observable-like.
  * @param projection Optional function to project intermediate values into a final result.
  *
  * @returns A selector that returns a Promise of a derived value from the state.
  */
-function createSelectorAsync<T = any, U = any>(
-  featureSelector: ((state: any) => T | undefined) | "*",
+export function createSelectorAsync<T = any, U = any>(
   selectors: SelectorFunction | SelectorFunction[],
-  projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state: any) => Promise<U | undefined> {
-
+  projection?: ProjectionFunction
+): (props?: any[] | any) => (state: T) => Promise<U | undefined> {
   const isSelectorArray = Array.isArray(selectors);
-  const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
 
-  return (props?: any[] | any, projectionProps?: any) => {
-    return async (state: any): Promise<U | undefined> => {
-      const sliceState = featureSelector === "*" ? state : featureSelector(state);
-      if (sliceState === undefined) return undefined;
-
+  return (props?: any[] | any) => {
+    return async (state: T) => {
       try {
         if (isSelectorArray) {
           const results = await Promise.all(
-            selectors.map((selector, i) => selector(sliceState, props?.[i]))
+            (selectors as SelectorFunction[]).map((sel, i) =>
+              sel(state, props?.[i])
+            )
           );
           if (results.some(r => r === undefined)) return undefined;
-          return projection!(results, projectionProps);
+          return projection ? await projection(results, props) : results as any;
         } else {
-          const result = await selectors(sliceState);
-          return result === undefined
-            ? undefined
-            : projection
-              ? projection(result, projectionProps)
-              : result;
+          const result = await (selectors as SelectorFunction)(state, props);
+          if (result === undefined) return undefined;
+          return projection ? await projection(result, props) : result;
         }
-      } catch (error: any) {
-        console.warn("Async selector error:", error.message);
+      } catch (err) {
+        console.warn('Async selector error:', (err as Error).message);
         return undefined;
       }
     };

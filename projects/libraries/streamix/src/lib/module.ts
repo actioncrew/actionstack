@@ -1,5 +1,5 @@
-import { createSubject, Stream, Subject, takeUntil } from '@actioncrew/streamix';
-import { ActionCreator, featureSelector, selector } from '../lib';
+import { createSubject, Operator, pipeStream, Stream, takeUntil } from '@actioncrew/streamix';
+import { ActionCreator, featureSelector } from '../lib';
 
 
 
@@ -79,25 +79,31 @@ export function createModule<
  // Create a feature selector for the module slice
   const feature = featureSelector(slice);
 
-  // Create pure selectors scoped to the slice (pure functions)
+  // Patch selectors to inject slice
   const processedSelectors = Object.fromEntries(
-    Object.entries(config.selectors).map(([name, selFn]) => [
-      name,
-      selector(feature, selFn)
-    ])
-  ) as Selectors;
+    Object.entries(config.selectors).map(([name, selector]) => {
+      const wrapped = (...args: any[]) => {
+        const original = selector(...args); // (state) => value
+        return (globalState: any) => {
+          const sliceState = feature(globalState);
+          return original(sliceState);
+        };
+      };
+      return [name, wrapped];
+    })
+  );
 
   // Streams type for selectors
   type Streams<S extends Record<string, (...args: any[]) => (state: any) => any>> = {
     [K in keyof S]: (...args: Parameters<S[K]>) => Stream<ReturnType<ReturnType<S[K]>>>;
   };
 
-  let streams$: Streams<Selectors> = {} as any;
+  let data$: Streams<Selectors> = {} as any;
 
   // Bind selectors to store:
   function bindSelectorsToStore<S extends Record<string, (...args: any[]) => (state: any) => any>>(
     store: { select: <R>(selector: (state: any) => R | Promise<R>) => Stream<R> },
-    module: { selectors: S; streams$?: Streams<S> }
+    module: { selectors: S; data$?: Streams<S> }
   ): void {
     const streams = {} as Streams<S>;
 
@@ -105,11 +111,13 @@ export function createModule<
       const sel = module.selectors[key];
       streams[key] = (...args: Parameters<typeof sel>) => {
         const selectorFn = sel(...args);
-        return store.select(selectorFn).pipe(takeUntil(destroy$));
+        const originalStream = store.select(selectorFn);
+        originalStream.pipe = (...steps: Operator[]) => pipeStream(originalStream, ...steps, takeUntil(destroy$));
+        return originalStream;
       };
     }
 
-    module.streams$ = streams;
+    module.data$ = streams;
   }
 
   return {
@@ -117,9 +125,9 @@ export function createModule<
     initialState: config.initialState,
     actionHandlers,
     actions: processedActions,
-    selectors: config.selectors,
+    selectors: processedSelectors,
     dependencies: config.dependencies,
-    streams$,
+    data$,
     destroy$,
     register: function (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;

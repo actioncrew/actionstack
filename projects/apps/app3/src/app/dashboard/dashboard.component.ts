@@ -24,7 +24,7 @@ export class DashboardComponent implements OnInit {
 
   async ngOnInit() {
     await store.loadModule(dashboardModule);
-    this.heroes$ = dashboardModule.streams$.selectTopHeroes();
+    this.heroes$ = dashboardModule.data$.selectTopHeroes();
     store.dispatch(loadHeroes());
   }
 

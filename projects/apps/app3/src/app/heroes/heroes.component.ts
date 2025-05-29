@@ -24,7 +24,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
     await store.loadModule(epicsModule);
     store.dispatch(epicsModule.actions.run(loadHeroes));
 
-    heroesModule.streams$.selectHeroes().subscribe(value => {
+    heroesModule.data$.selectHeroes().subscribe(value => {
       this.heroes = value;
     });
 

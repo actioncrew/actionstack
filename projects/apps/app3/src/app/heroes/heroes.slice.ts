@@ -57,8 +57,7 @@ export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { 
 
 
 // --- Selectors
-export const feature = featureSelector<HeroesState>(slice);
-export const selectHeroes = selector(feature, (state) => state.heroes);
+export const selectHeroes = selector((state) => state.heroes);
 
 // --- Module export
 export const heroesModule = createModule({
