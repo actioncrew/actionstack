@@ -645,7 +645,7 @@ export function createStore<T = any>(
 
   if(!globalStoreInitialized) {
     globalStoreInitialized = true;
-    store = enhancer(createStore)(main, settings);
+    store = enhancer(() => store)(main, settings);
     initializeStore(store);
   }
 
