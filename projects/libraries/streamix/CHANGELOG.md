@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+
+Corrected the initialization logic of the store enhancer to ensure it receives the fully constructed store instance instead of new store creator. This ensures the enhancer accesses the store only after it’s fully initialized, preventing issues with repetitive or premature store initialization and supporting more predictable enhancer behavior.
+
 ## 2.2.0
 
 Support for Streamix `v2.0.1`. Actionstack now fully integrates with the updated async iterator–based operators introduced in Streamix 2.0.1, improving compatibility, performance, and debugging clarity.
