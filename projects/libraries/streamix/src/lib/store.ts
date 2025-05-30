@@ -124,8 +124,6 @@ const systemActions = {
   })),
 };
 
-let globalStoreInitialized = false;
-
 /**
  * Creates a new store instance.
  *
@@ -588,11 +586,8 @@ export function createStore<T = any>(
     enhancer = applyMiddleware();
   }
 
-  if(!globalStoreInitialized) {
-    globalStoreInitialized = true;
-    store = enhancer(createStore)(main, settings);
-    initializeStore(store);
-  }
+  store = enhancer(() => store)(main, settings);
+  initializeStore(store);
 
   return store;
 }

@@ -473,9 +473,9 @@ function isObservable(obj: any): obj is Observable<unknown> {
 /**
  * Observable that immediately completes without emitting any values
  */
-export const EMPTY = new Observable<never>((subscriber) => {
+const EMPTY = new Observable<never>((subscriber) => {
   subscriber.complete();
 });
 
-export { isAction, isAsync, isBoxed, isObservable, isPlainObject, isPromise, kindOf };
+export { isAction, isAsync, isBoxed, isObservable, isPlainObject, isPromise, kindOf, EMPTY };
 
