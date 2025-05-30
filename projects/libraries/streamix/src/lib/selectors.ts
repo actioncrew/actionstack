@@ -72,6 +72,9 @@ function createSelector<T = any, U = any>(
   return (props?: any[] | any) => {
     return (state: T) => {
       try {
+        if (state === undefined) {
+          return state;
+        }
         if (isSelectorArray) {
           const results = (selectors as SelectorFunction[]).map((sel, i) =>
             sel(state, props?.[i])
@@ -110,6 +113,9 @@ export function createSelectorAsync<T = any, U = any>(
   return (props?: any[] | any) => {
     return async (state: T) => {
       try {
+        if (state === undefined) {
+          return state;
+        }
         if (isSelectorArray) {
           const results = await Promise.all(
             (selectors as SelectorFunction[]).map((sel, i) =>
