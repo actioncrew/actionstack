@@ -1,29 +1,25 @@
 import { action, actionHandlers, bindActionCreators, createAction } from './actions';
-import { applyMiddleware, combineEnhancers, combineReducers, deepMerge, getProperty, setProperty } from './utils';
+import { applyMiddleware, combineEnhancers, deepMerge, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
-import { createTracker, Tracker } from './tracker';
+import { createTracker } from './tracker';
 import {
   Action,
-  ActionHandler,
   AnyFn,
   AsyncAction,
-  AsyncReducer,
   defaultMainModule,
   FeatureModule,
   isPlainObject,
   kindOf,
   MainModule,
-  MetaReducer,
   Middleware,
   MiddlewareAPI,
-  Reducer,
   StoreEnhancer,
-  Tree,
 } from './types';
 import {
   createBehaviorSubject,
+  createQueue,
   createStream,
   createSubject,
   eachValueFrom,
@@ -93,7 +89,7 @@ const systemModule = createModule({
   actions: {
     initializeState: createAction(
       'INITIALIZE_STATE',
-      (state: SystemState) => ({ ...state, _initialized: true })
+      (state: SystemState) => ({ _modules: [], _initialized: false, _ready: false })
     ),
 
     updateState: createAction(
@@ -103,22 +99,22 @@ const systemModule = createModule({
 
     storeInitialized: createAction(
       'STORE_INITIALIZED',
-      (state: SystemState) => ({ ...state, _ready: true })
+      (state: SystemState) => ({ ...state, _initialized: true, _ready: true })
     ),
 
     moduleLoaded: createAction(
       'MODULE_LOADED',
-      (state: SystemState, payload: { module: { slice: string } }) => ({
+      (state: SystemState, payload: { slice: string }) => ({
         ...state,
-        _modules: [...state._modules, payload.module.slice]
+        _modules: [...state._modules, payload.slice]
       }),
     ),
 
     moduleUnloaded: createAction(
       'MODULE_UNLOADED',
-      (state: SystemState, payload: { module: { slice: string } }) => ({
+      (state: SystemState, payload: { slice: string }) => ({
         ...state,
-        _modules: state._modules.filter(m => m !== payload.module.slice)
+        _modules: state._modules.filter(m => m !== payload.slice)
       })
     )
   },
@@ -175,6 +171,7 @@ export function createStore<T = any>(
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
   const stack = createExecutionStack();
+  const queue = createQueue();
 
   /**
    * Dispatches an action to update the global state.
@@ -341,35 +338,25 @@ export function createStore<T = any>(
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
-    if (modules.some((m) => m.slice === module.slice)) {
-      return Promise.resolve(); // Already loaded
-    }
+    return queue.enqueue(async () => {
+      if (modules.some((m) => m.slice === module.slice)) {
+        return Promise.resolve(); // Already loaded
+      }
 
-    const promise = lock.acquire()
-      .then(() => {
-        // Register the module
-        modules = [...modules, module];
+      // Register the module
+      modules = [...modules, module];
 
-        // Register initial state
-        if (module.initialState !== undefined) {
-          setupState(); // You need to define this helper
-        }
+      // Register action handlers
+      modules.forEach(module => {
+        (module as any).register(store)
+      });
 
-        // Register action handlers
-        modules.forEach(module => {
-          (module as any).register(store)
-        });
-
-        // Inject dependencies
-        return injectDependencies();
-      })
-      .then(() => update('*', () => setupState())) // Rebuild global state
-      .finally(() => lock.release());
-
-    sysActions.moduleLoaded(module);
-    return promise;
+      // Inject dependencies
+      injectDependencies();
+      await set('*', await setupState()) // Rebuild global state
+      sysActions.moduleLoaded(module);
+    })
   };
-
 
   /**
    * Unloads a feature module from the store, optionally clearing its state.
@@ -380,24 +367,21 @@ export function createStore<T = any>(
     module: FeatureModule,
     clearState: boolean = false
   ): Promise<void> => {
-    // Find the module index in the modules array
-    const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
+    return queue.enqueue(async () => {
+      // Find the module index in the modules array
+      const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
 
-    // Check if the module exists
-    if (moduleIndex === -1) {
-      console.warn(`Module ${module.slice} not found, cannot unload.`);
-      return Promise.resolve(); // Module not found, nothing to unload
-    }
+      // Check if the module exists
+      if (moduleIndex === -1) {
+        console.warn(`Module ${module.slice} not found, cannot unload.`);
+        return Promise.resolve(); // Module not found, nothing to unload
+      }
 
-    const promise = lock
-      .acquire()
-      .then(() => {
-        // Remove the module from the internal state
-        modules.splice(moduleIndex, 1);
+      // Remove the module from the internal state
+      modules.splice(moduleIndex, 1);
 
-        // Eject dependencies
-        return ejectDependencies(module);
-      })
+      // Eject dependencies
+      ejectDependencies(module);
       // .then(() =>
       //   update('*', async (state) => {
       //     if (clearState) {
@@ -407,11 +391,10 @@ export function createStore<T = any>(
       //     return await setupReducer(state);
       //   })
       // )
-      .finally(() => lock.release());
 
-    // Dispatch module unloaded action
-    sysActions.moduleUnloaded(module);
-    return promise;
+      // Dispatch module unloaded action
+      sysActions.moduleUnloaded(module);
+    });
   };
 
   /**
@@ -643,29 +626,24 @@ export function createStore<T = any>(
    * Initializes the store with system actions and state setup
    */
   const initializeStore = (storeInstance: Store<any>) => {
-    lock
-      .acquire()
-      .then(() => {
-        // Bind system actions using the store's dispatch method
-        sysActions = bindActionCreators(
-          systemModule.actions,
-          (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
-        );
+    // Bind system actions using the store's dispatch method
+    sysActions = bindActionCreators(
+      systemModule.actions,
+      (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
+    );
 
-        // Initialize state and mark store as initialized
-        sysActions.initializeState();
+    // Initialize state and mark store as initialized
+    sysActions.initializeState();
 
-        console.log(
-          '%cYou are using ActionStack. Happy coding! 🎉',
-          'font-weight: bold;'
-        );
-      })
-      .then(() => injectDependencies())
-      .then(() => setupState())
-      .then((state) => set('*', state))
-      .then(() => sysActions.storeInitialized())
-      .finally(() => lock.release());
-  };
+    console.log(
+      '%cYou are using ActionStack. Happy coding! 🎉',
+      'font-weight: bold;'
+    );
+
+    injectDependencies();
+    set('*', setupState());
+    sysActions.storeInitialized();
+  }
 
   // Apply enhancer if provided
   if (typeof enhancer === 'function') {
@@ -683,7 +661,9 @@ export function createStore<T = any>(
   }
 
   store = enhancer(() => store)(main, settings);
+  let originalDispatch = store.dispatch;
+  store.dispatch = (action) => queue.enqueue(() => originalDispatch(action));
   initializeStore(store);
-
+  store.loadModule(systemModule);
   return store;
 }
