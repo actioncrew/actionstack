@@ -23,7 +23,7 @@ export class HeroDetailsComponent implements OnInit {
   ) {}
 
     async ngOnInit() {
-      await store.loadModule(heroDetailsModule);
+      store.loadModule(heroDetailsModule);
       this.hero$ = heroDetailsModule.data$.heroSelector();
 
       this.subscription = this.route.paramMap

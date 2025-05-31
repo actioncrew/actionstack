@@ -15,7 +15,7 @@ export class MessagesComponent {
   }
 
   async ngOnInit() {
-    await store.loadModule(messagesModule);
+    store.loadModule(messagesModule);
     this.messages$ = messagesModule.data$.selectMessages();
   }
 
