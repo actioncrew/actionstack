@@ -7,6 +7,7 @@ import { HeroService } from '../hero.service';
 import { HeroesComponent } from './heroes.component';
 import { heroesModule, initialState, slice } from './heroes.slice';
 import { store } from '../app.module';
+import { epicsModule } from '@actioncrew/actionstack/epics';
 
 const routes: Routes = [
   { path: '', component: HeroesComponent, pathMatch: 'full' },
@@ -24,6 +25,7 @@ const routes: Routes = [
 export class HeroesModule {
   constructor() {
     store.loadModule(heroesModule);
+    store.loadModule(epicsModule);
   }
 }
 

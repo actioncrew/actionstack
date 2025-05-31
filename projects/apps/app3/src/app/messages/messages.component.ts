@@ -20,10 +20,10 @@ export class MessagesComponent {
   }
 
   addMessage(message: string) {
-    store.dispatch(messagesModule.actions.addMessage(message));
+    messagesModule.actions.addMessage(message);
   }
 
   clearMessages() {
-    store.dispatch(messagesModule.actions.clearMessages());
+    messagesModule.actions.clearMessages();
   }
 }

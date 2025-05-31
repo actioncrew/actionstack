@@ -18,6 +18,7 @@ import { store } from '../app.module';
 })
 export class MessagesModule {
   constructor() {
+
   }
 }
 

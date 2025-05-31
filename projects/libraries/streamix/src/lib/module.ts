@@ -1,4 +1,4 @@
-import { createSubject, Operator, pipeStream, Stream, takeUntil } from '@actioncrew/streamix';
+import { createSubject, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
 import { ActionCreator, featureSelector } from '../lib';
 
 
@@ -18,6 +18,7 @@ export function createModule<
 }) {
   const { slice } = config;
 
+  const loaded$ = createSubject<void>();
   const destroy$ = createSubject<void>();
 
   // 1. Process action handlers and namespace action types
@@ -98,7 +99,21 @@ export function createModule<
     [K in keyof S]: (...args: Parameters<S[K]>) => Stream<ReturnType<ReturnType<S[K]>>>;
   };
 
-  let data$: Streams<Selectors> = {} as any;
+  let internalStreams: Streams<Selectors> = {} as any;
+
+  let data$ = new Proxy({} as Streams<Selectors>, {
+    get(_, key: string) {
+      return (...args: any[]) => {
+        return loaded$.pipe(
+          first(),
+          switchMap(() => {
+            const fn = internalStreams[key as keyof Selectors];
+            return fn(...args as Parameters<Selectors[keyof Selectors]>);
+          })
+        );
+      };
+    }
+  });
 
   // Bind selectors to store:
   function bindSelectorsToStore<S extends Record<string, (...args: any[]) => (state: any) => any>>(
@@ -143,7 +158,7 @@ export function createModule<
       };
     }
 
-    module.data$ = streams;
+    (module as any).data$ = streams;
   }
 
   return {
@@ -155,6 +170,7 @@ export function createModule<
     dependencies: config.dependencies,
     data$,
     destroy$,
+    internalStreams,
     register: function (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
       registerDependencies: (slice: string, deps: any) => void;
@@ -171,6 +187,7 @@ export function createModule<
       }
 
       bindSelectorsToStore(store, this);
+      loaded$.next();
     }
   };
 }
