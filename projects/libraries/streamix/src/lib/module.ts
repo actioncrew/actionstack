@@ -1,4 +1,4 @@
-import { createSubject, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
+import { createReplaySubject, createSubject, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
 import { ActionCreator, featureSelector } from '../lib';
 
 
@@ -18,7 +18,7 @@ export function createModule<
 }) {
   const { slice } = config;
 
-  const loaded$ = createSubject<void>();
+  const loaded$ = createReplaySubject<void>();
   const destroy$ = createSubject<void>();
 
   // 1. Process action handlers and namespace action types
@@ -169,6 +169,7 @@ export function createModule<
     selectors: processedSelectors,
     dependencies: config.dependencies,
     data$,
+    loaded$,
     destroy$,
     internalStreams,
     register: function (store: {
@@ -187,7 +188,6 @@ export function createModule<
       }
 
       bindSelectorsToStore(store, this);
-      loaded$.next();
     }
   };
 }
