@@ -24,8 +24,6 @@ const routes: Routes = [
 })
 export class HeroesModule {
   constructor() {
-    store.loadModule(heroesModule);
-    store.loadModule(epicsModule);
   }
 }
 

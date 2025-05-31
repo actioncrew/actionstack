@@ -23,7 +23,6 @@ const routes: Routes = [
 })
 export class HeroDetailsModule {
   constructor() {
-    store.loadModule(heroDetailsModule);
   }
 }
 

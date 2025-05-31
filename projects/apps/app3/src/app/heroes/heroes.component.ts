@@ -20,6 +20,8 @@ export class HeroesComponent implements OnInit, OnDestroy {
   constructor(private heroService: HeroService) { }
 
   async ngOnInit() {
+    await store.loadModule(heroesModule);
+    await store.loadModule(epicsModule);
     store.dispatch(epicsModule.actions.run(loadHeroes));
 
     heroesModule.data$.selectHeroes().subscribe(value => {
