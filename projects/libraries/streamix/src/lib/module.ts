@@ -1,4 +1,4 @@
-import { createReplaySubject, createSubject, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
+import { createReplaySubject, createSubject, defer, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
 import { ActionCreator, featureSelector } from '../lib';
 
 
@@ -101,20 +101,6 @@ export function createModule<
 
   let internalStreams: Streams<Selectors> = {} as any;
 
-  let data$ = new Proxy({} as Streams<Selectors>, {
-    get(_, key: string) {
-      return (...args: any[]) => {
-        return loaded$.pipe(
-          first(),
-          switchMap(() => {
-            const fn = internalStreams[key as keyof Selectors];
-            return fn(...args as Parameters<Selectors[keyof Selectors]>);
-          })
-        );
-      };
-    }
-  });
-
   // Bind selectors to store:
   function bindSelectorsToStore<S extends Record<string, (...args: any[]) => (state: any) => any>>(
     store: { select: <R>(selector: (state: any) => R | Promise<R>) => Stream<R> },
@@ -125,40 +111,40 @@ export function createModule<
     for (const key in module.selectors) {
       const sel = module.selectors[key];
       streams[key] = (...args: Parameters<typeof sel>) => {
-      const selectorFn = sel(...args);
-      const originalStream = store.select(selectorFn);
+        const selectorFn = sel(...args);
+        const originalStream = store.select(selectorFn);
 
-      let hasTakeUntil = false;
+        let hasTakeUntil = false;
 
-      // Override .pipe
-      const originalPipe = originalStream.pipe?.bind(originalStream);
-      originalStream.pipe = (...steps: Operator[]) => {
-        const alreadyAdded = steps.some(op => op.name === 'takeUntil');
-        hasTakeUntil = hasTakeUntil || alreadyAdded;
+        // Override .pipe
+        const originalPipe = originalStream.pipe?.bind(originalStream);
+        originalStream.pipe = (...steps: Operator[]) => {
+          const alreadyAdded = steps.some(op => op.name === 'takeUntil');
+          hasTakeUntil = hasTakeUntil || alreadyAdded;
 
-        // If takeUntil is not in the pipe, append it
-        const finalSteps = alreadyAdded ? steps : [...steps, takeUntil(destroy$)];
-        return pipeStream(originalStream, ...finalSteps);
-      };
+          // If takeUntil is not in the pipe, append it
+          const finalSteps = alreadyAdded ? steps : [...steps, takeUntil(destroy$)];
+          return pipeStream(originalStream, ...finalSteps);
+        };
 
-      // Override .subscribe
-      const originalSubscribe = originalStream.subscribe?.bind(originalStream);
-      originalStream.subscribe = (...args: any[]) => {
-        if (hasTakeUntil) {
-          return originalSubscribe(...args); // already protected
-        } else {
-          // Inject takeUntil only once
-          const guardedStream = pipeStream(originalStream, takeUntil(destroy$));
-          hasTakeUntil = true;
-          return guardedStream.subscribe(...args);
-        }
-      };
+        // Override .subscribe
+        const originalSubscribe = originalStream.subscribe?.bind(originalStream);
+        originalStream.subscribe = (...args: any[]) => {
+          if (hasTakeUntil) {
+            return originalSubscribe(...args); // already protected
+          } else {
+            // Inject takeUntil only once
+            const guardedStream = pipeStream(originalStream, takeUntil(destroy$));
+            hasTakeUntil = true;
+            return guardedStream.subscribe(...args);
+          }
+        };
 
-      return originalStream;
+        return originalStream;
       };
     }
 
-    (module as any).data$ = streams;
+    (module as any).internalStreams = { ...(module as any).internalStreams, ...streams };
   }
 
   return {
@@ -168,7 +154,22 @@ export function createModule<
     actions: processedActions,
     selectors: processedSelectors,
     dependencies: config.dependencies,
-    data$,
+    get data$() {
+      let self = this;
+      return new Proxy({} as Streams<Selectors>, {
+        get(_, key: string) {
+          return (...args: any[]) => {
+            return defer(() => loaded$.pipe(
+              first(),
+              switchMap(() => {
+                const fn = self.internalStreams[key as keyof Selectors];
+                return fn(...args as Parameters<Selectors[keyof Selectors]>);
+              })
+            ));
+          };
+        }
+      });
+    },
     loaded$,
     destroy$,
     internalStreams,

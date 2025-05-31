@@ -355,7 +355,7 @@ export function createStore<T = any>(
       injectDependencies();
       await set('*', await setupState(module)) // Rebuild global state
       sysActions.moduleLoaded(module);
-      (module as any).loaded$.next();
+      (module as any).loaded$.next(true);
     })
   };
 
