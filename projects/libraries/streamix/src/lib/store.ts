@@ -134,8 +134,6 @@ export function isSystemActionType(type: string): boolean {
   return Object.values(systemModule.actions).map(t => t.type).includes(type);
 }
 
-let globalStoreInitialized = false;
-
 /**
  * Creates a new store instance.
  *
@@ -684,11 +682,8 @@ export function createStore<T = any>(
     enhancer = combineEnhancers(applyMiddleware());
   }
 
-  if(!globalStoreInitialized) {
-    globalStoreInitialized = true;
-    store = enhancer(() => store)(main, settings);
-    initializeStore(store);
-  }
+  store = enhancer(() => store)(main, settings);
+  initializeStore(store);
 
   return store;
 }
