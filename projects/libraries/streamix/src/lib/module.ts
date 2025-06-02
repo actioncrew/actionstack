@@ -112,35 +112,7 @@ export function createModule<
       const sel = module.selectors[key];
       streams[key] = (...args: Parameters<typeof sel>) => {
         const selectorFn = sel(...args);
-        const originalStream = store.select(selectorFn);
-
-        let hasTakeUntil = false;
-
-        // Override .pipe
-        const originalPipe = originalStream.pipe?.bind(originalStream);
-        originalStream.pipe = (...steps: Operator[]) => {
-          const alreadyAdded = steps.some(op => op.name === 'takeUntil');
-          hasTakeUntil = hasTakeUntil || alreadyAdded;
-
-          // If takeUntil is not in the pipe, append it
-          const finalSteps = alreadyAdded ? steps : [...steps, takeUntil(destroy$)];
-          return pipeStream(originalStream, ...finalSteps);
-        };
-
-        // Override .subscribe
-        const originalSubscribe = originalStream.subscribe?.bind(originalStream);
-        originalStream.subscribe = (...args: any[]) => {
-          if (hasTakeUntil) {
-            return originalSubscribe(...args); // already protected
-          } else {
-            // Inject takeUntil only once
-            const guardedStream = pipeStream(originalStream, takeUntil(destroy$));
-            hasTakeUntil = true;
-            return guardedStream.subscribe(...args);
-          }
-        };
-
-        return originalStream;
+        return store.select(selectorFn);
       };
     }
 
@@ -164,7 +136,8 @@ export function createModule<
               switchMap(() => {
                 const fn = self.internalStreams[key as keyof Selectors];
                 return fn(...args as Parameters<Selectors[keyof Selectors]>);
-              })
+              }),
+              takeUntil(destroy$)
             ));
           };
         }
