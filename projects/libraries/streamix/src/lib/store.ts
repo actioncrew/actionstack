@@ -353,7 +353,7 @@ export function createStore<T = any>(
 
       // Inject dependencies
       injectDependencies();
-      await set('*', await setupState(module)) // Rebuild global state
+      await set('*', await setupState()) // Rebuild global state
       sysActions.moduleLoaded(module);
       (module as any).loaded$.next(true);
     })
@@ -565,23 +565,17 @@ export function createStore<T = any>(
     return subject;
   };
 
-  /**
-   * Collects and composes initial state from main and feature modules.
-   * Applies meta-reducers if provided.
-   */
-  const setupState = async (newModule?: FeatureModule): Promise<any> => {
+  const setupState = async (): Promise<any> => {
     let finalState: any;
 
-    if (newModule) {
-      // Only add the new module's slice to existing state
-      finalState = deepMerge(state || {}, { [newModule.slice]: newModule.initialState });
-    } else {
-      // Initial setup - collect initial state from all modules
-      const combinedState = modules.reduce(
-        (acc, mod) => deepMerge(acc, { [mod.slice]: mod.initialState } ),
-        { [main.slice || 'main']: main.initialState }
-      );
-      finalState = combinedState;
+    // Initialize the main slice first
+    const allModules = [main, ...modules];
+
+    for (const mod of allModules) {
+      const slicePath = (mod.slice || 'main').split('/');
+      if (getProperty<any>(finalState, slicePath) === undefined) {
+        finalState = setProperty(finalState, slicePath, mod.initialState);
+      }
     }
 
     // Apply meta-reducers to the state if enabled
@@ -603,6 +597,7 @@ export function createStore<T = any>(
     currentState.next(state);
     return finalState;
   };
+
   /**
    * Creates the middleware API object for use in the middleware pipeline.
    */

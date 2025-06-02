@@ -19,7 +19,7 @@ export function createModule<
   const { slice } = config;
 
   const loaded$ = createReplaySubject<void>();
-  const destroy$ = createSubject<void>();
+  const destroyed$ = createSubject<void>();
 
   // 1. Process action handlers and namespace action types
   const actionHandlers = new Map<
@@ -137,14 +137,14 @@ export function createModule<
                 const fn = self.internalStreams[key as keyof Selectors];
                 return fn(...args as Parameters<Selectors[keyof Selectors]>);
               }),
-              takeUntil(destroy$)
+              takeUntil(destroyed$)
             ));
           };
         }
       });
     },
     loaded$,
-    destroy$,
+    destroy$: destroyed$,
     internalStreams,
     register: function (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
