@@ -144,7 +144,7 @@ export function createModule<
       });
     },
     loaded$,
-    destroy$: destroyed$,
+    destroyed$,
     internalStreams,
     register: function (store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;

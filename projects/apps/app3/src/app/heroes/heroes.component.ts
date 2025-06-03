@@ -36,7 +36,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    heroesModule.destroy$.next();
+    heroesModule.destroyed$.next();
 
     store.dispatch(epicsModule.actions.stop(loadHeroes));
   }
