@@ -211,9 +211,9 @@ export const createEpicsMiddleware = () => {
       const epicStream = (api.strategy() === 'concurrent' ? merge : concat)(api.stack, ...activeEpics);
       const subscription = epicStream(currentAction, currentState, api.dependencies()).subscribe({
         next: (childAction: any) => {
-          if (isAction(childAction)) {
-            api.dispatch(childAction);
-          }
+          // if (isAction(childAction)) {
+          //   api.dispatch(childAction);
+          // }
         },
         error: (err: any) => {
           console.warn('Error in epic:', err);

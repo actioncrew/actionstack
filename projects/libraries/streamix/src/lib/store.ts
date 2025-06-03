@@ -338,6 +338,7 @@ export function createStore<T = any>(
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
    */
   const loadModule = (module: FeatureModule): Promise<void> => {
+    (module as any).store = store;
     return queue.enqueue(async () => {
       if (modules.some((m) => m.slice === module.slice)) {
         return Promise.resolve(); // Already loaded
@@ -628,10 +629,9 @@ export function createStore<T = any>(
    */
   const initializeStore = (storeInstance: Store<any>) => {
     // Bind system actions using the store's dispatch method
-    sysActions = bindActionCreators(
-      systemModule.actions,
-      (action: Action) => settings.dispatchSystemActions && storeInstance.dispatch(action)
-    );
+    store.loadModule(systemModule);
+
+    sysActions = systemModule.actions;
 
     // Initialize state and mark store as initialized
     sysActions.initializeState();
@@ -665,6 +665,5 @@ export function createStore<T = any>(
   let originalDispatch = store.dispatch;
   store.dispatch = (action) => queue.enqueue(() => originalDispatch(action));
   initializeStore(store);
-  store.loadModule(systemModule);
   return store;
 }

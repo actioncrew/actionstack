@@ -22,7 +22,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     store.loadModule(heroesModule);
     store.loadModule(epicsModule);
-    store.dispatch(epicsModule.actions.run(loadHeroes));
+    epicsModule.actions.run(loadHeroes);
 
     heroesModule.data$.selectHeroes().subscribe(value => {
       this.heroes = value;
@@ -32,12 +32,12 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   getHeroes(): void {
-    store.dispatch(heroesModule.actions.getHeroesRequest(this.heroes));
+    heroesModule.actions.getHeroesRequest(this.heroes);
   }
 
   ngOnDestroy(): void {
     heroesModule.destroyed$.next();
 
-    store.dispatch(epicsModule.actions.stop(loadHeroes));
+    epicsModule.actions.stop(loadHeroes);
   }
 }

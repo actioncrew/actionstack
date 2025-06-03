@@ -48,13 +48,13 @@ export const loadHeroFailure = action(
 );
 
 export const loadHero = thunk("LOAD_HEROES", (id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
-    dispatch(heroDetailsModule.actions.loadHeroRequest());
+    heroDetailsModule.actions.loadHeroRequest();
     try {
       const hero = await firstValueFrom(heroService.getHero(id));
-      dispatch(messagesModule.actions.addMessage(`HeroService: fetched hero id=${id}`));
-      dispatch(heroDetailsModule.actions.loadHeroSuccess({ hero }));
+      messagesModule.actions.addMessage(`HeroService: fetched hero id=${id}`);
+      heroDetailsModule.actions.loadHeroSuccess({ hero });
     } catch (error) {
-      dispatch(heroDetailsModule.actions.loadHeroFailure({ error }));
+      heroDetailsModule.actions.loadHeroFailure({ error });
     }
   });
 

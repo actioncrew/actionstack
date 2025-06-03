@@ -67,7 +67,7 @@ export function createModule<
                 ...config.dependencies
               });
             },
-            { type: `${slice}/${name}` }
+            { type: `${slice}/${thunk.type}` }
           );
         };
         return [name, thunkWithType];
@@ -119,7 +119,7 @@ export function createModule<
     (module as any).internalStreams = { ...(module as any).internalStreams, ...streams };
   }
 
-  return {
+  let module = {
     slice,
     initialState: config.initialState,
     actionHandlers,
@@ -164,9 +164,64 @@ export function createModule<
       bindSelectorsToStore(store, this);
     }
   };
+
+  module.actions = new Proxy(processedActions, {
+    get(target, prop: string | symbol, receiver) {
+      const fn = target[prop as keyof Actions];
+      if (typeof fn !== 'function') {
+        // If it's not a function (shouldn't happen for actions based on your config),
+        // return it directly.
+        return fn;
+      }
+
+      // Create the wrapper function that will be returned by the proxy
+      const wrappedFn = (...args: any[]) => {
+        // Access _privateStoreInstance directly here.
+        // It's guaranteed to be correct due to lexical closure.
+        if (!(module as any).store) {
+            throw new Error(
+                `Module "${slice}" actions cannot be dispatched before the module is registered. ` +
+                `Call module.register(store) first.`
+            );
+        }
+        if ((fn as any)?.isThunk) {
+          console.log(fn);
+        }
+        const actionToDispatch = fn(...args);
+        (module as any).store.dispatch(actionToDispatch); // Use _privateStoreInstance
+        return actionToDispatch;
+      };
+
+      // CRITICAL: Copy the 'type' property from the original function
+      // to the new wrapped function that the proxy returns.
+      // This allows: heroesModule.actions.getHeroesRequest.type
+      if ((fn as any).type !== undefined) {
+          Object.defineProperty(wrappedFn, 'type', {
+              value: (fn as any).type,
+              writable: false,
+              configurable: false,
+              enumerable: true
+          });
+      }
+
+      // Also copy toString if you want heroesModule.actions.getHeroesRequest.toString() to work
+      if (typeof (fn as any).toString === 'function' && (fn as any).toString !== Function.prototype.toString) {
+        Object.defineProperty(wrappedFn, 'toString', {
+            value: (fn as any).toString,
+            writable: false,
+            configurable: false,
+            enumerable: false // Typically not enumerable for toString
+        });
+      }
+
+      return wrappedFn;
+    }
+  });
+
+  return module;
 }
 
 // Helper type guard
 function isActionCreator(obj: any): obj is ActionCreator {
-  return obj && typeof obj.type === 'string';
+  return obj && typeof obj.type === 'string' && obj?.isThunk !== true;
 }

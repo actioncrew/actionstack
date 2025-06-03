@@ -1,7 +1,7 @@
 import { messagesModule } from './../messages/messages.slice';
 import { action, createModule, FeatureModule, featureSelector, selector } from '@actioncrew/actionstack';
 import { ofType } from '@actioncrew/actionstack/epics';
-import { concatMap, firstValueFrom, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
+import { concatMap, defer, firstValueFrom, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
 
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';

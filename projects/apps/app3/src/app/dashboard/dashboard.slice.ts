@@ -50,13 +50,13 @@ export const loadHeroesFailure = action(
 // Thunk remains similar but with better typing
 export const loadHeroes = thunk(
   "LOAD_HEROES", () => async (dispatch: any, getState: any, { heroService }: any) => {
-    dispatch(dashboardModule.actions.loadHeroesRequest());
+    dashboardModule.actions.loadHeroesRequest();
     try {
       const heroes = await firstValueFrom(heroService.getHeroes());
-      dispatch(dashboardModule.actions.loadHeroesSuccess({ heroes }));
-      dispatch(messagesModule.actions.addMessage('HeroService: fetched heroes'));
+      dashboardModule.actions.loadHeroesSuccess({ heroes });
+      messagesModule.actions.addMessage('HeroService: fetched heroes');
     } catch (error) {
-      dispatch(dashboardModule.actions.loadHeroesFailure({ error }));
+      dashboardModule.actions.loadHeroesFailure({ error });
       throw error;
     }
   }
