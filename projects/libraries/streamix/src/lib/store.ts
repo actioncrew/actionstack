@@ -567,7 +567,7 @@ export function createStore<T = any>(
   };
 
   const setupState = async (): Promise<any> => {
-    let finalState: any;
+    let finalState = state;
 
     // Initialize the main slice first
     const allModules = [main, ...modules];
