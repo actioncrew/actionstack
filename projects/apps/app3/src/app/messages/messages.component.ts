@@ -12,10 +12,10 @@ export class MessagesComponent {
   messages$!: Stream<any>;
 
   constructor() {
+    messagesModule.init(store);
   }
 
   async ngOnInit() {
-    store.loadModule(messagesModule);
     this.messages$ = messagesModule.data$.selectMessages();
   }
 

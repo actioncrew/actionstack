@@ -20,10 +20,11 @@ export class HeroDetailsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private location: Location
-  ) {}
+  ) {
+    heroDetailsModule.init(store);
+  }
 
     async ngOnInit() {
-      store.loadModule(heroDetailsModule);
       this.hero$ = heroDetailsModule.data$.heroSelector();
 
       this.subscription = this.route.paramMap

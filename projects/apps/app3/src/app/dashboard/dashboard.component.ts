@@ -19,11 +19,10 @@ export class DashboardComponent implements OnInit {
   heroes$!: Stream<Hero[]>;
 
   constructor() {
-
+    dashboardModule.init(store);
   }
 
   async ngOnInit() {
-    store.loadModule(dashboardModule);
     this.heroes$ = dashboardModule.data$.selectTopHeroes();
     dashboardModule.actions.loadHeroes();
   }

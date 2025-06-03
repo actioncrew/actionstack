@@ -1,5 +1,5 @@
 import { messagesModule } from './../messages/messages.slice';
-import { action, featureSelector, selector, FeatureModule, createModule, thunk } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, FeatureModule, createModule, thunk, Store } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';

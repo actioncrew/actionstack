@@ -1,5 +1,5 @@
 import { createReplaySubject, createSubject, defer, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
-import { ActionCreator, featureSelector } from '../lib';
+import { ActionCreator, featureSelector, Store } from '../lib';
 
 
 
@@ -146,7 +146,12 @@ export function createModule<
     loaded$,
     destroyed$,
     internalStreams,
-    register: function (store: {
+    init(store: Store<any>) {
+      (module as any).store = store;
+      store.loadModule(module);
+      return module;
+    },
+    register(store: {
       registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
       registerDependencies: (slice: string, deps: any) => void;
       select: <R>(selector: (state: any) => R | Promise<R>) => Stream<R>;

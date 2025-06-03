@@ -17,11 +17,13 @@ export class HeroesComponent implements OnInit, OnDestroy {
   heroes: Hero[] = [];
   subscription!: Subscription;
 
-  constructor(private heroService: HeroService) { }
+
+  constructor(private heroService: HeroService) {
+    epicsModule.init(store);
+    heroesModule.init(store);
+  }
 
   async ngOnInit() {
-    store.loadModule(heroesModule);
-    store.loadModule(epicsModule);
     epicsModule.actions.run(loadHeroes);
 
     heroesModule.data$.selectHeroes().subscribe(value => {
