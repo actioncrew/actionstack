@@ -313,24 +313,26 @@ export function createStore<T = any>(
     pipeline.dependencies = remainingDependencies;
   };
 
-  const registerActionHandler = (
-    type: string,
-    handler: (state: any, payload?: any) => any
+  const registerActionHandlers = (
+    module: FeatureModule
   ) => {
-    if (actionHandlers.has(type)) {
-      console.warn(`Action handler for "${type}" already registered - overwriting`);
-    }
-    actionHandlers.set(type, handler);
+    Object.values(module.actions).forEach((action: any) => {
+      if (actionHandlers.has(action.type)) {
+        console.warn(`Action handler for "${action.type}" already registered - overwriting`);
+      }
+      actionHandlers.set(action.type, action.handler);
+    })
   }
 
-  const dependenciesMap = new Map<string, any>();
-
-  const registerDependencies = (slice: string, deps: any) => {
-    if (dependenciesMap.has(slice)) {
-      console.warn(`Dependencies for slice "${slice}" already registered - overwriting`);
-    }
-    dependenciesMap.set(slice, deps);
-  };
+  const unregisterActionHandlers = (
+    module: FeatureModule
+  ) => {
+    Object.values(module.actions).forEach((action: any) => {
+      if (actionHandlers.has(action.type)) {
+        actionHandlers.delete(action.type);
+      }
+    })
+  }
 
   /**
    * Loads a new feature module into the store if it isn't already loaded.
@@ -347,11 +349,7 @@ export function createStore<T = any>(
       // Register the module
       modules = [...modules, module];
 
-      Object.values(module.actions).forEach((action: any) => {
-        if (action.handler) {
-          registerActionHandler(action.type, action.handler);
-        }
-      });
+      registerActionHandlers(module);
 
       // Inject dependencies
       injectDependencies();
@@ -619,8 +617,6 @@ export function createStore<T = any>(
     select,
     loadModule,
     unloadModule,
-    registerActionHandler,
-    registerDependencies,
     middlewareAPI,
   } as Store<any>;
 
