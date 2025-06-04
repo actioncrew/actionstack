@@ -1,4 +1,4 @@
-import { Action, ActionCreator, isAction, kindOf } from './types';
+import { Action, ActionCreator, AsyncAction, isAction, kindOf } from './types';
 
 export { createAction as action };
 
@@ -44,48 +44,57 @@ export { createAction as action };
  * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
  * - For thunks, an error in execution logs a warning.
  */
-export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): ActionCreator {
-  function actionCreator(...args: any[]) {
-    let action: Action = {
-      type: typeOrThunk as string,
-    };
+type Dispatch = (action: Action<any>) => any;
+type GetState = () => any;
+type Dependencies = any;
 
+export function createAction<T = any, Args extends any[] = any[]>(
+  typeOrThunk: string | ((...args: Args) => (dispatch: Dispatch, getState: GetState, deps: Dependencies) => Promise<T>),
+  payloadCreator?: (...args: Args) => T
+): ActionCreator<T, Args> {
+
+  function actionCreator(...args: Args): Action<T> | AsyncAction<T> {
     if (typeof typeOrThunk === 'function') {
-      return async (dispatch: Function, getState: Function, dependencies: any) => {
+      // Async thunk case
+      return async (dispatch: Dispatch, getState: GetState, dependencies: Dependencies): Promise<T> => {
         try {
-          return await typeOrThunk(...args)(dispatch, getState, dependencies);
+          return await (typeOrThunk as (...args: Args) => (dispatch: Dispatch, getState: GetState, deps: Dependencies) => Promise<T>)(...args)(dispatch, getState, dependencies);
         } catch (error: any) {
-          console.warn(`Error in action: ${error.message}. If dependencies object provided does not contain required property, it is possible that the slice name obtained from the tag name does not match the one declared in the slice file.`);
+          console.warn(`Error in action: ${error.message}. If dependencies object does not contain required property, slice name might mismatch.`);
+          throw error;
+        }
+      };
+    } else {
+      // Sync action case
+      const action: Action<T> = { type: typeOrThunk };
+
+      if (payloadCreator) {
+        const payload = payloadCreator(...args);
+        if (payload === undefined || payload === null) {
+          console.warn('payloadCreator did not return an object. Did you forget to initialize action params?');
+        }
+        if (payload !== undefined && payload !== null) {
+          action.payload = payload;
+          if (payload !== null && typeof payload === 'object') {
+            if ('meta' in payload) action.meta = (payload as any).meta;
+            if ('error' in payload) action.error = (payload as any).error;
+          }
+        }
+      } else {
+        if (args[0] !== undefined) {
+          action.payload = args[0];
         }
       }
-    } else if (payloadCreator) {
-      let result = payloadCreator(...args);
-      if (result === undefined || result === null) {
-        console.warn('payloadCreator did not return an object. Did you forget to initialize an action with params?');
-      }
 
-      // Do not return payload if it is undefined
-      if (result !== undefined && result !== null) {
-        action.payload = result;
-        'meta' in result && (action.meta = result.meta);
-        'error' in result && (action.error = result.error);
-      }
+      return action;
     }
-    else {
-      // Do not return payload if it is undefined
-      if (args[0] !== undefined) {
-        action.payload = args[0];
-      }
-    }
-
-    return action;
   }
 
-  actionCreator.toString = () => `${typeOrThunk}`;
+  actionCreator.toString = () => (typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction');
   actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
-  actionCreator.match = (action: any) => isAction(action) && action.type === typeOrThunk;
+  actionCreator.match = (action: Action<T>) => !!action && action.type === (typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction');
 
-  return actionCreator;
+  return actionCreator as ActionCreator<T, Args>;
 }
 
 /**

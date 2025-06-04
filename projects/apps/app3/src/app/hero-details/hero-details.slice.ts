@@ -14,10 +14,10 @@ export const loadHero = action((id: number) => async (dispatch: Function, getSta
   dispatch(loadHeroRequest(id));
   try {
     const heroService = dependencies.heroService;
-    const hero = await firstValueFrom(heroService.getHero(id));
+    const hero = await firstValueFrom(heroService.getHero(id)) as Hero;
     dispatch(addMessage(`HeroService: fetched hero id=${id}`));
     dispatch(loadHeroSuccess(hero));
-  } catch (error) {
+  } catch (error: any) {
     dispatch(loadHeroFailure(error));
   }
 });

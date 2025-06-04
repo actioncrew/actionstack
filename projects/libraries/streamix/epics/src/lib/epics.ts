@@ -268,11 +268,10 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
 
   store.spawn = <U>(...epics: Epic[]): Stream<U> => {
     const effects$ = createStream<U>('spawn', async function* () {
-      // Unsubscribe from the epics
-      store.dispatch(stop(epics));
+      store.dispatch(stop(...epics));
     });
 
-    store.dispatch(run(epics));
+    store.dispatch(run(...epics));
     return effects$;
   };
 

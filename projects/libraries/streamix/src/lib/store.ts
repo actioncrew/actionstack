@@ -104,7 +104,7 @@ export function isSystemActionType(type: string): type is SystemActionTypes {
  */
 function systemAction<T extends SystemActionTypes>(
   type: T,
-  payload?: Function
+  payload?: ((...args: any[]) => any)
 ) {
   return action(type, payload);
 }

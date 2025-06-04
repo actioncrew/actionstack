@@ -33,11 +33,11 @@ export interface AsyncAction<T = any> {
  * Represents an action creator.
  * @template T The type of the action payload.
  */
-export type ActionCreator<T = any> = ((...args: any[]) => Action<T> | AsyncAction<T>) & {
+export type ActionCreator<T = any, Args extends any[] = any[]> = ((...args: Args) => Action<T> | AsyncAction<T>) & {
   toString(): string;
   type: string;
   match(action: Action<T>): boolean;
-}
+};
 
 /**
  * A function that takes the current state and an action, and returns
