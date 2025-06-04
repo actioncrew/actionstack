@@ -199,37 +199,6 @@ export function createStore<T = any>(
       currentState.next(state as T);
       return;
     }
-
-    if (!isPlainObject(action)) {
-      console.warn(
-        `Actions must be plain objects. Instead, the actual type was: '${kindOf(
-          action
-        )}'.`
-      );
-      return;
-    }
-    if (typeof action.type === 'undefined') {
-      console.warn('Actions may not have an undefined "type" property.');
-      return;
-    }
-    if (typeof action.type !== 'string') {
-      console.warn(
-        `Action "type" property must be a string. Instead, the actual type was: '${kindOf(
-          action.type
-        )}'.`
-      );
-      return;
-    }
-
-    try {
-      // await update(
-      //   '*',
-      //   async (state: any) => await pipeline.reducer(state, action),
-      //   action
-      // );
-    } catch {
-      console.warn('Error during processing the action');
-    }
   };
 
   /**
@@ -346,16 +315,22 @@ export function createStore<T = any>(
         return Promise.resolve(); // Already loaded
       }
 
-      // Register the module
-      modules = [...modules, module];
+      try {
+        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+        // Register the module
+        modules = [...modules, module];
 
-      registerActionHandlers(module);
+        registerActionHandlers(module);
 
-      // Inject dependencies
-      injectDependencies();
-      await set('*', await setupState()) // Rebuild global state
-      sysActions.moduleLoaded(module);
-      (module as any).loaded$.next(true);
+        // Inject dependencies
+        injectDependencies();
+        await setupState(); // Rebuild global state
+
+        sysActions.moduleLoaded(module);
+        (module as any).loaded$.next(true);
+      } finally {
+        lock.release(); // Release lock regardless of success or failure
+      }
     })
   };
 
@@ -378,25 +353,27 @@ export function createStore<T = any>(
         return Promise.resolve(); // Module not found, nothing to unload
       }
 
-      // Remove the module from the internal state
-      modules.splice(moduleIndex, 1);
+      try {
+        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+        // Remove the module from the internal state
+        modules.splice(moduleIndex, 1);
 
-      unregisterActionHandlers(module);
+        unregisterActionHandlers(module);
 
-      // Eject dependencies
-      ejectDependencies(module);
-      // .then(() =>
-      //   update('*', async (state) => {
-      //     if (clearState) {
-      //       state = { ...state };
-      //       delete state[module.slice];
-      //     }
-      //     return await setupReducer(state);
-      //   })
-      // )
+        // Eject dependencies
+        ejectDependencies(module);
 
-      // Dispatch module unloaded action
-      sysActions.moduleUnloaded(module);
+        const slicePath = (module.slice || 'main').split('/');
+        if (clearState) {
+          state = setProperty(state, slicePath, undefined)
+        }
+        currentState.next(state);
+
+        // Dispatch module unloaded action
+        sysActions.moduleUnloaded(module);
+      } finally {
+        lock.release(); // Release lock regardless of success or failure
+      }
     });
   };
 
