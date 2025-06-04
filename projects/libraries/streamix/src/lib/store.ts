@@ -642,7 +642,6 @@ export function createStore<T = any>(
     );
 
     injectDependencies();
-    set('*', setupState());
     sysActions.storeInitialized();
   }
 
