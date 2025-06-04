@@ -50,10 +50,10 @@ export const loadHeroFailure = action(
 export const loadHero = thunk("LOAD_HEROES", (id: number) => async (dispatch: any, getState: any, { heroService }: any) => {
     heroDetailsModule.actions.loadHeroRequest();
     try {
-      const hero = await firstValueFrom(heroService.getHero(id));
+      const hero = await firstValueFrom(heroService.getHero(id)) as Hero;
       messagesModule.actions.addMessage(`HeroService: fetched hero id=${id}`);
       heroDetailsModule.actions.loadHeroSuccess({ hero });
-    } catch (error) {
+    } catch (error: any) {
       heroDetailsModule.actions.loadHeroFailure({ error });
     }
   });

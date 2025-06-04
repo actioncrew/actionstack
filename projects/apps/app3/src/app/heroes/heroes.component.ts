@@ -34,7 +34,7 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   getHeroes(): void {
-    heroesModule.actions.getHeroesRequest(this.heroes);
+    heroesModule.actions.getHeroesRequest({ heroes: this.heroes });
   }
 
   ngOnDestroy(): void {

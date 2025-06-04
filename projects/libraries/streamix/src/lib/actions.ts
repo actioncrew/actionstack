@@ -15,40 +15,91 @@ export const actionCreators = new Map<string, (...args: any[]) => Action>();
  * If not provided, the first argument to the action creator becomes the payload.
  * @returns A ActionCreator function.
  */
+
+// 1. Only type, payload is first argument
+// 1) Only `type` → zero‐arg, payload = void
 export function createAction<
-  P = any,
-  T extends string = string,
-  Args extends any[] = any[]
+  TType extends string
+>(type: TType): ActionCreator<void, TType, []>;
+
+export function createAction<TType extends string, TState>(
+  type: TType,
+  handler: ActionHandler<TState, void>
+): ActionCreator<void, TType, []>;
+
+// 2) `type + handler` → one‐arg payload (identity)
+export function createAction<
+  TType extends string,
+  TPayload
 >(
-  type: T,
-  handler?: ActionHandler<any, P>,
-  payloadCreator?: (...args: Args) => P
-): ActionCreator<P, T, Args> {
-  const actionCreator = ((...args: Args) => {
-    const result = payloadCreator?.(...args);
-    const action: Action<P> = { type };
+  type: TType,
+  handler: ActionHandler<any, TPayload>
+): ActionCreator<TPayload, TType, [TPayload]>;
 
-    if (result !== undefined && result !== null) {
-      action.payload = result;
+// 3) `type + handler + payloadCreator` → multi‐arg
+export function createAction<
+  TType extends string,
+  TArgs extends readonly any[],
+  TPayload
+>(
+  type: TType,
+  handler: ActionHandler<any, TPayload>,
+  payloadCreator: (...args: TArgs) => TPayload
+): ActionCreator<TPayload, TType, TArgs>;
 
-      if (typeof result === 'object') {
-        if ('meta' in result) action.meta = (result as any).meta;
-        if ('error' in result) action.error = (result as any).error;
+
+// ------------------
+// Implementation
+// ------------------
+
+export function createAction<
+  TType extends string,
+  TArgs extends readonly any[] = [],
+  TPayload = void
+>(
+  type: TType,
+  handler: ActionHandler<any, TPayload> = (() => void 0) as ActionHandler<any, TPayload>,
+  payloadCreator?: (...args: TArgs) => TPayload
+): ActionCreator<TPayload, TType, TArgs> {
+  //
+  // If the caller did NOT pass a `payloadCreator`, we want:
+  //   • payloadCreator(...) = first argument (identity),
+  //   • and allow zero‐arg if TPayload = void.
+  //
+  // The simplest default is: (arg?: any) => arg  (but casted to match `(...args: TArgs) => TPayload`).
+  //
+
+  const defaultPayloadCreator = ((...args: any[]) => {
+    return args.length > 0 ? args[0] : undefined;
+  }) as (...args: TArgs) => TPayload;
+
+  // 2) Now pick between the user‐provided one or this default.
+  const actualPayloadCreator = payloadCreator ?? defaultPayloadCreator;
+
+  const creator = (...args: TArgs): Action<TPayload> => {
+    const payload = actualPayloadCreator(...args);
+    const action: Action<TPayload> = { type };
+
+    if (payload !== undefined) {
+      action.payload = payload;
+
+      // If payload is an object, pull out `meta`/`error` if present
+      if (payload !== null && typeof payload === 'object') {
+        if ('meta' in payload) action.meta = (payload as any).meta;
+        if ('error' in payload) action.error = (payload as any).error;
       }
-    } else if (args[0] !== undefined) {
-      action.payload = args[0] as P;
     }
 
     return action;
-  }) as ActionCreator<P, T, Args>;
+  };
 
-  actionCreator.type = type;
-  actionCreator.handler = handler ?? (() => {});
-  actionCreator.toString = () => type;
-  actionCreator.match = (action: any): action is Action<P> =>
-    isAction(action) && action.type === type;
-
-  return actionCreator;
+  // Attach static properties
+  return Object.assign(creator, {
+    handler,
+    type,
+    toString: () => type,
+    match: (action: Action<any>): action is Action<TPayload> => action?.type === type,
+  }) as ActionCreator<TPayload, TType, TArgs>;
 }
 
 /**

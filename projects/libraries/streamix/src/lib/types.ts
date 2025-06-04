@@ -54,7 +54,7 @@ export interface AsyncAction<TState = any, TDependencies extends Record<string, 
 export type ActionCreator<
   TPayload = any,
   TType extends string = string,
-  TArgs extends any[] = any[]
+  TArgs extends readonly any[] = any[]
 > = ((...args: TArgs) => Action<TPayload>) & {
   handler: ActionHandler;
   toString(): string;
