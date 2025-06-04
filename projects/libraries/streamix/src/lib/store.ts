@@ -572,7 +572,6 @@ export function createStore<T = any>(
     middlewareAPI,
   } as Store<any>;
 
-
   /**
    * Initializes the store with system actions and state setup
    */

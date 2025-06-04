@@ -151,9 +151,7 @@ export function createModule<
         return fn;
       }
 
-      // 1) Create a wrapper that calls the original `fn` and then dispatches
       const wrappedFn = (...args: any[]) => {
-        // 1a) Ensure module.store is ready
         if (!store) {
           throw new Error(
             `Module "${slice}" actions cannot be dispatched before registration. ` +
@@ -161,53 +159,21 @@ export function createModule<
           );
         }
 
-        // 1b) If this was flagged as a thunk, you could peek at `fn.isThunk` here
         if ((fn as any).isThunk) {
           console.log("dispatching thunk:", fn);
         }
 
-        // 1c) Execute the original action‐creator
         const actionToDispatch = fn(...args);
-
-        // 1d) Dispatch it into the store
         store.dispatch(actionToDispatch);
-
-        // 1e) Return the un‐dispatched action object
         return actionToDispatch;
       };
 
-      // 2) Copy _all_ own property descriptors from `fn` onto `wrappedFn`
-      //
-      //    This is the crucial step that preserves:
-      //      • fn.type
-      //      • fn.handler
-      //      • fn.match
-      //      • fn.toString (if it was overridden)
-      //      • any other static properties you attached to `fn`
-      //
-      //    If you want to tweak enumerability or writability for certain props,
-      //    you can modify the descriptors object before defining.
       const descriptors = Object.getOwnPropertyDescriptors(fn);
-
-      //  – For example, if `.type` was originally non‐enumerable, but you want it enumerable on wrappedFn:
-      //      descriptors["type"] = {
-      //        value: (fn as any).type,
-      //        writable: false,
-      //        configurable: false,
-      //        enumerable: true
-      //      }
-      //
-      //  – If you do NOT want to copy `.name` or `.length`, you can delete those:
-      //      delete descriptors["name"];
-      //      delete descriptors["length"];
-
       Object.defineProperties(wrappedFn, descriptors);
 
-      // 3) Return the wrapped function
       return wrappedFn;
     },
   });
-
 
   return module;
 }
