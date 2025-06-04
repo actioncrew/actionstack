@@ -68,7 +68,7 @@ export type Store<T = any> = {
     defaultValue?: R,
   ): Stream<R>;
   loadModule: (module: FeatureModule) => Promise<void>;
-  unloadModule: (module: FeatureModule, clearState: boolean) => Promise<void>;
+  unloadModule: (module: FeatureModule, clearState?: boolean) => Promise<void>;
   middlewareAPI: MiddlewareAPI;
   starter: Middleware;
 };
@@ -382,7 +382,7 @@ export function createStore<T = any>(
       modules.splice(moduleIndex, 1);
 
       unregisterActionHandlers(module);
-      
+
       // Eject dependencies
       ejectDependencies(module);
       // .then(() =>

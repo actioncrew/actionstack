@@ -105,6 +105,8 @@ export function createModule<
     internalStreams = { ...(module as any).internalStreams, ...streams };
   }
 
+  let store: Store | undefined;
+
   let module = {
     slice,
     initialState: config.initialState,
@@ -129,10 +131,14 @@ export function createModule<
     },
     loaded$,
     destroyed$,
-    init(store: Store<any>) {
-      (module as any).store = store;
+    init(storeInstance: Store<any>) {
+      store = storeInstance;
       store.loadModule(this);
       bindSelectorsToStore(store, this);
+      return module;
+    },
+    destroy(clearState?: boolean) {
+      store?.unloadModule(this, clearState);
       return module;
     }
   };
@@ -147,7 +153,7 @@ export function createModule<
       // 1) Create a wrapper that calls the original `fn` and then dispatches
       const wrappedFn = (...args: any[]) => {
         // 1a) Ensure module.store is ready
-        if (!(module as any).store) {
+        if (!store) {
           throw new Error(
             `Module "${slice}" actions cannot be dispatched before registration. ` +
             `Call module.register(store) first.`
@@ -163,7 +169,7 @@ export function createModule<
         const actionToDispatch = fn(...args);
 
         // 1d) Dispatch it into the store
-        (module as any).store.dispatch(actionToDispatch);
+        store.dispatch(actionToDispatch);
 
         // 1e) Return the un‐dispatched action object
         return actionToDispatch;
