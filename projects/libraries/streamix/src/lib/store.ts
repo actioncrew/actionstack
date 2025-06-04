@@ -324,7 +324,13 @@ export function createStore<T = any>(
 
         // Inject dependencies
         injectDependencies();
-        await setupState(); // Rebuild global state
+
+        const slicePath = (module.slice || 'main').split('/');
+        if (getProperty(state, slicePath) === undefined) {
+          state = setProperty(state, slicePath, module.initialState);
+        }
+
+        currentState.next(state);
 
         sysActions.moduleLoaded(module);
         (module as any).loaded$.next(true);
@@ -542,39 +548,6 @@ export function createStore<T = any>(
     };
 
     return subject;
-  };
-
-  const setupState = async (): Promise<any> => {
-    let finalState = state;
-
-    // Initialize the main slice first
-    const allModules = [main, ...modules];
-
-    for (const mod of allModules) {
-      const slicePath = (mod.slice || 'main').split('/');
-      if (getProperty<any>(finalState, slicePath) === undefined) {
-        finalState = setProperty(finalState, slicePath, mod.initialState);
-      }
-    }
-
-    // Apply meta-reducers to the state if enabled
-    if (settings.enableMetaReducers && mainModule.metaReducers?.length) {
-      for (let i = mainModule.metaReducers.length - 1; i >= 0; i--) {
-        try {
-          const meta = mainModule.metaReducers[i];
-          const maybeNewState = await meta(finalState);
-          if (maybeNewState !== undefined) {
-            finalState = maybeNewState;
-          }
-        } catch (err: any) {
-          console.warn(`Error in meta-reducer ${i}:`, err.message);
-        }
-      }
-    }
-
-    state = finalState as T;
-    currentState.next(state);
-    return finalState;
   };
 
   /**
