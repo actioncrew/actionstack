@@ -2,6 +2,10 @@ import { Action, ActionCreator, AsyncAction, isAction, kindOf } from './types';
 
 export { createAction as action };
 
+type Dispatch = (action: Action<any>) => any;
+type GetState = () => any;
+type Dependencies = any;
+
 /**
  * Creates an action creator function for Actionstack actions, supporting both synchronous and asynchronous use cases.
  *
@@ -44,58 +48,83 @@ export { createAction as action };
  * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
  * - For thunks, an error in execution logs a warning.
  */
-type Dispatch = (action: Action<any>) => any;
-type GetState = () => any;
-type Dependencies = any;
+export function createAction<T, Args extends any[]>(
+  type: string
+): ActionCreator<T | undefined, []>;
 
-export function createAction<T = any, Args extends any[] = any[]>(
+export function createAction<T, Args extends any[]>(
+  type: string,
+  payloadCreator?: (...args: Args) => T
+): ActionCreator<T, Args>;
+
+export function createAction<T, Args extends any[]>(
   typeOrThunk: string | ((...args: Args) => (dispatch: Dispatch, getState: GetState, deps: Dependencies) => Promise<T>),
   payloadCreator?: (...args: Args) => T
 ): ActionCreator<T, Args> {
+  // If typeOrThunk is a function, we’re in “async thunk” mode.
+  const isThunkMode = typeof typeOrThunk === 'function' && typeOrThunk.length > 0 && payloadCreator === undefined;
+
+  // Build a default payloadCreator that simply returns the first argument (or undefined)
+  // Cast it to the proper type so TS knows this matches (...args: Args) => T
+  const defaultPayloadCreator = ((...args: any[]) => {
+    return args.length > 0 ? args[0] : undefined;
+  }) as (...args: Args) => T;
 
   function actionCreator(...args: Args): Action<T> | AsyncAction<T> {
-    if (typeof typeOrThunk === 'function') {
-      // Async thunk case
+    if (isThunkMode) {
+      // ----- Async thunk case -----
+      // typeOrThunk is actually (...args: Args) => (dispatch, getState, deps) => Promise<T>
+      const thunkFn = typeOrThunk as (...args: Args) => (dispatch: Dispatch, getState: GetState, deps: Dependencies) => Promise<T>;
+
       return async (dispatch: Dispatch, getState: GetState, dependencies: Dependencies): Promise<T> => {
         try {
-          return await (typeOrThunk as (...args: Args) => (dispatch: Dispatch, getState: GetState, deps: Dependencies) => Promise<T>)(...args)(dispatch, getState, dependencies);
+          return await thunkFn(...args)(dispatch, getState, dependencies);
         } catch (error: any) {
-          console.warn(`Error in action: ${error.message}. If dependencies object does not contain required property, slice name might mismatch.`);
+          console.warn(
+            `Error in async action: ${error?.message}. ` +
+            `If dependencies object is missing required props, check your slice registration.`
+          );
           throw error;
         }
       };
-    } else {
-      // Sync action case
-      const action: Action<T> = { type: typeOrThunk };
+    }
 
-      if (payloadCreator) {
-        const payload = payloadCreator(...args);
-        if (payload === undefined || payload === null) {
-          console.warn('payloadCreator did not return an object. Did you forget to initialize action params?');
+    // ----- Synchronous action case -----
+    const action: Action<T> = {
+      type: typeOrThunk as string
+    };
+
+    // Pick either the user‐supplied payloadCreator or the default (which returns args[0] or undefined).
+    const actualPayloadCreator = (payloadCreator ?? defaultPayloadCreator) as (...args: Args) => T;
+    const payload = actualPayloadCreator(...args);
+
+    if (payload !== undefined) {
+      action.payload = payload;
+
+      // If payload is an object, copy through meta / error if they exist
+      if (payload !== null && typeof payload === 'object') {
+        if ('meta' in payload) {
+          action.meta = (payload as any).meta;
         }
-        if (payload !== undefined && payload !== null) {
-          action.payload = payload;
-          if (payload !== null && typeof payload === 'object') {
-            if ('meta' in payload) action.meta = (payload as any).meta;
-            if ('error' in payload) action.error = (payload as any).error;
-          }
-        }
-      } else {
-        if (args[0] !== undefined) {
-          action.payload = args[0];
+        if ('error' in payload) {
+          action.error = (payload as any).error;
         }
       }
-
-      return action;
     }
+
+    return action;
   }
 
-  actionCreator.toString = () => (typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction');
-  actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
-  actionCreator.match = (action: Action<T>) => !!action && action.type === (typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction');
+  // Assign .type, .toString(), and .match(...) just as in your legacy code:
+  actionCreator.toString = () => (typeof typeOrThunk === 'string' ? (typeOrThunk as string) : 'asyncAction');
+  actionCreator.type = typeof typeOrThunk === 'string' ? (typeOrThunk as string) : 'asyncAction';
+  actionCreator.match = (action: Action<any>): action is Action<T> => {
+    return !!action && action.type === (typeof typeOrThunk === 'string' ? (typeOrThunk as string) : 'asyncAction');
+  };
 
   return actionCreator as ActionCreator<T, Args>;
 }
+
 
 /**
  * Binds an action creator to the dispatch function.
