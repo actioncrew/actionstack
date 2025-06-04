@@ -21,12 +21,6 @@ export function createModule<
   const loaded$ = createReplaySubject<void>();
   const destroyed$ = createSubject<void>();
 
-  // 1. Process action handlers and namespace action types
-  const actionHandlers = new Map<
-    string,
-    (state: State, payload: any) => State
-  >();
-
   const processedActions = Object.fromEntries(
     Object.entries(config.actions).map(([name, action]) => {
       if (isActionCreator(action)) {
@@ -40,14 +34,6 @@ export function createModule<
             type: namespacedType,
           };
         };
-
-        // Register handler if present
-        if (action.handler) {
-          actionHandlers.set(
-            namespacedType,
-            (state, payload) => action.handler!(state, payload)
-          );
-        }
 
         // Preserve metadata and override type and toString
         Object.assign(namespacedAction, action, {
@@ -116,25 +102,23 @@ export function createModule<
       };
     }
 
-    (module as any).internalStreams = { ...(module as any).internalStreams, ...streams };
+    internalStreams = { ...(module as any).internalStreams, ...streams };
   }
 
   let module = {
     slice,
     initialState: config.initialState,
-    actionHandlers,
     actions: processedActions,
     selectors: processedSelectors,
     dependencies: config.dependencies,
     get data$() {
-      let self = this;
       return new Proxy({} as Streams<Selectors>, {
         get(_, key: string) {
           return (...args: any[]) => {
             return defer(() => loaded$.pipe(
               first(),
               switchMap(() => {
-                const fn = self.internalStreams[key as keyof Selectors];
+                const fn = internalStreams[key as keyof Selectors];
                 return fn(...args as Parameters<Selectors[keyof Selectors]>);
               }),
               takeUntil(destroyed$)
@@ -145,10 +129,9 @@ export function createModule<
     },
     loaded$,
     destroyed$,
-    internalStreams,
     init(store: Store<any>) {
       (module as any).store = store;
-      store.loadModule(module);
+      store.loadModule(this);
       bindSelectorsToStore(store, this);
       return module;
     }

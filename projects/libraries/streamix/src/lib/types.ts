@@ -308,7 +308,6 @@ export interface FeatureModule<
 > {
   slice: string;
   initialState: State;
-  actionHandlers: Map<ActionTypes, ActionHandler<State, any>>;
   actions: Actions;
   selectors: Selectors;
   dependencies?: Dependencies;
