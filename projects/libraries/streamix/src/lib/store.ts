@@ -347,9 +347,10 @@ export function createStore<T = any>(
       // Register the module
       modules = [...modules, module];
 
-      // Register action handlers
-      modules.forEach(module => {
-        (module as any).register(store)
+      Object.values(module.actions).forEach((action: any) => {
+        if (action.handler) {
+          registerActionHandler(action.type, action.handler);
+        }
       });
 
       // Inject dependencies

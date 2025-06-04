@@ -149,79 +149,75 @@ export function createModule<
     init(store: Store<any>) {
       (module as any).store = store;
       store.loadModule(module);
-      return module;
-    },
-    register(store: {
-      registerActionHandler: (type: string, handler: (state: any, payload: any) => any) => void;
-      registerDependencies: (slice: string, deps: any) => void;
-      select: <R>(selector: (state: any) => R | Promise<R>) => Stream<R>;
-    }) {
-      // Register all action handlers
-      actionHandlers.forEach((handler, type) => {
-        store.registerActionHandler(type, handler);
-      });
-
-      // Register dependencies if provided
-      if (config.dependencies) {
-        store.registerDependencies(slice, config.dependencies);
-      }
-
       bindSelectorsToStore(store, this);
+      return module;
     }
   };
 
   module.actions = new Proxy(processedActions, {
     get(target, prop: string | symbol, receiver) {
-      const fn = target[prop as keyof Actions];
-      if (typeof fn !== 'function') {
-        // If it's not a function (shouldn't happen for actions based on your config),
-        // return it directly.
+      const fn = (target as any)[prop];
+      if (typeof fn !== "function") {
         return fn;
       }
 
-      // Create the wrapper function that will be returned by the proxy
+      // 1) Create a wrapper that calls the original `fn` and then dispatches
       const wrappedFn = (...args: any[]) => {
-        // Access _privateStoreInstance directly here.
-        // It's guaranteed to be correct due to lexical closure.
+        // 1a) Ensure module.store is ready
         if (!(module as any).store) {
-            throw new Error(
-                `Module "${slice}" actions cannot be dispatched before the module is registered. ` +
-                `Call module.register(store) first.`
-            );
+          throw new Error(
+            `Module "${slice}" actions cannot be dispatched before registration. ` +
+            `Call module.register(store) first.`
+          );
         }
-        if ((fn as any)?.isThunk) {
-          console.log(fn);
+
+        // 1b) If this was flagged as a thunk, you could peek at `fn.isThunk` here
+        if ((fn as any).isThunk) {
+          console.log("dispatching thunk:", fn);
         }
+
+        // 1c) Execute the original action‐creator
         const actionToDispatch = fn(...args);
-        (module as any).store.dispatch(actionToDispatch); // Use _privateStoreInstance
+
+        // 1d) Dispatch it into the store
+        (module as any).store.dispatch(actionToDispatch);
+
+        // 1e) Return the un‐dispatched action object
         return actionToDispatch;
       };
 
-      // CRITICAL: Copy the 'type' property from the original function
-      // to the new wrapped function that the proxy returns.
-      // This allows: heroesModule.actions.getHeroesRequest.type
-      if ((fn as any).type !== undefined) {
-          Object.defineProperty(wrappedFn, 'type', {
-              value: (fn as any).type,
-              writable: false,
-              configurable: false,
-              enumerable: true
-          });
-      }
+      // 2) Copy _all_ own property descriptors from `fn` onto `wrappedFn`
+      //
+      //    This is the crucial step that preserves:
+      //      • fn.type
+      //      • fn.handler
+      //      • fn.match
+      //      • fn.toString (if it was overridden)
+      //      • any other static properties you attached to `fn`
+      //
+      //    If you want to tweak enumerability or writability for certain props,
+      //    you can modify the descriptors object before defining.
+      const descriptors = Object.getOwnPropertyDescriptors(fn);
 
-      // Also copy toString if you want heroesModule.actions.getHeroesRequest.toString() to work
-      if (typeof (fn as any).toString === 'function' && (fn as any).toString !== Function.prototype.toString) {
-        Object.defineProperty(wrappedFn, 'toString', {
-            value: (fn as any).toString,
-            writable: false,
-            configurable: false,
-            enumerable: false // Typically not enumerable for toString
-        });
-      }
+      //  – For example, if `.type` was originally non‐enumerable, but you want it enumerable on wrappedFn:
+      //      descriptors["type"] = {
+      //        value: (fn as any).type,
+      //        writable: false,
+      //        configurable: false,
+      //        enumerable: true
+      //      }
+      //
+      //  – If you do NOT want to copy `.name` or `.length`, you can delete those:
+      //      delete descriptors["name"];
+      //      delete descriptors["length"];
 
+      Object.defineProperties(wrappedFn, descriptors);
+
+      // 3) Return the wrapped function
       return wrappedFn;
-    }
+    },
   });
+
 
   return module;
 }
