@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.2
+
+Improved typings for createAction to reflect the overloaded behavior, enabling stronger type safety and better autocompletion in editors.
+
 ## 2.2.1
 
 Corrected the initialization logic of the store enhancer to ensure it receives the fully constructed store instance instead of new store creator. This ensures the enhancer accesses the store only after it’s fully initialized, preventing issues with repetitive or premature store initialization and supporting more predictable enhancer behavior.
