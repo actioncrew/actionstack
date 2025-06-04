@@ -37,7 +37,6 @@ export type StoreSettings = {
   dispatchSystemActions?: boolean;
   awaitStatePropagation?: boolean;
   enableGlobalReducers?: boolean;
-  enableAsyncReducers?: boolean;
   exclusiveActionProcessing?: boolean;
 };
 
@@ -49,7 +48,6 @@ const defaultStoreSettings: StoreSettings = {
   dispatchSystemActions: true,
   awaitStatePropagation: true,
   enableGlobalReducers: true,
-  enableAsyncReducers: true,
   exclusiveActionProcessing: false,
 };
 
