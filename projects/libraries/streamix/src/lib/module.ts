@@ -1,5 +1,5 @@
 import { createReplaySubject, createSubject, defer, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
-import { ActionCreator, featureSelector, Store } from '../lib';
+import { ActionCreator, FeatureModule, featureSelector, Store, Streams } from '../lib';
 
 
 
@@ -78,31 +78,26 @@ export function createModule<
       };
       return [name, wrapped];
     })
-  );
-
-  // Streams type for selectors
-  type Streams<S extends Record<string, (...args: any[]) => (state: any) => any>> = {
-    [K in keyof S]: (...args: Parameters<S[K]>) => Stream<ReturnType<ReturnType<S[K]>>>;
-  };
+  ) as Selectors;
 
   let internalStreams: Streams<Selectors> = {} as any;
 
   // Bind selectors to store:
-  function bindSelectorsToStore<S extends Record<string, (...args: any[]) => (state: any) => any>>(
+  function bindSelectorsToStore(
     store: { select: <R>(selector: (state: any) => R | Promise<R>) => Stream<R> },
-    module: { selectors: S; data$?: Streams<S> }
+    module: FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>
   ): void {
-    const streams = {} as Streams<S>;
+    const streams = {} as Streams<Selectors>;
 
     for (const key in module.selectors) {
       const sel = module.selectors[key];
-      streams[key] = (...args: Parameters<typeof sel>) => {
+      streams[key] = ((...args: Parameters<typeof sel>) => {
         const selectorFn = sel(...args);
         return store.select(selectorFn);
-      };
+      }) as Streams<Selectors>[typeof key];
     }
 
-    internalStreams = { ...(module as any).internalStreams, ...streams };
+    internalStreams = streams;
   }
 
   let store: Store | undefined;
@@ -138,7 +133,6 @@ export function createModule<
       return module;
     },
     destroy(clearState?: boolean) {
-      this.destroyed$.next();
       store?.unloadModule(this, clearState);
       return module;
     }
@@ -175,7 +169,7 @@ export function createModule<
     },
   });
 
-  return module;
+  return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
 // Helper type guard

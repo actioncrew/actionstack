@@ -361,6 +361,8 @@ export function createStore<T = any>(
 
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+
+        module.destroyed$.next();
         // Remove the module from the internal state
         modules.splice(moduleIndex, 1);
 

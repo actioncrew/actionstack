@@ -1,4 +1,4 @@
-import { Stream } from '@actioncrew/streamix';
+import { Stream, Subject } from '@actioncrew/streamix';
 import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
@@ -279,6 +279,10 @@ export type ProcessingStrategy = "exclusive" | "concurrent";
  */
 export type SliceStrategy = "persistent" | "temporary";
 
+export type Streams<S extends Record<string, (...args: any[]) => (state: any) => any>> = {
+  [K in keyof S]: (...args: Parameters<S[K]>) => Stream<ReturnType<ReturnType<S[K]>>>;
+};
+
 /**
  * Represents a feature module that organizes state, logic, and dependencies
  * for a specific part of an application.
@@ -306,12 +310,18 @@ export interface FeatureModule<
   Selectors extends Record<string, (state: any) => any> = any,
   Dependencies = any
 > {
-  slice: string;
-  initialState: State;
-  actions: Actions;
-  selectors: Selectors;
-  dependencies?: Dependencies;
-  [key: string]: any;
+
+  readonly slice: string;
+  readonly initialState: State;
+  readonly dependencies?: Dependencies;
+  readonly loaded$: Subject<void>;
+  readonly destroyed$: Subject<void>;
+  readonly data$: Streams<Selectors>;
+  readonly actions: Actions;
+  readonly selectors: Selectors;
+  readonly [key: string]: any;
+  init: (store: Store<any>) => FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
+  destroy: (clearState?: boolean) => FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
 /**
