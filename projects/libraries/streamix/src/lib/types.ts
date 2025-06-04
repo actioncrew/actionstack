@@ -109,7 +109,7 @@ export type ActionHandler<State = any, Payload = any> =
  * A function that takes the current state and an action, and returns
  * the updated state (excluding promises).
  */
-export type Reducer = (state: any, action: Action) => Exclude<any, Promise<any>>;
+export type Reducer<T = any> = (state: T, action: Action) => T;
 
 /**
  * Type alias for an asynchronous reducer function.
@@ -122,18 +122,6 @@ export type Reducer = (state: any, action: Action) => Exclude<any, Promise<any>>
  * @returns Promise<any> - A promise that resolves to the updated state after asynchronous operations (if any).
  */
 export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
-
-/**
- * Type alias for a meta-reducer function.
- *
- * A meta-reducer is a higher-order function that takes an asynchronous reducer as an argument.
- * It returns a promise that resolves to a potentially modified asynchronous reducer.
- * Meta-reducers are used to apply additional logic or middleware functionality around reducers.
- *
- * @param reducer - The asynchronous reducer function to be wrapped or modified.
- * @returns Promise<AsyncReducer> - A promise that resolves to a potentially modified asynchronous reducer.
- */
-export type MetaReducer = (state: any) => Promise<any>;
 
 /**
  * Defines the methods and properties available to middleware for interacting with the store.
