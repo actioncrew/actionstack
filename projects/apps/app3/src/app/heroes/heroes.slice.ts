@@ -46,7 +46,7 @@ export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { 
     concatMap<Array<any>, Action<any>>(([action, state]) =>
       heroService.getHeroes().pipe(
         concatMap((heroes) => from([
-          heroesModule.actions.getHeroesSuccess(heroes),
+          heroesModule.actions.getHeroesSuccess(heroes as Hero[]),
           messagesModule.actions.addMessage('HeroService: fetched heroes')  // Dispatch addMessage action
         ]))
       ) as Stream<Action<any>>

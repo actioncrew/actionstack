@@ -127,7 +127,7 @@ const systemModule = createModule({
 });
 
 export function isSystemActionType(type: string): boolean {
-  return Object.values(systemModule.actions).map(t => t.type).includes(type);
+  return Object.values(systemModule.actions).map(t => t.type as string).includes(type);
 }
 
 /**
@@ -145,7 +145,7 @@ export function createStore<T = any>(
   let main = { ...defaultMainModule, ...mainModule };
   let modules: FeatureModule[] = [];
 
-  let sysActions = { ...systemModule.actions };
+  let sysActions = systemModule.actions;
 
   // Determine if the second argument is storeSettings or enhancer
   let settings: StoreSettings;

@@ -46,20 +46,21 @@ export interface AsyncAction<TState = any, TDependencies extends Record<string, 
  * Represents an action creator function.
  *
  * An `ActionCreator` is a callable function that, when invoked,
- * produces either a synchronous {@link Action} object or
- * an asynchronous {@link AsyncAction} function (a "thunk").
+ * produces a synchronous {@link Action} object
  *
  * It also carries specific properties (`toString`, `type`, `match`)
  * that provide metadata about the action it creates.
  */
-export type ActionCreator<TPayload = any, TState = any, TDependencies extends Record<string, any> = Record<string, any>> = (
-  (...args: any[]) => Action<TPayload> | AsyncAction<TState, TDependencies>
-) & {
+export type ActionCreator<
+  TPayload = any,
+  TType extends string = string,
+  TArgs extends any[] = any[]
+> = ((...args: TArgs) => Action<TPayload>) & {
   handler: ActionHandler;
   toString(): string;
-  type: string;
+  type: TType;
   match(action: Action<TPayload>): boolean;
-}
+};
 
 /**
  * @template {string} [T=string] - The action type.
