@@ -138,6 +138,7 @@ export function createModule<
       return module;
     },
     destroy(clearState?: boolean) {
+      this.destroyed$.next();
       store?.unloadModule(this, clearState);
       return module;
     }
