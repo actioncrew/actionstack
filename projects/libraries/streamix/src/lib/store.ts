@@ -36,7 +36,7 @@ import { createModule } from './module';
 export type StoreSettings = {
   dispatchSystemActions?: boolean;
   awaitStatePropagation?: boolean;
-  enableMetaReducers?: boolean;
+  enableGlobalReducers?: boolean;
   enableAsyncReducers?: boolean;
   exclusiveActionProcessing?: boolean;
 };
@@ -48,7 +48,7 @@ export type StoreSettings = {
 const defaultStoreSettings: StoreSettings = {
   dispatchSystemActions: true,
   awaitStatePropagation: true,
-  enableMetaReducers: true,
+  enableGlobalReducers: true,
   enableAsyncReducers: true,
   exclusiveActionProcessing: false,
 };
@@ -180,24 +180,37 @@ export function createStore<T = any>(
    * If any validation fails, a warning is logged to the console and the action is not dispatched.
    * After validation, the action is processed by the reducer, and the global state is updated accordingly.
    */
-  let dispatch = async (action: Action | any) => {
+  let dispatch = async (action: Action | any): Promise<void> => {
+    let newState = state;  // start with current state
 
     const handler = actionHandlers.get(action.type);
 
     if (handler) {
-      // Get the slice name from action type (format: "sliceName/ACTION_TYPE")
       const [sliceName] = action.type.split('/');
 
-      // Get current slice state
-      const currentSliceState = getProperty(state, sliceName);
+      const currentSliceState = getProperty(newState, sliceName);
+      const updatedSliceState = await handler(currentSliceState, action.payload);
+      newState = setProperty(newState, sliceName, updatedSliceState);
+    }
 
-      // Call handler with slice state
-      const newSliceState = await handler(currentSliceState, action.payload);
+    if (settings.enableGlobalReducers && mainModule.reducers?.length) {
+      for (let i = mainModule.reducers.length - 1; i >= 0; i--) {
+        try {
+          const reducer = mainModule.reducers[i];
+          const maybeUpdatedState = await reducer(newState, action);
+          if (maybeUpdatedState !== undefined) {
+            newState = maybeUpdatedState;
+          }
+        } catch (err: any) {
+          console.warn(`Error in meta-reducer ${i}:`, err.message ?? err);
+        }
+      }
+    }
 
-      // Update only the slice state
-      state = setProperty(state, sliceName, newSliceState);
+    // Emit only once after all reducers have run
+    if (newState !== state) {
+      state = newState;
       currentState.next(state as T);
-      return;
     }
   };
 

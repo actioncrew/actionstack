@@ -336,7 +336,7 @@ export interface FeatureModule<
  */
 export type MainModule =  Omit<FeatureModule, "slice"> & {
   slice?: "main";
-  metaReducers?: MetaReducer[];
+  reducers?: (Reducer | AsyncReducer)[];
 }
 
 /**
@@ -347,9 +347,8 @@ export const defaultMainModule = {
   slice: "main" as "main",
   initialState: {},
   actions: {},
-  actionHandlers: new Map(),
   selectors: {},
-  metaReducers: [],
+  reducers: [],
   dependencies: {}
 };
 
