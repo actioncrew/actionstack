@@ -381,6 +381,8 @@ export function createStore<T = any>(
       // Remove the module from the internal state
       modules.splice(moduleIndex, 1);
 
+      unregisterActionHandlers(module);
+      
       // Eject dependencies
       ejectDependencies(module);
       // .then(() =>
