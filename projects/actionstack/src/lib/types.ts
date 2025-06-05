@@ -1,7 +1,6 @@
-import { InjectionToken, Type } from '@angular/core';
 import { Observable } from 'rxjs/internal/Observable';
-
-import { Store } from './store';
+import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
+import { InjectionToken, Type } from '@angular/core';
 
 /**
  * Interface defining the structure of an action object.
@@ -31,15 +30,27 @@ export interface AsyncAction<T = any> {
   (...args: any[]): Promise<T>;
 }
 
+export type Dispatch = (action: Action | AsyncAction) => any;
+export type GetState = () => any;
+export type Dependencies = Record<string, any>;
+
 /**
  * Represents an action creator.
  * @template T The type of the action payload.
  */
-export type ActionCreator<T = any> = ((...args: any[]) => Action<T> | AsyncAction<T>) & {
-  toString(): string;
-  type: string;
-  match(action: Action<T>): boolean;
-}
+export type ActionCreator<T extends string, Args extends any[], P> = {
+  (...args: Args): Action<P>;
+  type: T;
+  match(action: Action): action is Action<P>;
+  toString(): T;
+};
+
+export type ThunkCreator<Args extends any[], R> = {
+  (...args: Args): AsyncAction<R>;
+  type: 'asyncAction';
+  match(action: Action): boolean;
+  toString(): 'asyncAction';
+};
 
 /**
  * A function that takes the current state and an action, and returns
@@ -57,7 +68,7 @@ export type Reducer = (state: any, action: Action) => Exclude<any, Promise<any>>
  * @param action - The action object being dispatched.
  * @returns Promise<any> - A promise that resolves to the updated state after asynchronous operations (if any).
  */
-export type AsyncReducer = (state: any, action: Action) => Promise<any>;
+export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
 
 /**
  * Type alias for a meta-reducer function.
@@ -72,12 +83,33 @@ export type AsyncReducer = (state: any, action: Action) => Promise<any>;
 export type MetaReducer = (reducer: AsyncReducer) => Promise<AsyncReducer>;
 
 /**
+ * Defines the methods and properties available to middleware for interacting with the store.
+ * Provides access to state, dispatching actions, dependencies, processing strategy,
+ * synchronization, and execution stack.
+ *
+ * @property {function([string[]]): any} getState - Retrieves the state or a specific slice of the state.
+ * @property {function(Action|AsyncAction): Promise<void>} dispatch - Dispatches an action (synchronous or asynchronous).
+ * @property {function(): any} dependencies - Retrieves the current dependencies in the pipeline.
+ * @property {function(): ProcessingStrategy} strategy - Retrieves the current processing strategy.
+ * @property {SimpleLock} lock - A lock to synchronize or prevent concurrent access to resources.
+ * @property {ExecutionStack} stack - The execution stack tracking the sequence of actions or operations.
+ */
+export type MiddlewareAPI = {
+  getState: (slice?: string[]) => any;
+  dispatch: (action: Action | AsyncAction) => Promise<void>;
+  dependencies: () => any;
+  strategy: () => ProcessingStrategy;
+  lock: SimpleLock;
+  stack: ExecutionStack;
+}
+
+/**
  * Interface defining the structure of a middleware function.
  *
  * Middleware functions are used to intercept, handle, and potentially modify the dispatching process in Actionstack-like stores.
  * This interface defines the expected behavior for a middleware function.
  *
- * @property (store: Store) => (next: (action: any) => any) => Promise<(action: any) => any> | any
+ * @property (api: Store) => (next: Function) => (action: any) => Promise<any> | any
  *  - A function that takes the store instance as an argument.
  *  - It returns another function that takes the `next` function in the middleware chain as an argument.
  *  - The inner function can perform logic before and/or after calling the `next` function with the action.
@@ -90,12 +122,12 @@ export type MetaReducer = (reducer: AsyncReducer) => Promise<AsyncReducer>;
  *      aiding in type checking and documentation.
  */
 export interface Middleware {
-  (store: any): (next: Function) => (action: Action) => Promise<any>;
+  (api: any): (next: Function) => (action: Action) => Promise<any> | any;
   signature?: string;
 }
 
 /**
- * Represents an observer that receives notifications of values from an Observable.
+ * Represents an observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -106,7 +138,7 @@ export interface Observer<T> {
 }
 
 /**
- * Represents an asynchronous observer that receives notifications of values from an Observable.
+ * Represents an asynchronous observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -117,9 +149,9 @@ export interface AsyncObserver<T> {
 }
 
 /**
- * Interface representing an operator function for transforming observables.
+ * Interface representing an operator function for transforming streams.
  *
- * An operator function takes an input `Observable<T>` and returns an output `Observable<R>`.
+ * An operator function takes an input `Stream<T>` and returns an output `Stream<R>`.
  *
  * @typeParam T - The type of the input elements.
  * @typeParam R - The type of the output elements.
@@ -208,7 +240,7 @@ export type SliceStrategy = "persistent" | "temporary";
  *                  - A reducer function takes the current state slice and an action object,
  *                    and returns the updated state slice based on the action.
  *                  - A tree of reducers allows for defining nested reducers for complex state structures.
- * @property dependencies?: Tree<Type<any> | InjectionToken<any>> (optional) -
+ * @property dependencies?: Tree<any> (optional) -
  *                   An optional tree representing the dependencies required by the feature module.
  *                   - These dependencies can be types (like classes or interfaces) or injection tokens
  *                     used for dependency injection.
@@ -249,17 +281,24 @@ export interface MainModule {
   dependencies?: Tree<Type<any> | InjectionToken<any>>;
   strategy?: ProcessingStrategy;
 }
+/**
+ * Default configuration for the main module.
+ * Includes a slice name, a basic reducer, an empty list of metaReducers, and no dependencies.
+ */
+export const defaultMainModule = {
+  slice: "main" as "main",
+  reducer: (state: any = {}) => state as Reducer,
+  metaReducers: [],
+  dependencies: {}
+};
 
 /**
- * Type alias for a store creation function.
+ * Type definition for a function that creates a store instance.
  *
- * This type represents a function that takes the main application module configuration and an optional store enhancer,
- * and returns a newly created Actionstack store instance.
- *
- * @param module - The main application module object containing the store configuration.
- * @param enhancer?: StoreEnhancer (optional) - A store enhancer function that can be used to apply additional
- *                     functionality or middleware to the store creation process.
- * @returns Store - A newly created Actionstack store instance.
+ * @template T - The type of the state managed by the store.
+ * @param {MainModule} module - The main module configuration, defining the initial state, reducers, middleware, and other store properties.
+ * @param {StoreSettings} [settings] - Optional settings for the store, such as dispatch behavior or feature toggles.
+ * @returns {Store<T>} The created store instance with methods for managing state and actions.
  */
 export type StoreCreator = (module: MainModule, enhancer?: StoreEnhancer) => Store;
 
@@ -312,7 +351,7 @@ function kindOf(val: any): string {
     return "error";
 
   if (isObservable(val))
-    return "observable";
+    return "Stream";
 
   if (isPromise(val))
     return "promise";
@@ -339,7 +378,7 @@ function kindOf(val: any): string {
  * @param val - The value to get the constructor name for.
  * @returns string - The name of the constructor (if applicable), otherwise null.
  */
-function ctorName(val: any): string {
+function ctorName(val: any): string | null {
   return typeof val.constructor === "function" ? val.constructor.name : null;
 }
 
@@ -456,13 +495,6 @@ function isObservable(obj: any): obj is Observable<unknown> {
   // `false` if something like `null` or `0` is passed.
   return !!obj && (obj instanceof Observable || (typeof obj.lift === 'function' && typeof obj.subscribe === 'function'));
 }
-
-/**
- * Observable that immediately completes without emitting any values
- */
-export const EMPTY = new Observable<never>((subscriber) => {
-  subscriber.complete();
-});
 
 export { isAction, isAsync, isBoxed, isObservable, isPlainObject, isPromise, kindOf };
 

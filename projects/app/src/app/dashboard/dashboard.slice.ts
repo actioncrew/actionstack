@@ -1,4 +1,4 @@
-import { action, featureSelector, selector } from '@actioncrew/actionstack';
+import { action, featureSelector, selector, thunk } from '@actioncrew/actionstack';
 import { firstValueFrom } from 'rxjs';
 
 import { Hero } from '../hero';
@@ -10,11 +10,11 @@ export const loadHeroesRequest = action('LOAD_HEROES_REQUEST');
 export const loadHeroesSuccess = action('LOAD_HEROES_SUCCESS', (heroes: Hero[]) => ({ heroes }));
 export const loadHeroesFailure = action('LOAD_HEROES_FAILURE', (error: Error) => ({ error }));
 
-export const loadHeroes = action(() => async (dispatch: Function, getState: Function, dependencies: any) => {
+export const loadHeroes = thunk(() => async (dispatch: Function, getState: Function, dependencies: any) => {
   dispatch(loadHeroesRequest());
   try {
     const heroService = dependencies.heroService;
-    const heroes = await firstValueFrom(heroService.getHeroes());
+    const heroes = await firstValueFrom(heroService.getHeroes()) as Hero[];
     dispatch(loadHeroesSuccess(heroes));
     dispatch(addMessage('HeroService: fetched heroes'));
   } catch (error: any) {

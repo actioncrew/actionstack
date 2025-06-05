@@ -1,8 +1,4 @@
-import { Observable } from 'rxjs/internal/Observable';
-import { Subscription } from 'rxjs/internal/Subscription';
-
-import { Tracker } from './tracker';
-import { EMPTY, Observer, ProjectionFunction, SelectorFunction } from './types';
+import { ProjectionFunction, SelectorFunction } from './types';
 
 export {
   createFeatureSelector as featureSelector,

@@ -290,11 +290,11 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   store.extend = <U>(...args: Epic[]): Observable<U> => {
     const effects$ = new Observable<U>((subscriber: Observer<U>) => {
       return () => {
-        store.dispatch(removeEpics(args));
+        store.dispatch(removeEpics(...args));
       }
     });
 
-    store.dispatch(addEpics(args));
+    store.dispatch(addEpics(...args));
     return effects$;
   };
 
