@@ -1,15 +1,14 @@
-<h1 style="display: none;">ActionStack</h1>
+<h1 style="display: none;">ActionStack V3</h1>
 
 <p align="center">
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
-A powerful and flexible state management library designed to provide a scalable and maintainable approach for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates with your project, offering advanced features such as handling asynchronous actions, reducers, and side effects like epics and sagas.
+**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, projection pipelines, and fine-grained control via middleware and execution stacks.
 
 [redux-docs /](https://redux.js.org/)
 [observable-docs /](https://redux-observable.js.org/)
 [saga-docs /](https://redux-saga.js.org/)
-[actionstack-docs /](https://actionstack.vercel.app/documentation/)
 
 [![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)
 [![npm version](https://img.shields.io/npm/v/@actioncrew/actionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew/actionstack)
@@ -17,20 +16,18 @@ A powerful and flexible state management library designed to provide a scalable 
 [![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)
   
 ## Key Features
-- Reactive State Management: ActionStack uses [Streamix](https://www.npmjs.com/package/@actioncrew/streamix) library to create a reactive state management system. This allows your components and views to stay in sync with the latest state changes automatically.
-- Immutable State Updates: State updates are immutable, ensuring predictable state transitions and easier debugging.
-- TypeScript Support: ActionStack offers full TypeScript support, enhancing developer experience with type safety for state, actions, and reducers.
-- Framework-Agnostic: ActionStack is framework-agnostic, meaning it can be used with any JavaScript or TypeScript project, not just Angular.
-- Dynamic Module Support: Easily manage complex, large-scale applications by supporting multiple store modules that can attach or detach dynamically, optimizing memory usage.
+- ✅ Modular slice-based store architecture
+- 🔁 Built-in support for both sync and async (thunk) actions
+- 🔄 Reactive state streams via Streamix
+- 🧩 Feature modules with co-located state, logic, and dependencies
+- ⚙️ Middleware, locking, and concurrency strategies
+- 🧠 Type-safe selectors and action creators
 
-## What Sets ActionStack Apart
-ActionStack excels in managing asynchronous state. Unlike traditional state management libraries, ActionStack has robust support for handling side effects and asynchronous operations:
+## Installation
 
-- Asynchronous Actions: You can dispatch asynchronous actions that trigger complex workflows such as API calls or delayed updates.
-- Asynchronous Reducers: Reducers can handle async processes, ensuring smooth state transitions even when asynchronous actions are involved.
-- Asynchronous Meta-Reducers and Selectors: Meta-reducers and selectors can operate asynchronously, allowing state to be fetched or transformed without blocking the main flow.
-
-ActionStack is built for flexibility, letting you structure your state tree however you want while handling complex state management scenarios with ease. It provides built-in support for side effects, allowing you to extend the store's functionality through epics or sagas. These mechanisms handle asynchronous tasks and interactions in response to dispatched actions.
+```
+  npm i @actioncrew/actionstack
+```
 
 ## Usage
 
@@ -39,71 +36,62 @@ To create a store, use the createStore function, which initializes the store wit
 
 ```typescript
     import { createStore } from '@actioncrew/actionstack';
-    import { someMainModule } from './modules';
 
     // Optional: Define store settings to customize behavior
     const storeSettings = {
       dispatchSystemActions: false,
-      enableMetaReducers: false,
-      awaitStatePropagation: true,
-      enableAsyncReducers: false,
+      enableGlobalReducers: false,
+      awaitStatePropagation: true
       exclusiveActionProcessing: false
     };
 
     // Create the store instance
     const store = createStore({
-      reducer: rootReducer,
-      dependencies: {}
+      reducers: [rootReducer],
     }, storeSettings, applyMiddleware(logger, epics));
 ```
 
-### Defining Reducers
-Reducers are pure functions responsible for updating the state based on dispatched actions. They take the current state and an action as arguments, and return a new state. You are free to define reducers in any structure that fits your application needs—there is no predefined function for creating reducers.
-
-A basic reducer structure looks like this:
+### Reducers Are Optional — State Changes Use Action Handlers
+In Actionstack, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
 
 ```typescript
-    const myReducer = (state = initialState, action) => {
-      switch (action.type) {
-        case 'ACTION_TYPE':
-          // Reducer logic
-          return { ...state, /* new state */ };
-        default:
-          return state;
-      }
-    };
-```
+const increment = createAction('increment', (state: number, payload: number) => state + payload);
 
-> Note: The state parameter in all reducers must have a default value, typically initialized with the reducer's initialState. This ensures that reducers have a valid state to operate on and prevents potential errors.
+const counterModule = createModule({
+  slice: 'counter',
+  initialState: 0,
+  actions: { increment }
+});
+```
 
 ### Loading and Unloading Modules
 Modules can be loaded or unloaded dynamically. The loadModule and unloadModule methods manage this process, ensuring that the store’s dependencies are correctly updated.
 
 ```typescript
-    const featureModule = {
+    const featureModule = createModule({
       slice: 'superModule',
-      reducer: superReducer,
+      initialState: {},
       dependencies: { heroService: new HeroService() }
-    };
+    });
 
     // Load a feature module
-    store.loadModule(featureModule);
+    featureModule.init(store);
 
     // Unload a feature module (with optional state clearing)
-    store.unloadModule(featureModule, true);
+    featureModule.destroy(true);
 ```
 
 ### Reading State Safely
 To read a slice of the state in a safe manner (e.g., avoiding race conditions), use readSafe. This method ensures the state is accessed while locking the pipeline.
 
 ```typescript
-    store.get('*', (state) => {
+    store.getState('*', (state) => {
       console.log('State object:', state);
     });
 ```
 
 ### Dispatching Actions
-You can dispatch actions to add or clear messages in the store. Here's how to do it:
+Actions are directly bound to the store’s dispatch method, allowing you to invoke actions as regular functions without manually calling dispatch. This design keeps state update logic close to actions and enables a clean, intuitive API where calling an action immediately dispatches it to update state.
 
 ```typescript
     import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
@@ -111,16 +99,24 @@ You can dispatch actions to add or clear messages in the store. Here's how to do
     export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
     export const clearMessages = action('CLEAR_MESSAGES');
     
+    const featureModule = createModule({
+      slice: 'superModule',
+      actions: {
+        addMessage,
+        clearMessage
+      },
+      dependencies: { heroService: new HeroService() }
+    });
     ...
 
     // Dispatching an action to add a message
-    store.dispatch(addMessage("Hello, world!"));
+    featureModule.actions.addMessage("Hello, world!");
 
     // Dispatching an action to add another message
-    store.dispatch(addMessage("This is a second message!"));
+    featureModule.actions.addMessage("This is a second message!");
 
     // Dispatching an action to clear all messages
-    store.dispatch(clearMessages());
+    featureModule.actions.clearMessages();
 ```
 
 ### Subscribing to State Changes
@@ -129,21 +125,24 @@ You can also subscribe to changes in the state, so that when messages are added 
 ```typescript
     import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
     
-    export const feature = featureSelector(slice);
-    export const selectHeroes = selector(feature, state => state.heroes);
+    export const selectHeroes = selector(state => state.heroes);
     
+    const featureModule = createModule({
+      slice: 'superModule',
+      selectors: {
+        selectHeroes
+      },
+      dependencies: { heroService: new HeroService() }
+    });
+
     ...
     
     // Subscribe to state changes
-    this.subscription = store.select(selectHeroes()).subscribe(value => {
+    this.subscription = featureModule.data$.selectHeroes().subscribe(value => {
       this.heroes = value;
     });
 ```
-
-## Tooling
-ActionStack includes several tools to aid development and debugging: logger, perfmon and storeFreeze. In addition, it is compatible with any middleware available for Redux, but with caution. Middleware can add powerful functionalities to your application, but improper usage may lead to unintended side effects or performance issues.
-
-> Note: Redux Thunk-like functionality is already integrated into ActionStack, so there's no need to add it separately for handling asynchronous actions.
+You can combine multiple data streams from different feature modules or selectors as needed to create complex derived state or orchestrate side effects. Thanks to Streamix-powered reactive streams (data$), Actionstack lets you compose, transform, and react to state changes declaratively, enabling powerful and flexible reactive workflows across your application.
 
 # Conclusion
 ActionStack makes state management in your applications easier, more predictable, and scalable. With support for both epics and sagas, it excels in handling asynchronous operations while offering the flexibility and power of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix) and generator functions. Whether you're working on a small project or a large-scale application, ActionStack can help you manage state efficiently and reliably.
