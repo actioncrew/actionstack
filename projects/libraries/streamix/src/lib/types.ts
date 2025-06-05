@@ -287,7 +287,7 @@ export type Streams<S extends Record<string, (...args: any[]) => (state: any) =>
 export interface FeatureModule<
   State = any,
   ActionTypes extends string = string,
-  Actions extends Record<string, (...args: any[]) => Action<ActionTypes>> = any,
+  Actions extends Record<string, (...args: any[]) => Action<any>> = any,
   Selectors extends Record<string, (state: any) => any> = any,
   Dependencies = any
 > {
