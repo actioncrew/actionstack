@@ -1,8 +1,37 @@
 import { createReplaySubject, createSubject, defer, first, Operator, pipeStream, Stream, switchMap, takeUntil } from '@actioncrew/streamix';
 import { ActionCreator, FeatureModule, featureSelector, Store, Streams } from '../lib';
 
-
-
+/**
+ * Creates a feature module that encapsulates state, actions, selectors, and dependencies
+ * in a modular, namespaced format for integration with an Actionstack-style store.
+ *
+ * This function supports both synchronous and asynchronous (thunk) actions,
+ * and binds typed selectors to a store dynamically. Selectors and actions are namespaced
+ * under the given `slice` name. It also manages module lifecycle with `.init()` and `.destroy()`.
+ *
+ * @template State - The shape of the module’s state.
+ * @template ActionTypes - Union of string literals representing valid action types.
+ * @template Actions - A mapping of action creator functions, including thunks.
+ * @template Selectors - A mapping of selector factory functions.
+ * @template Dependencies - Optional object of injected dependencies available to thunks.
+ *
+ * @param config - Configuration object for defining the module.
+ * @param config.slice - Unique namespace identifier for this module's state and actions.
+ * @param config.initialState - The initial state for this module.
+ * @param config.actions - An object mapping action names to action creators or thunk creators.
+ * @param config.selectors - An object mapping selector names to selector factory functions.
+ * @param config.dependencies - Optional dependencies available to asynchronous actions (thunks).
+ *
+ * @returns A `FeatureModule` object with:
+ * - `slice`: the namespace for the module
+ * - `actions`: namespaced and dispatch-ready action/thunk creators
+ * - `selectors`: selectors scoped to the module's state slice
+ * - `data$`: reactive stream-based access to selectors (lazy-initialized after `init`)
+ * - `init(store)`: registers the module with the store
+ * - `destroy(clearState?)`: unregisters the module and optionally clears its state
+ * - `loaded$`: stream that emits when the module is loaded
+ * - `destroyed$`: stream that completes when the module is destroyed
+ */
 export function createModule<
   State,
   ActionTypes extends string,
@@ -179,7 +208,12 @@ export function createModule<
   return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
-// Helper type guard
+/**
+ * Type guard to check whether an object is a synchronous ActionCreator.
+ *
+ * @param obj - The object to check.
+ * @returns `true` if the object is a standard (non-thunk) action creator.
+ */
 function isActionCreator(obj: any): obj is ActionCreator {
   return obj && typeof obj.type === 'string' && obj?.isThunk !== true;
 }

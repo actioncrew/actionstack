@@ -1,17 +1,14 @@
-import { action, actionHandlers, bindActionCreators, createAction } from './actions';
-import { applyMiddleware, combineEnhancers, deepMerge, getProperty, setProperty } from './utils';
+import { actionHandlers, createAction } from './actions';
+import { applyMiddleware, combineEnhancers, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
 import { createTracker } from './tracker';
 import {
   Action,
-  AnyFn,
   AsyncAction,
   defaultMainModule,
   FeatureModule,
-  isPlainObject,
-  kindOf,
   MainModule,
   Middleware,
   MiddlewareAPI,
@@ -20,10 +17,7 @@ import {
 import {
   createBehaviorSubject,
   createQueue,
-  createStream,
   createSubject,
-  eachValueFrom,
-  of,
   Stream,
   Subscription,
 } from '@actioncrew/streamix';
@@ -158,13 +152,11 @@ export function createStore<T = any>(
 
   // Configure store pipeline
   let pipeline = {
-    // reducer: combineReducers({ [main.slice!]: main.reducer }),
-    state: main.initialState,
-    dependencies: main.dependencies,
+    dependencies: {},
     strategy: settings.exclusiveActionProcessing ? 'exclusive' : 'concurrent',
   };
 
-  let state = pipeline.state as T;
+  let state = {} as T;
   let currentState = createBehaviorSubject<T>(state as T);
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
@@ -209,6 +201,12 @@ export function createStore<T = any>(
     if (newState !== state) {
       state = newState;
       currentState.next(state as T);
+    }
+
+    // Wait for state propagation if required
+    if (settings.awaitStatePropagation) {
+      await tracker?.allExecuted;
+      tracker?.reset();
     }
   };
 
@@ -273,7 +271,7 @@ export function createStore<T = any>(
    * into the pipeline's dependency object. Handles class instantiation.
    */
   const injectDependencies = (): void => {
-    const allDependencies = [mainModule, ...modules].reduce((acc, module) => {
+    const allDependencies = [...modules].reduce((acc, module) => {
       return processDependencies(module.dependencies, acc, module.slice);
     }, {});
 
@@ -285,7 +283,7 @@ export function createStore<T = any>(
    * the global dependencies object, ensuring proper handling of nested structures.
    */
   const ejectDependencies = (module: FeatureModule): void => {
-    const otherModules = [mainModule, ...modules].filter((m) => m !== module);
+    const otherModules = [...modules].filter((m) => m !== module);
     const remainingDependencies = otherModules.reduce((acc, module) => {
       return processDependencies(module.dependencies, acc, module.slice);
     }, {});
@@ -293,6 +291,15 @@ export function createStore<T = any>(
     pipeline.dependencies = remainingDependencies;
   };
 
+  /**
+   * Registers all action handlers defined in a feature module into the global action handler map.
+   *
+   * This function iterates over the module's actions and adds their handlers to an internal
+   * registry used for dispatching. If a handler is already registered for the same action type,
+   * a warning is logged and the existing handler is overwritten.
+   *
+   * @param module - The feature module containing actions with associated handlers.
+   */
   const registerActionHandlers = (
     module: FeatureModule
   ) => {
@@ -304,6 +311,14 @@ export function createStore<T = any>(
     })
   }
 
+  /**
+   * Unregisters all action handlers associated with a feature module.
+   *
+   * This function removes the module's action handlers from the internal registry,
+   * effectively disabling those actions from being handled after the module is destroyed.
+   *
+   * @param module - The feature module whose action handlers should be removed.
+   */
   const unregisterActionHandlers = (
     module: FeatureModule
   ) => {
@@ -397,60 +412,6 @@ export function createStore<T = any>(
   };
 
   /**
-   * Selects a specific value from the state using the provided selector function.
-   * The function returns an observable that emits the selected value whenever the state changes.
-   */
-  const get = (slice: keyof T | string[] | '*'): T | undefined => {
-    return getProperty(state, slice);
-  };
-
-  /**
-   * Sets the state for a specified slice of the store state, updating it with the given value.
-   * Handles different slice types, including a specific key, an array of path keys, or the entire store state.
-   *
-   * @param slice - The slice of the state to update. Use `"*"` for full updates.
-   * @param value - The new value to set for the specified slice.
-   * @returns A promise that resolves with the updated state.
-   */
-  const set = async (
-    slice: keyof T | string[] | '*',
-    value: any
-  ): Promise<T> => {
-    state = setProperty(state, slice, value);
-    currentState.next(state);
-
-    // Wait for state propagation if required
-    if (settings.awaitStatePropagation) {
-      await tracker?.allExecuted;
-      tracker?.reset();
-    }
-
-    return state;
-  };
-
-  /**
-   * Updates the state for a specified slice by executing the provided callback function,
-   * which receives the current state as its argument and returns the updated state.
-   * The resulting state is then set using the `setState` function.
-   */
-  const update = async (
-    slice: keyof T | string[] | '*',
-    callback: AnyFn,
-    action = sysActions.updateState({}) as Action
-  ): Promise<any> => {
-    if (callback === undefined) {
-      console.warn('Callback function is missing. State will not be updated.');
-      return;
-    }
-
-    let state = get(slice);
-    let result = await callback(state);
-    await set(slice, result);
-
-    return action;
-  };
-
-  /**
    * Reads the state slice and executes the provided callback with the current state.
    * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
    */
@@ -461,8 +422,8 @@ export function createStore<T = any>(
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const state = await get(slice); // Get state after acquiring lock
-        callback(state);
+        const stateRead = await getProperty(state, slice); // Get state after acquiring lock
+        callback(stateRead);
       } finally {
         lock.release(); // Release lock regardless of success or failure
       }
@@ -567,7 +528,7 @@ export function createStore<T = any>(
    * Creates the middleware API object for use in the middleware pipeline.
    */
   const middlewareAPI = {
-      getState: (slice?: any) => get(slice === undefined ? "*" : slice),
+      getState: (slice?: any) => getProperty(state, slice === undefined ? "*" : slice),
       dispatch: (action: Action | AsyncAction) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,

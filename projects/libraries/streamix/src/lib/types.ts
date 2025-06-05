@@ -2,12 +2,11 @@ import { Stream, Subject } from '@actioncrew/streamix';
 import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
- * Interface defining the structure of an action object.
+ * Describes a standard action object used to signal state changes.
  *
- * Actions are the primary way to communicate state changes in Actionstack-like stores.
- * This interface defines the expected properties for an action.
+ * Actions are dispatched to update the state in Actionstack-like stores.
  *
- * @typeparam T - Optional type parameter for the action payload. Defaults to `any`.
+ * @template T - Type of the action payload. Defaults to `any`.
  */
 export interface Action<T = any> {
   type: string;
@@ -18,38 +17,35 @@ export interface Action<T = any> {
 }
 
 /**
- * Interface defining the structure of an asynchronous action function (a "thunk").
+ * Represents an asynchronous action (thunk) that can dispatch other actions and access state.
  *
- * This function is designed to handle side effects and orchestrate further
- * actions or state updates. It receives a `dispatch` function to dispatch
- * new actions, a `getState` utility to retrieve the current state, and
- * the *current* application dependencies object.
+ * Used for side effects and complex state flows. Receives utilities for dispatching, reading state,
+ * and accessing app-level dependencies.
  *
- * @typeparam TState - The type of the global or relevant slice of application state.
- * @typeparam TDependencies - The type of the dependencies object (the result of calling `dependencies()`).
- * @param dispatch - A function that can be used to dispatch new synchronous or asynchronous actions.
- * @param getState - A function that returns the current state.
- * @param dependencies - The application's dependencies object, *as returned by the dependencies function*.
- * @returns A Promise that resolves when the async operation is complete.
+ * @template TState - The shape of the application or relevant state.
+ * @template TDependencies - The structure of the dependencies object.
+ *
+ * @param dispatch - Function to dispatch synchronous or asynchronous actions.
+ * @param getState - Function to retrieve the current state.
+ * @param dependencies - Application dependencies injected into async logic.
+ * @returns A Promise that resolves when the async operation finishes.
  */
 export interface AsyncAction<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
-  (dispatch: (action: Action | AsyncAction<TState, TDependencies>) => Promise<void>,
-   getState: () => TState,
-   dependencies: TDependencies): Promise<void>;
+  (
+    dispatch: (action: Action | AsyncAction<TState, TDependencies>) => Promise<void>,
+    getState: () => TState,
+    dependencies: TDependencies
+  ): Promise<void>;
 }
 
 /**
- * @template TPayload - The type of the payload for synchronous actions created by this creator.
- * @template TState - The type of the application state, used by asynchronous actions created by this creator.
- * @template {Record<string, any>} TDependencies - The type of the application dependencies, used by asynchronous actions created by this creator.
+ * Creates a synchronous action with optional metadata and helpers for identification.
  *
- * Represents an action creator function.
+ * @template TPayload - Type of the payload for the created action.
+ * @template TType - String literal type of the action.
+ * @template TArgs - Argument types accepted by the action creator function.
  *
- * An `ActionCreator` is a callable function that, when invoked,
- * produces a synchronous {@link Action} object
- *
- * It also carries specific properties (`toString`, `type`, `match`)
- * that provide metadata about the action it creates.
+ * @returns A function that produces an {@link Action} when invoked, with metadata for matching and debugging.
  */
 export type ActionCreator<
   TPayload = any,
@@ -63,21 +59,18 @@ export type ActionCreator<
 };
 
 /**
- * @template {string} [T=string] - The action type.
- * @template {AsyncAction} [Thunk=AsyncAction] - The type of the thunk function.
- * @template {any[]} [Args=any[]] - Arguments for the thunk creator.
+ * A factory for creating asynchronous actions (thunks) with built-in metadata.
  *
- * @typedef {object} ThunkCreator
- * @property {(...args: Args) => Thunk} callSignature - Invoking with `Args` returns the {@link AsyncAction} (thunk).
- * @property {T} type - The unique string identifier for this thunk.
- * @property {() => T} toString - Returns the string type.
- * @property {(action: Action<any> | AsyncAction) => boolean} match - Checks if an action or thunk matches this type.
- * @property {boolean} isThunk - Flag set to `true` for thunk creators.
+ * @template T - The string type identifier for the thunk.
+ * @template Thunk - The thunk function type (typically {@link AsyncAction}).
+ * @template Args - Argument types accepted by the thunk creator function.
  *
- * @description
- * A specialized action creator for asynchronous operations. When called, it returns an {@link AsyncAction} (thunk)
- * that contains the async logic and receives `dispatch`, `getState`, and `dependencies` when executed by middleware.
- * It also includes static properties for identification and matching.
+ * @property type - Unique string identifier for this thunk.
+ * @property toString - Returns the thunk's type string.
+ * @property match - Determines if a given action matches this thunk.
+ * @property isThunk - Always `true`, used to distinguish thunks from normal actions.
+ *
+ * @returns A callable that produces an {@link AsyncAction} when invoked with `Args`.
  */
 export type ThunkCreator<T extends string = string, Thunk extends AsyncAction = AsyncAction, Args extends any[] = any[]> = {
   (...args: Args): Thunk;
@@ -322,8 +315,7 @@ export interface FeatureModule<
  *                  - Meta-reducers are higher-order functions that can wrap and potentially modify reducers,
  *                    adding additional logic or middleware functionality.
  */
-export type MainModule =  Omit<FeatureModule, "slice"> & {
-  slice?: "main";
+export type MainModule = {
   reducers?: (Reducer | AsyncReducer)[];
 }
 
@@ -332,12 +324,7 @@ export type MainModule =  Omit<FeatureModule, "slice"> & {
  * Includes a slice name, a basic reducer, an empty list of metaReducers, and no dependencies.
  */
 export const defaultMainModule = {
-  slice: "main" as "main",
-  initialState: {},
-  actions: {},
-  selectors: {},
-  reducers: [],
-  dependencies: {}
+  reducers: []
 };
 
 /**
