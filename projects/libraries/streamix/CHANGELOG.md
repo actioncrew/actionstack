@@ -4,6 +4,18 @@
 
 Redesigned core architecture to eliminate traditional reducer logic. Introduced fully modular "slices" using colocated state + actions (inspired by Zustand, but type-safe). Actions are now defined using the new action() utility that bundles. No more reducers in the usual sense — state updates are handled via registered action handlers. Type inference has been improved across actions, selectors, and middleware.
 
+## 2.2.3
+
+Improved typings for createAction to reflect the overloaded behavior, enabling stronger type safety and better autocompletion in editors.
+
+## 2.2.1
+
+Corrected the initialization logic of the store enhancer to ensure it receives the fully constructed store instance instead of new store creator. This ensures the enhancer accesses the store only after it’s fully initialized, preventing issues with repetitive or premature store initialization and supporting more predictable enhancer behavior.
+
+## 2.2.0
+
+Support for Streamix `v2.0.1`. Actionstack now fully integrates with the updated async iterator–based operators introduced in Streamix 2.0.1, improving compatibility, performance, and debugging clarity.
+
 ## 2.1.5
 
 Fixed an issue where the store was being initialized twice and middlewares were receiving a stale dispatch due to premature destructuring of middlewareAPI; corrected the logic to initialize the store only once and ensure that all middlewares receive the final composed dispatch via a shared, lazily-evaluated reference.
