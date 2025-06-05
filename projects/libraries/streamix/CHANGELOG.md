@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.2.2
+## 2.2.3
 
 Improved typings for createAction to reflect the overloaded behavior, enabling stronger type safety and better autocompletion in editors.
 
