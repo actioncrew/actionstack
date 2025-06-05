@@ -14,7 +14,7 @@ export const loadHeroes = action(() => async (dispatch: Function, getState: Func
   dispatch(loadHeroesRequest());
   try {
     const heroService = dependencies.heroService;
-    const heroes = await firstValueFrom(heroService.getHeroes());
+    const heroes = await firstValueFrom(heroService.getHeroes()) as Hero[];
     dispatch(loadHeroesSuccess(heroes));
     dispatch(addMessage('HeroService: fetched heroes'));
   } catch (error: any) {

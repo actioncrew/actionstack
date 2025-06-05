@@ -6,7 +6,7 @@ import { addMessage } from '../messages/messages.slice';
 
 export const slice = "hero-details";
 
-export const loadHeroRequest = action('LOAD_HERO_REQUEST');
+export const loadHeroRequest = action('LOAD_HERO_REQUEST', (id: number) => ({ id }));
 export const loadHeroSuccess = action('LOAD_HERO_SUCCESS', (hero: Hero) => ({ hero }));
 export const loadHeroFailure = action('LOAD_HERO_FAILURE', (error: Error) => ({ error }));
 
@@ -14,10 +14,10 @@ export const loadHero = action((id: number) => async (dispatch: Function, getSta
   dispatch(loadHeroRequest(id));
   try {
     const heroService = dependencies.heroService;
-    const hero = await firstValueFrom(heroService.getHero(id));
+    const hero = await firstValueFrom(heroService.getHero(id)) as Hero;
     dispatch(addMessage(`HeroService: fetched hero id=${id}`));
     dispatch(loadHeroSuccess(hero));
-  } catch (error) {
+  } catch (error: any) {
     dispatch(loadHeroFailure(error));
   }
 });

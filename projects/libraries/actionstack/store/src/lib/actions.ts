@@ -1,4 +1,4 @@
-import { Action, ActionCreator, isAction, kindOf } from './types';
+import { Action, ActionCreator, Dependencies, Dispatch, GetState, isAction, kindOf, ThunkCreator } from './types';
 
 export { createAction as action };
 
@@ -44,35 +44,54 @@ export { createAction as action };
  * - If `payloadCreator` returns `undefined` or `null`, a warning is issued.
  * - For thunks, an error in execution logs a warning.
  */
-export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): ActionCreator {
-  function actionCreator(...args: any[]) {
-    let action: Action = {
-      type: typeOrThunk as string,
-    };
+// Thunk overload
+export function createAction<Args extends any[], R>(
+  thunk: (...args: Args) => (dispatch: Dispatch, getState: GetState, dependencies?: Dependencies) => Promise<R>
+): ThunkCreator<Args, R>;
 
+// PayloadCreator overload
+export function createAction<T extends string, Args extends any[], P>(
+  type: T,
+  payloadCreator: (...args: Args) => P
+): ActionCreator<T, Args, P>;
+
+// Zero-arg (no payload) overload
+export function createAction<T extends string>(
+  type: T,
+  payloadCreator?: undefined
+): ActionCreator<T, [], undefined>;
+
+// Single-arg (basic payload) overload
+export function createAction<T extends string, P = any>(
+  type: T,
+  payloadCreator?: undefined
+): ActionCreator<T, [P], P>;
+
+export function createAction(typeOrThunk: string | Function, payloadCreator?: Function): any {
+  function actionCreator(...args: any[]) {
     if (typeof typeOrThunk === 'function') {
-      return async (dispatch: Function, getState: Function, dependencies: any) => {
+      return async (dispatch: Dispatch, getState: GetState, dependencies?: Dependencies) => {
         try {
           return await typeOrThunk(...args)(dispatch, getState, dependencies);
         } catch (error: any) {
           console.warn(`Error in action: ${error.message}. If dependencies object provided does not contain required property, it is possible that the slice name obtained from the tag name does not match the one declared in the slice file.`);
         }
-      }
-    } else if (payloadCreator) {
-      let result = payloadCreator(...args);
+      };
+    }
+
+    const action: Action = { type: typeOrThunk };
+
+    if (payloadCreator) {
+      const result = payloadCreator(...args);
       if (result === undefined || result === null) {
         console.warn('payloadCreator did not return an object. Did you forget to initialize an action with params?');
       }
-
-      // Do not return payload if it is undefined
       if (result !== undefined && result !== null) {
         action.payload = result;
-        'meta' in result && (action.meta = result.meta);
-        'error' in result && (action.error = result.error);
+        if ('meta' in result) action.meta = result.meta;
+        if ('error' in result) action.error = result.error;
       }
-    }
-    else {
-      // Do not return payload if it is undefined
+    } else {
       if (args[0] !== undefined) {
         action.payload = args[0];
       }
@@ -81,7 +100,7 @@ export function createAction(typeOrThunk: string | Function, payloadCreator?: Fu
     return action;
   }
 
-  actionCreator.toString = () => `${typeOrThunk}`;
+  actionCreator.toString = () => typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
   actionCreator.type = typeof typeOrThunk === 'string' ? typeOrThunk : 'asyncAction';
   actionCreator.match = (action: any) => isAction(action) && action.type === typeOrThunk;
 
