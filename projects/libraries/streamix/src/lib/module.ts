@@ -130,7 +130,7 @@ export function createModule<
     internalStreams = streams;
   }
 
-  let store: Store | undefined;
+  let store: Store<State> | undefined;
 
   let module = {
     slice,
@@ -156,7 +156,7 @@ export function createModule<
     },
     loaded$,
     destroyed$,
-    init(storeInstance: Store<any>) {
+    init(storeInstance: Store<State>) {
       if (loaded === false) {
         loaded = true;
         store = storeInstance;

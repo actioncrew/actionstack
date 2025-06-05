@@ -359,7 +359,9 @@ export function createStore<T = any>(
         currentState.next(state);
 
         sysActions.moduleLoaded(module);
-        (module as any).loaded$.next(true);
+        module.loaded$.next();
+        module.loaded$.complete();
+
       } finally {
         lock.release(); // Release lock regardless of success or failure
       }
@@ -389,6 +391,7 @@ export function createStore<T = any>(
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
 
         module.destroyed$.next();
+        module.destroyed$.complete();
         // Remove the module from the internal state
         modules.splice(moduleIndex, 1);
 
