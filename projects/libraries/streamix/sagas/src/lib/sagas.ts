@@ -145,10 +145,10 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   store.spawn = <U>(...sagas: Saga[]): Stream<U> => {
       const effects$ = createStream<U>('spawn', async function* () {
         // Unsubscribe from the epics
-        store.dispatch(stop(sagas));
+        store.dispatch(stop(...sagas));
       });
 
-      store.dispatch(run(sagas));
+      store.dispatch(run(...sagas));
       return effects$;
     };
 
