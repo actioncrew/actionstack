@@ -372,7 +372,10 @@
           "options": {
             "main": "projects/libraries/streamix/src/test.ts",
             "tsConfig": "projects/libraries/streamix/tsconfig.spec.json",
-            "karmaConfig": "projects/libraries/streamix/karma.conf.js"
+            "karmaConfig": "projects/libraries/streamix/karma.conf.js",
+            "assets": [
+              "projects/libraries/streamix/CHANGELOG.md"
+            ]
           }
         }
       }

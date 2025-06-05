@@ -106,7 +106,11 @@ function systemAction<T extends SystemActionTypes>(
   type: T,
   payload?: ((...args: any[]) => any)
 ) {
-  return action(type, payload);
+  if (payload) {
+    return action(type, payload);
+  } else {
+    return action(type);
+  }
 }
 
 /**

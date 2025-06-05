@@ -29,14 +29,26 @@ export interface AsyncAction<T = any> {
   (...args: any[]): Promise<T>;
 }
 
+export type Dispatch = (action: Action | AsyncAction) => any;
+export type GetState = () => any;
+export type Dependencies = Record<string, any>;
+
 /**
  * Represents an action creator.
  * @template T The type of the action payload.
  */
-export type ActionCreator<T = any, Args extends any[] = any[]> = ((...args: Args) => Action<T> | AsyncAction<T>) & {
-  toString(): string;
-  type: string;
-  match(action: Action<T>): boolean;
+export type ActionCreator<T extends string, Args extends any[], P> = {
+  (...args: Args): Action<P>;
+  type: T;
+  match(action: Action): action is Action<P>;
+  toString(): T;
+};
+
+export type ThunkCreator<Args extends any[], R> = {
+  (...args: Args): AsyncAction<R>;
+  type: 'asyncAction';
+  match(action: Action): boolean;
+  toString(): 'asyncAction';
 };
 
 /**
