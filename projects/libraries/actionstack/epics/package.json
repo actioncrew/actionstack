@@ -1,8 +1,8 @@
 {
   "name": "@actionstack/epics",
-  "version": "2.0.12",
+  "version": "2.0.15",
   "peerDependencies": {
-    "@actionstack/store": "^2.0.12"
+    "@actionstack/store": "^2.0.15"
   },
   "dependencies": {
     "tslib": "^2.3.0"

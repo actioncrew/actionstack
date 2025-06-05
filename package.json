@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "minify": "node terser.mjs",
-    "bundle": "dts-bundle-generator --config bundle.config.cjs && npm run minify"
+    "bundle": "dts-bundle-generator --config bundle2.config.cjs"
   },
   "dependencies": {
     "@actioncrew/streamix": "^2.0.6",
