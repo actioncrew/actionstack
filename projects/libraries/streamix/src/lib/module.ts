@@ -18,6 +18,7 @@ export function createModule<
 }) {
   const { slice } = config;
 
+  let loaded = false;
   const loaded$ = createReplaySubject<void>();
   const destroyed$ = createSubject<void>();
 
@@ -127,13 +128,19 @@ export function createModule<
     loaded$,
     destroyed$,
     init(storeInstance: Store<any>) {
-      store = storeInstance;
-      store.loadModule(this);
-      bindSelectorsToStore(store, this);
+      if (loaded === false) {
+        loaded = true;
+        store = storeInstance;
+        store.loadModule(this);
+        bindSelectorsToStore(store, this);
+      }
       return module;
     },
     destroy(clearState?: boolean) {
-      store?.unloadModule(this, clearState);
+      if (loaded === true) {
+        loaded = false;
+        store?.unloadModule(this, clearState);
+      }
       return module;
     }
   };
