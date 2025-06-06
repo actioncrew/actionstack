@@ -4,7 +4,7 @@
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
-**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, projection pipelines, and fine-grained control via middleware and execution stacks.
+**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, data pipelines, and fine-grained control via middleware and execution stack.
 
 [redux-docs /](https://redux.js.org/)
 [observable-docs /](https://redux-observable.js.org/)
@@ -41,7 +41,7 @@ To create a store, use the createStore function, which initializes the store wit
     const storeSettings = {
       dispatchSystemActions: false,
       enableGlobalReducers: false,
-      awaitStatePropagation: true
+      awaitStatePropagation: true,
       exclusiveActionProcessing: false
     };
 
