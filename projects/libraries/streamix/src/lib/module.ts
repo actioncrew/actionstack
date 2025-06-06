@@ -48,10 +48,12 @@ export function createModule<
           type: namespacedType,
         };
       };
+
       Object.assign(namespacedAction, action, {
         type: namespacedType,
         toString: () => namespacedType,
       });
+
       (processedActions as any)[name] = namespacedAction;
     } else {
       const thunkWithType = (...args: any[]) => {
