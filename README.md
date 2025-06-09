@@ -4,7 +4,7 @@
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
-**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, projection pipelines, and fine-grained control via middleware and execution stacks.
+**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, data pipelines, and fine-grained control via middleware and execution stack.
 
 [redux-docs /](https://redux.js.org/)
 [observable-docs /](https://redux-observable.js.org/)
@@ -41,7 +41,7 @@ To create a store, use the createStore function, which initializes the store wit
     const storeSettings = {
       dispatchSystemActions: false,
       enableGlobalReducers: false,
-      awaitStatePropagation: true
+      awaitStatePropagation: true,
       exclusiveActionProcessing: false
     };
 
@@ -52,7 +52,7 @@ To create a store, use the createStore function, which initializes the store wit
 ```
 
 ### Reducers Are Optional — State Changes Use Action Handlers
-In Actionstack, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
+In **V3**, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
 
 ```typescript
 const increment = createAction('increment', (state: number, payload: number) => state + payload);

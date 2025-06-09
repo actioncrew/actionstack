@@ -52,7 +52,7 @@ To create a store, use the createStore function, which initializes the store wit
 ```
 
 ### Reducers Are Optional — State Changes Use Action Handlers
-In Actionstack, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
+In **V3**, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
 
 ```typescript
 const increment = createAction('increment', (state: number, payload: number) => state + payload);
