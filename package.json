@@ -1,6 +1,6 @@
 {
   "name": "actionstack",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -11,7 +11,7 @@
     "bundle": "dts-bundle-generator --config bundle.config.cjs && npm run minify"
   },
   "dependencies": {
-    "@actioncrew/streamix": "^2.0.6",
+    "@actioncrew/streamix": "^2.0.7",
     "@angular/animations": "^15.2.10",
     "@angular/common": "^15.2.10",
     "@angular/compiler": "^15.2.10",
