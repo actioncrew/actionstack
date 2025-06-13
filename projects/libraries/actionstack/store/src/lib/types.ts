@@ -1,5 +1,6 @@
 import { Observable } from 'rxjs/internal/Observable';
 import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
+import { InjectionToken, Type } from '@angular/core';
 
 /**
  * Interface defining the structure of an action object.
@@ -29,15 +30,27 @@ export interface AsyncAction<T = any> {
   (...args: any[]): Promise<T>;
 }
 
+export type Dispatch = (action: Action | AsyncAction) => any;
+export type GetState = () => any;
+export type Dependencies = Record<string, any>;
+
 /**
  * Represents an action creator.
  * @template T The type of the action payload.
  */
-export type ActionCreator<T = any> = ((...args: any[]) => Action<T> | AsyncAction<T>) & {
-  toString(): string;
-  type: string;
-  match(action: Action<T>): boolean;
-}
+export type ActionCreator<T extends string, Args extends any[], P> = {
+  (...args: Args): Action<P>;
+  type: T;
+  match(action: Action): action is Action<P>;
+  toString(): T;
+};
+
+export type ThunkCreator<Args extends any[], R> = {
+  (...args: Args): AsyncAction<R>;
+  type: 'asyncAction';
+  match(action: Action): boolean;
+  toString(): 'asyncAction';
+};
 
 /**
  * A function that takes the current state and an action, and returns
@@ -114,7 +127,7 @@ export interface Middleware {
 }
 
 /**
- * Represents an observer that receives notifications of values from an Observable.
+ * Represents an observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -125,7 +138,7 @@ export interface Observer<T> {
 }
 
 /**
- * Represents an asynchronous observer that receives notifications of values from an Observable.
+ * Represents an asynchronous observer that receives notifications of values from an Stream.
  * @interface
  * @template T The type of the value being observed.
  */
@@ -136,9 +149,9 @@ export interface AsyncObserver<T> {
 }
 
 /**
- * Interface representing an operator function for transforming observables.
+ * Interface representing an operator function for transforming streams.
  *
- * An operator function takes an input `Observable<T>` and returns an output `Observable<R>`.
+ * An operator function takes an input `Stream<T>` and returns an output `Stream<R>`.
  *
  * @typeParam T - The type of the input elements.
  * @typeParam R - The type of the output elements.
@@ -205,7 +218,7 @@ export type Tree<LeafType, T = any> = {
 };
 
 /**
- * Type alias representing processing strategies for side effects.
+ * Type alias representing processing strategies for side epics.
  *
  */
 export type ProcessingStrategy = "exclusive" | "concurrent";
@@ -233,10 +246,10 @@ export type SliceStrategy = "persistent" | "temporary";
  *                     used for dependency injection.
  *                   - The tree structure allows for specifying nested dependencies within the feature.
  */
-export type FeatureModule = {
+export interface FeatureModule {
   slice: string;
-  reducer: Reducer | AsyncReducer | Tree<Reducer | AsyncReducer>;
-  dependencies?: Tree<any>;
+  reducer: Reducer | Tree<Reducer>;
+  dependencies?: Tree<Type<any> | InjectionToken<any>>;
 }
 
 /**
@@ -245,15 +258,29 @@ export type FeatureModule = {
  * The main application module serves as the entry point for configuring the Actionstack store.
  * This interface defines the expected properties for the main application module.
  *
+ * @property slice?: string (optional) - A unique string identifier for the main application's state slice (if applicable).
+ * @property middleware?: Middleware[] (optional) - An array of middleware functions to be applied to the store.
+ *                  - Middleware functions intercept, handle, and potentially modify the dispatching process.
+ * @property reducer - The reducer function or a tree of reducers responsible for managing the entire application state.
  * @property metaReducers?: MetaReducer[] (optional) - An array of meta-reducer functions to be applied to the reducers.
  *                  - Meta-reducers are higher-order functions that can wrap and potentially modify reducers,
  *                    adding additional logic or middleware functionality.
+ * @property dependencies?: Tree<Type<any> | InjectionToken<any>> (optional) -
+ *                   An optional tree representing the dependencies required by the main application.
+ *                   - These dependencies can be types or injection tokens used for dependency injection.
+ *                   - The tree structure allows for specifying nested dependencies.
+ * @property strategy?: ProcessingStrategy (optional) - The processing strategy for side epics within the application.
+ *                  - This defines how side epics (functions performing actions outside the dispatch cycle) are executed.
+ *                  - Possible strategies are "exclusive" (run one at a time) or "concurrent" (run in parallel).
  */
-export type MainModule =  Omit<FeatureModule, "slice"> & {
-  slice?: "main";
+export interface MainModule {
+  slice?: string;
+  middleware?: Middleware[];
+  reducer: Reducer | Tree<Reducer>;
   metaReducers?: MetaReducer[];
+  dependencies?: Tree<Type<any> | InjectionToken<any>>;
+  strategy?: ProcessingStrategy;
 }
-
 /**
  * Default configuration for the main module.
  * Includes a slice name, a basic reducer, an empty list of metaReducers, and no dependencies.
@@ -271,7 +298,6 @@ export const defaultMainModule = {
  * @template T - The type of the state managed by the store.
  * @param {MainModule} module - The main module configuration, defining the initial state, reducers, middleware, and other store properties.
  * @param {StoreSettings} [settings] - Optional settings for the store, such as dispatch behavior or feature toggles.
- * @param {StoreEnhancer} [enhancer] - Optional enhancer function to extend or modify the store's functionality.
  * @returns {Store<T>} The created store instance with methods for managing state and actions.
  */
 export type StoreCreator<T = any> = (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer) => Store<T>;
@@ -325,7 +351,7 @@ function kindOf(val: any): string {
     return "error";
 
   if (isObservable(val))
-    return "observable";
+    return "Stream";
 
   if (isPromise(val))
     return "promise";

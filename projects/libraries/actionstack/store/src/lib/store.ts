@@ -96,9 +96,17 @@ export function isSystemActionType(type: string): type is SystemActionTypes {
 /**
  * Private function to create a system action.
  */
-function systemAction<T extends SystemActionTypes>(type: T, payload?: Function) {
-  return action(type, payload);
+function systemAction<T extends SystemActionTypes, Args extends any[] = any[], P = any>(
+  type: T,
+  payloadCreator?: (...args: Args) => P
+) {
+  if (payloadCreator) {
+    return action(type, payloadCreator);
+  } else {
+    return action(type);
+  }
 }
+
 
 /**
  * Object containing action creator functions for all system action types.
