@@ -1,6 +1,5 @@
 import { Observable } from 'rxjs/internal/Observable';
 import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
-import { InjectionToken, Type } from '@angular/core';
 
 /**
  * Interface defining the structure of an action object.
@@ -249,7 +248,7 @@ export type SliceStrategy = "persistent" | "temporary";
 export interface FeatureModule {
   slice: string;
   reducer: Reducer | Tree<Reducer>;
-  dependencies?: Tree<Type<any> | InjectionToken<any>>;
+  dependencies?: Tree<any>;
 }
 
 /**
@@ -278,7 +277,7 @@ export interface MainModule {
   middleware?: Middleware[];
   reducer: Reducer | Tree<Reducer>;
   metaReducers?: MetaReducer[];
-  dependencies?: Tree<Type<any> | InjectionToken<any>>;
+  dependencies?: Tree<any>;
   strategy?: ProcessingStrategy;
 }
 /**
