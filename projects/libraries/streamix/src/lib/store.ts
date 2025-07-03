@@ -119,7 +119,8 @@ const systemModule = createModule({
 });
 
 export function isSystemActionType(type: string): boolean {
-  return Object.values(systemModule.actions).map(t => t.type as string).includes(type);
+  const actions = Object.values(systemModule.actions) as Array<{ type: string }>;
+  return actions.some(a => a.type === type);
 }
 
 /**
@@ -176,11 +177,10 @@ export function createStore<T = any>(
     const handler = actionHandlers.get(action.type);
 
     if (handler) {
-      const [sliceName] = action.type.split('/');
-
-      const currentSliceState = getProperty(newState, sliceName);
+      const slicePath = action.type.split('/').slice(0, -1); // handles 'foo/bar/ACTION'
+      const currentSliceState = getProperty(newState, slicePath);
       const updatedSliceState = await handler(currentSliceState, action.payload);
-      newState = setProperty(newState, sliceName, updatedSliceState);
+      newState = setProperty(newState, slicePath, updatedSliceState);
     }
 
     if (settings.enableGlobalReducers && mainModule.reducers?.length) {
@@ -304,10 +304,11 @@ export function createStore<T = any>(
     module: FeatureModule
   ) => {
     Object.values(module.actions).forEach((action: any) => {
-      if (actionHandlers.has(action.type)) {
+      if (action.type && actionHandlers.has(action.type)) {
         console.warn(`Action handler for "${action.type}" already registered - overwriting`);
+      } else if (action.type) {
+        actionHandlers.set(action.type, action.handler);
       }
-      actionHandlers.set(action.type, action.handler);
     })
   }
 
@@ -323,7 +324,7 @@ export function createStore<T = any>(
     module: FeatureModule
   ) => {
     Object.values(module.actions).forEach((action: any) => {
-      if (actionHandlers.has(action.type)) {
+      if (action.type && actionHandlers.has(action.type)) {
         actionHandlers.delete(action.type);
       }
     })
@@ -400,7 +401,7 @@ export function createStore<T = any>(
         // Eject dependencies
         ejectDependencies(module);
 
-        const slicePath = (module.slice || 'main').split('/');
+        const slicePath = normalizePath(module.slice || 'main');
         if (clearState) {
           state = setProperty(state, slicePath, undefined)
         }
@@ -415,17 +416,35 @@ export function createStore<T = any>(
   };
 
   /**
+   * Normalizes a slice path into an array of string segments.
+   *
+   * This utility function ensures consistent handling of slice paths by converting
+   * either a string path (e.g., `"foo/bar/baz"`) or an array of strings (e.g., `["foo", "bar", "baz"]`)
+   * into a standardized array format.
+   *
+   * @param {string | string[]} path - The path to normalize. Can be a slash-delimited string or an array of strings.
+   * @returns {string[]} An array of string segments representing the normalized path.
+   *
+   * @example
+   * normalizePath("foo/bar/baz"); // => ["foo", "bar", "baz"]
+   * normalizePath(["foo", "bar"]); // => ["foo", "bar"]
+   */
+  const normalizePath = (path: string | string[]): string[] => {
+    return Array.isArray(path) ? path : path.split('/');
+  };
+
+  /**
    * Reads the state slice and executes the provided callback with the current state.
    * The function ensures that state is accessed in a thread-safe manner by acquiring a lock.
    */
   const getState = (
-    slice: keyof T | string[],
+    slice: string | string[],
     callback: (state: Readonly<T | undefined>) => void | Promise<void>
   ): Promise<void> => {
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const stateRead = await getProperty(state, slice); // Get state after acquiring lock
+        const stateRead = await getProperty(state, normalizePath(slice)) as any; // Get state after acquiring lock
         callback(stateRead);
       } finally {
         lock.release(); // Release lock regardless of success or failure
@@ -531,7 +550,7 @@ export function createStore<T = any>(
    * Creates the middleware API object for use in the middleware pipeline.
    */
   const middlewareAPI = {
-      getState: (slice?: any) => getProperty(state, slice === undefined ? "*" : slice),
+      getState: (slice?: string | string[]) => getProperty(state, slice ? normalizePath(slice) : "*"),
       dispatch: (action: Action | AsyncAction) => dispatch(action),
       dependencies: () => pipeline.dependencies,
       strategy: () => pipeline.strategy,

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.3
+
+Modules can be registered under nested paths using slice: 'foo/bar'. Actions will apply updates to nested state objects based on their full slice path (e.g., foo/bar/MY_ACTION targets state.foo.bar). All internal state management functions (getState, setProperty, dispatch, loadModule, etc.) now support both string and array paths transparently. Utility function normalizePath(path: string | string[]): string[] added to unify path handling.
+
 ## 3.0.1
 
 Redesigned core architecture to eliminate traditional reducer logic. Introduced fully modular "slices" using colocated state + actions (inspired by Zustand, but type-safe). Actions are now defined using the new action() utility that bundles. No more reducers in the usual sense — state updates are handled via registered action handlers. Type inference has been improved across actions, selectors, and middleware.

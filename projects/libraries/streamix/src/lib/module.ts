@@ -29,6 +29,12 @@ export function createModule<
   dependencies?: Dependencies;
 }) {
   const { slice } = config;
+  const pathParts = slice.split('/');
+
+  // Helper to select nested slice
+  function selectSlice(rootState: any) {
+    return pathParts.reduce((s, key) => (s ? s[key] : undefined), rootState);
+  }
 
   let loaded = false;
   const loaded$ = createReplaySubject<void>();
@@ -72,16 +78,13 @@ export function createModule<
     }
   }
 
-  // Feature selector
-  const feature = featureSelector(slice);
-
   // Wrap selectors with feature scope
   const processedSelectors = {} as Selectors;
   for (const [name, selectorFactory] of Object.entries(config.selectors ?? {})) {
     (processedSelectors as any)[name] = (...args: any[]) => {
       const baseSelector = selectorFactory(...args);
-      return (globalState: any) => {
-        const sliceState = feature(globalState);
+      return (rootState: any) => {
+        const sliceState = selectSlice(rootState);
         return baseSelector(sliceState);
       };
     };
