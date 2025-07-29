@@ -2,7 +2,7 @@
 
 ## 3.0.5
 
-The documentation has been updated with extended examples and usage samples to help developers get started faster and better understand core concepts. This version improves clarity and provides more practical guidance throughout.
+The documentation has been expanded with practical examples and usage samples to help developers get started quickly and understand the core concepts more clearly. This release also updates dependencies and changes the compilation target to ES2022 for improved modern JavaScript support.
 
 ## 3.0.4
 

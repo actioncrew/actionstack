@@ -53,8 +53,7 @@ let js = allFiles.filter(path => path.match(/\.[mc]?js$/));
 let definitions = allFiles.filter(path => !path.includes('@actioncrew') && path.match(/\.d\.ts$/));
 await deleteFiles(definitions);
 
-fs.rmSync('./dist/streamix/esm2020', {recursive: true, force: true});
-fs.rmSync('./dist/streamix/fesm2015', {recursive: true, force: true});
+fs.rmSync('./dist/streamix/esm2022', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/lib', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/epics/lib', {recursive: true, force: true});
 fs.rmSync('./dist/streamix/sagas/lib', {recursive: true, force: true});
