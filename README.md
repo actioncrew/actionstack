@@ -1,152 +1,218 @@
-<h1 style="display: none;">ActionStack V3</h1>
+# ActionStack V3
 
 <p align="center">
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
 
-**ActionStack V3** is a minimal yet powerful state management system designed for reactive applications, built on top of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix). It supports modular state slices, synchronous and asynchronous actions (thunks), selectors, data pipelines, and fine-grained control via middleware and execution stack.
+<p align="center">
+  <strong>Next-generation state management for reactive applications</strong><br>
+  Built on <a href="https://www.npmjs.com/package/@actioncrew/streamix">Streamix</a> for ultimate performance and simplicity
+</p>
 
-[redux-docs /](https://redux.js.org/)
-[observable-docs /](https://redux-observable.js.org/)
-[saga-docs /](https://redux-saga.js.org/)
+<p align="center">
+  <a href="https://github.com/actioncrew/actionstack/workflows/build/badge.svg">
+    <img src="https://github.com/actioncrew/actionstack/workflows/build/badge.svg" alt="Build Status">
+  </a>
+  <a href="https://www.npmjs.com/package/@actioncrew/actionstack">
+    <img src="https://img.shields.io/npm/v/@actioncrew/actionstack.svg?style=flat-square" alt="NPM Version">
+  </a>
+  <a href="https://www.npmjs.com/package/@actioncrew/actionstack">
+    <img src="https://img.shields.io/npm/dm/@actioncrew/actionstack.svg?style=flat-square" alt="NPM Downloads">
+  </a>
+  <a href="https://bundlephobia.com/package/@actioncrew/actionstack">
+    <img src="https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack" alt="Bundle Size">
+  </a>
+</p>
 
-[![build status](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)](https://github.com/actioncrew/actionstack/workflows/build/badge.svg)
-[![npm version](https://img.shields.io/npm/v/@actioncrew/actionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew/actionstack)
-[![npm downloads](https://img.shields.io/npm/dm/@actioncrew/actionstack.svg?style=flat-square)](https://www.npmjs.com/package/@actioncrew/actionstack)
-[![min+zipped](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)](https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack)
-  
-## Key Features
-- ✅ Modular slice-based store architecture
-- 🔁 Built-in support for both sync and async (thunk) actions
-- 🔄 Reactive state streams via Streamix
-- 🧩 Feature modules with co-located state, logic, and dependencies
-- ⚙️ Middleware, locking, and concurrency strategies
-- 🧠 Type-safe selectors and action creators
+---
 
-## Installation
+## ✨ Key Features
 
+- **🧩 Modular Architecture** — Feature-based modules with co-located state and logic
+- **⚡ Reactive Streams** — Built on Streamix for high-performance reactive updates
+- **🔄 Action Handlers** — No reducers needed - sync actions with state logic
+- **⚡ Thunk Support** — Built-in async operations via thunks
+- **🔒 Safe Concurrency** — Built-in locking and execution control
+- **📦 Dynamic Loading** — Load/unload modules at runtime
+- **🎯 Type Safety** — Full TypeScript support with intelligent inference
+- **🔌 Redux Ecosystem** — Works with existing middlewares from Redux ecosystem
+
+---
+
+## 📦 Installation
+
+```bash
+npm install @actioncrew/actionstack
 ```
-  npm i @actioncrew/actionstack
-```
 
-## Usage
+---
 
-### Creating a Store
-To create a store, use the createStore function, which initializes the store with the provided main module and optional settings or enhancers.
+## 🚀 Quick Start
 
 ```typescript
-    import { createStore } from '@actioncrew/actionstack';
+import { createStore, createModule, createAction, createThunk } from '@actioncrew/actionstack';
 
-    // Optional: Define store settings to customize behavior
-    const storeSettings = {
-      dispatchSystemActions: false,
-      enableGlobalReducers: false,
-      awaitStatePropagation: true,
-      exclusiveActionProcessing: false
-    };
+// Actions with built-in state handlers
+const increment = createAction('increment', 
+  (state: number, payload: number = 1) => state + payload
+);
 
-    // Create the store instance
-    const store = createStore({
-      reducers: [rootReducer],
-    }, storeSettings, applyMiddleware(logger, epics));
-```
+const reset = createAction('reset', () => 0);
 
-### Reducers Are Optional — State Changes Use Action Handlers
-In **V3**, state changes are managed through action handlers defined directly on action creators. When creating an action with createAction, you can optionally provide a handler function that specifies how the state should update when that action is dispatched. These handlers are automatically collected and associated with their respective feature modules when you register the actions, so there is no need for a separate actionHandlers property. This approach keeps state update logic colocated with actions, making your code more modular and easier to maintain.
-
-```typescript
-const increment = createAction('increment', (state: number, payload: number) => state + payload);
-
+// Create module
 const counterModule = createModule({
   slice: 'counter',
   initialState: 0,
-  actions: { increment }
+  actions: { increment, reset }
+});
+
+// Initialize
+const store = createStore();
+counterModule.init(store);
+
+// Use actions directly
+counterModule.actions.increment(5);  // Counter: 5
+counterModule.actions.reset();       // Counter: 0
+
+// Subscribe to changes
+counterModule.data$.subscribe(count => {
+  console.log('Counter:', count);
 });
 ```
 
-### Loading and Unloading Modules
-Modules can be loaded or unloaded dynamically. The loadModule and unloadModule methods manage this process, ensuring that the store’s dependencies are correctly updated.
+---
+
+## 🎯 Real-World Example
 
 ```typescript
-    const featureModule = createModule({
-      slice: 'superModule',
-      initialState: {},
-      dependencies: { heroService: new HeroService() }
-    });
+interface TodoState {
+  todos: Todo[];
+  loading: boolean;
+}
 
-    // Load a feature module
-    featureModule.init(store);
+const addTodo = createAction('add', 
+  (state: TodoState, text: string) => ({
+    ...state,
+    todos: [...state.todos, { id: Date.now(), text, completed: false }]
+  })
+);
 
-    // Unload a feature module (with optional state clearing)
-    featureModule.destroy(true);
+const setTodos = createAction('setTodos',
+  (state: TodoState, todos: Todo[]) => ({ ...state, todos, loading: false })
+);
+
+const setLoading = createAction('setLoading',
+  (state: TodoState, loading: boolean) => ({ ...state, loading })
+);
+
+// Thunk using createThunk
+const fetchTodos = createThunk('fetchTodos', () => 
+  (dispatch, getState, dependencies) => {
+    dispatch(setLoading(true));
+    
+    dependencies.todoService.fetchTodos()
+      .then(todos => dispatch(setTodos(todos)))
+      .catch(error => {
+        dispatch(setLoading(false));
+        console.error('Failed to fetch todos:', error);
+      });
+  }
+);
+
+// Selectors
+const selectActiveTodos = createSelector(
+  (state: TodoState) => state.todos.filter(t => !t.completed)
+);
+
+// Module with dependencies
+const todoModule = createModule({
+  slice: 'todos',
+  initialState: { todos: [], loading: false },
+  actions: { addTodo, setTodos, setLoading, fetchTodos },
+  selectors: { selectActiveTodos },
+  dependencies: { todoService: new TodoService() }
+});
+
+// Usage
+todoModule.init(store);
+todoModule.actions.fetchTodos();
+
+// Reactive UI updates
+todoModule.data$.selectActiveTodos().subscribe(activeTodos => {
+  renderTodos(activeTodos);
+});
 ```
 
-### Reading State Safely
-To read a slice of the state in a safe manner (e.g., avoiding race conditions), use readSafe. This method ensures the state is accessed while locking the pipeline.
+---
 
+## 🔄 Advanced Features
+
+### Dynamic Module Loading
 ```typescript
-    store.getState('*', (state) => {
-      console.log('State object:', state);
-    });
+// Load modules at runtime
+const featureModule = createDashboardModule();
+featureModule.init(store);
+
+// Unload when no longer needed
+featureModule.destroy(true); // Clear state
 ```
 
-### Dispatching Actions
-Actions are directly bound to the store’s dispatch method, allowing you to invoke actions as regular functions without manually calling dispatch. This design keeps state update logic close to actions and enables a clean, intuitive API where calling an action immediately dispatches it to update state.
-
+### Stream Composition
 ```typescript
-    import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
+import { combineLatest, map, filter } from '@actioncrew/streamix';
 
-    export const addMessage = action("ADD_MESSAGE", (message: string) => ({ message }));
-    export const clearMessages = action('CLEAR_MESSAGES');
-    
-    const featureModule = createModule({
-      slice: 'superModule',
-      actions: {
-        addMessage,
-        clearMessage
-      },
-      dependencies: { heroService: new HeroService() }
-    });
-    ...
+// Combine data from multiple modules
+const dashboardData$ = combineLatest([
+  userModule.data$.selectCurrentUser(),
+  todoModule.data$.selectActiveTodos(),
+  notificationModule.data$.selectUnread()
+]).pipe(
+  map(([user, todos, notifications]) => ({
+    user,
+    todoCount: todos.length,
+    hasNotifications: notifications.length > 0
+  }))
+);
 
-    // Dispatching an action to add a message
-    featureModule.actions.addMessage("Hello, world!");
-
-    // Dispatching an action to add another message
-    featureModule.actions.addMessage("This is a second message!");
-
-    // Dispatching an action to clear all messages
-    featureModule.actions.clearMessages();
+// React to combined state changes
+for await (const data of dashboardData$) {
+  updateDashboard(data);
+}
 ```
 
-### Subscribing to State Changes
-You can also subscribe to changes in the state, so that when messages are added or cleared, you can react to those changes:
-
+### Store Configuration
 ```typescript
-    import { Action, action, featureSelector, selector } from '@actioncrew/actionstack';
-    
-    export const selectHeroes = selector(state => state.heroes);
-    
-    const featureModule = createModule({
-      slice: 'superModule',
-      selectors: {
-        selectHeroes
-      },
-      dependencies: { heroService: new HeroService() }
-    });
-
-    ...
-    
-    // Subscribe to state changes
-    this.subscription = featureModule.data$.selectHeroes().subscribe(value => {
-      this.heroes = value;
-    });
+const store = createStore({
+  dispatchSystemActions: true,
+  awaitStatePropagation: true,
+  exclusiveActionProcessing: false
+}, applyMiddleware(logger, devtools));
 ```
-You can combine multiple data streams from different feature modules or selectors as needed to create complex derived state or orchestrate side effects. Thanks to Streamix-powered reactive streams (data$), Actionstack lets you compose, transform, and react to state changes declaratively, enabling powerful and flexible reactive workflows across your application.
 
-# Conclusion
-ActionStack makes state management in your applications easier, more predictable, and scalable. With support for both epics and sagas, it excels in handling asynchronous operations while offering the flexibility and power of [Streamix](https://www.npmjs.com/package/@actioncrew/streamix) and generator functions. Whether you're working on a small project or a large-scale application, ActionStack can help you manage state efficiently and reliably.
+---
 
-If you're interested, join our discussions on [GitHub](https://github.com/actioncrew/actionstack/discussions)!
- 
-Have fun and happy coding!
+## 🆚 vs Other Solutions
+
+| Feature | ActionStack V3 | Redux + RTK | Zustand |
+|---------|----------------|-------------|---------|
+| Bundle Size | Minimal | Large | Small |
+| Reactivity | Built-in | Manual | Manual |
+| Modules | Native | Manual | Manual |
+| Type Safety | Excellent | Good | Good |
+| Async Actions | Native | Thunks | Manual |
+
+---
+
+## 📚 Resources
+
+- **[GitHub](https://github.com/actioncrew/actionstack)** - Source code and issues
+- **[Discussions](https://github.com/actioncrew/actionstack/discussions)** - Community support
+- **[Streamix](https://www.npmjs.com/package/@actioncrew/streamix)** - Reactive foundation
+
+---
+
+<p align="center">
+  <strong>Ready for next-gen state management? 🚀</strong><br>
+  <a href="https://www.npmjs.com/package/@actioncrew/actionstack">Install from NPM</a> • 
+  <a href="https://github.com/actioncrew/actionstack">View on GitHub</a>
+</p>

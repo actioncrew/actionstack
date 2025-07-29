@@ -1,6 +1,10 @@
 # Changelog
 
-## 3.0.3
+## 3.0.5
+
+The documentation has been updated with extended examples and usage samples to help developers get started faster and better understand core concepts. This version improves clarity and provides more practical guidance throughout.
+
+## 3.0.4
 
 Modules can be registered under nested paths using slice: 'foo/bar'. Actions will apply updates to nested state objects based on their full slice path (e.g., foo/bar/MY_ACTION targets state.foo.bar). All internal state management functions (getState, setProperty, dispatch, loadModule, etc.) now support both string and array paths transparently. Utility function normalizePath(path: string | string[]): string[] added to unify path handling.
 
