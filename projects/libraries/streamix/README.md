@@ -108,7 +108,7 @@ const setLoading = createAction('setLoading',
 // Thunk using createThunk
 const fetchTodos = createThunk('fetchTodos', () => 
   (dispatch, getState, dependencies) => {
-    todoModule.actions.setLoading(true));
+    todoModule.actions.setLoading(true);
     
     dependencies.todoService.fetchTodos()
       .then(todos => todoModule.actions.setTodos(todos))
