@@ -108,12 +108,12 @@ const setLoading = createAction('setLoading',
 // Thunk using createThunk
 const fetchTodos = createThunk('fetchTodos', () => 
   (dispatch, getState, dependencies) => {
-    dispatch(setLoading(true));
+    todoModule.actions.setLoading(true));
     
     dependencies.todoService.fetchTodos()
-      .then(todos => dispatch(setTodos(todos)))
+      .then(todos => todoModule.actions.setTodos(todos))
       .catch(error => {
-        dispatch(setLoading(false));
+        todoModule.actions.setLoading(false);
         console.error('Failed to fetch todos:', error);
       });
   }
@@ -159,7 +159,7 @@ featureModule.destroy(true); // Clear state
 
 ### Stream Composition
 ```typescript
-import { combineLatest, map, filter } from '@actioncrew/streamix';
+import { combineLatest, map, filter, eachValueFrom } from '@actioncrew/streamix';
 
 // Combine data from multiple modules
 const dashboardData$ = combineLatest([
@@ -175,7 +175,7 @@ const dashboardData$ = combineLatest([
 );
 
 // React to combined state changes
-for await (const data of dashboardData$) {
+for await (const data of eachValueFrom(dashboardData$)) {
   updateDashboard(data);
 }
 ```
