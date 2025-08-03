@@ -111,12 +111,12 @@ const setLoading = action('setLoading',
 // Thunk using createThunk
 const fetchTodos = thunk('fetchTodos', () => 
   (dispatch, getState, dependencies) => {
-    dispatch(setLoading(true));
+    todoModule.actions.setLoading(true);
     
     dependencies.todoService.fetchTodos()
-      .then(todos => dispatch(setTodos(todos)))
+      .then(todos => todoModule.actions.setTodos(todos))
       .catch(error => {
-        dispatch(setLoading(false));
+        todoModule.actions.setLoading(false);
         console.error('Failed to fetch todos:', error);
       });
   }
