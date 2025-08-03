@@ -59,6 +59,7 @@ export type Store<T = any> = {
     selector: (state: T) => R | Promise<R>,
     defaultValue?: R,
   ): Stream<R>;
+  populate: (...modules: FeatureModule[]) => Promise<void>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState?: boolean) => Promise<void>;
   middlewareAPI: MiddlewareAPI;
@@ -331,6 +332,18 @@ export function createStore<T = any>(
   }
 
   /**
+   * Populates the store with an array of feature modules.
+   * This method ensures modules are initialized and loaded into the store.
+   */
+  const populate = (...modules: FeatureModule[]): Promise<void> => {
+    return queue.enqueue(async () => {
+      for (const module of modules) {
+        module.init(store);
+      }
+    });
+  };
+
+  /**
    * Loads a new feature module into the store if it isn't already loaded.
    * It ensures that dependencies are injected, the global state is updated,
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
@@ -563,6 +576,7 @@ export function createStore<T = any>(
     dispatch,
     getState,
     select,
+    populate,
     loadModule,
     unloadModule,
     middlewareAPI,

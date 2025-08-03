@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.0.6
+
+Introduced populate() method to initialize and register multiple static modules at once.
+Useful for bootstrapping app-level modules in a single call. Corrected code samples in README.md
+
 ## 3.0.5
 
 The documentation has been expanded with practical examples and usage samples to help developers get started quickly and understand the core concepts more clearly. This release also updates dependencies and changes the compilation target to ES2022 for improved modern JavaScript support.

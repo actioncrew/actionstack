@@ -50,20 +50,23 @@ npm install @actioncrew/actionstack
 ## 🚀 Quick Start
 
 ```typescript
-import { createStore, createModule, createAction, createThunk } from '@actioncrew/actionstack';
+import { createStore, createModule, action, thunk, selector } from '@actioncrew/actionstack';
 
 // Actions with built-in state handlers
-const increment = createAction('increment', 
+const increment = action('increment', 
   (state: number, payload: number = 1) => state + payload
 );
 
-const reset = createAction('reset', () => 0);
+const reset = action('reset', () => 0);
 
 // Create module
 const counterModule = createModule({
   slice: 'counter',
   initialState: 0,
-  actions: { increment, reset }
+  actions: { increment, reset },
+  selectors: {
+    count: selector((state: number) => state),
+  }
 });
 
 // Initialize
@@ -75,7 +78,7 @@ counterModule.actions.increment(5);  // Counter: 5
 counterModule.actions.reset();       // Counter: 0
 
 // Subscribe to changes
-counterModule.data$.subscribe(count => {
+counterModule.data$.count().subscribe(count => {
   console.log('Counter:', count);
 });
 ```
@@ -90,23 +93,23 @@ interface TodoState {
   loading: boolean;
 }
 
-const addTodo = createAction('add', 
+const addTodo = action('add', 
   (state: TodoState, text: string) => ({
     ...state,
     todos: [...state.todos, { id: Date.now(), text, completed: false }]
   })
 );
 
-const setTodos = createAction('setTodos',
+const setTodos = action('setTodos',
   (state: TodoState, todos: Todo[]) => ({ ...state, todos, loading: false })
 );
 
-const setLoading = createAction('setLoading',
+const setLoading = action('setLoading',
   (state: TodoState, loading: boolean) => ({ ...state, loading })
 );
 
 // Thunk using createThunk
-const fetchTodos = createThunk('fetchTodos', () => 
+const fetchTodos = thunk('fetchTodos', () => 
   (dispatch, getState, dependencies) => {
     dispatch(setLoading(true));
     
@@ -120,7 +123,7 @@ const fetchTodos = createThunk('fetchTodos', () =>
 );
 
 // Selectors
-const selectActiveTodos = createSelector(
+const selectActiveTodos = selector(
   (state: TodoState) => state.todos.filter(t => !t.completed)
 );
 
@@ -147,19 +150,25 @@ todoModule.data$.selectActiveTodos().subscribe(activeTodos => {
 
 ## 🔄 Advanced Features
 
+### Static Module Loading
+```typescript
+let store = createStore(mainModule);
+store.populate(authModule, uiModule, settingsModule);
+```
+
 ### Dynamic Module Loading
 ```typescript
 // Load modules at runtime
 const featureModule = createDashboardModule();
 featureModule.init(store);
 
-// Unload when no longer needed
-featureModule.destroy(true); // Clear state
+// Unload when no longer needed and clear state
+featureModule.destroy(true);
 ```
 
 ### Stream Composition
 ```typescript
-import { combineLatest, map, filter } from '@actioncrew/streamix';
+import { combineLatest, map, filter, eachValueFrom } from '@actioncrew/streamix';
 
 // Combine data from multiple modules
 const dashboardData$ = combineLatest([
@@ -175,7 +184,7 @@ const dashboardData$ = combineLatest([
 );
 
 // React to combined state changes
-for await (const data of dashboardData$) {
+for await (const data of eachValueFrom(dashboardData$)) {
   updateDashboard(data);
 }
 ```
@@ -185,6 +194,7 @@ for await (const data of dashboardData$) {
 const store = createStore({
   dispatchSystemActions: true,
   awaitStatePropagation: true,
+  enableGlobalReducers: false,
   exclusiveActionProcessing: false
 }, applyMiddleware(logger, devtools));
 ```
