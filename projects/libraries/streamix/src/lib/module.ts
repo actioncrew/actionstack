@@ -36,15 +36,87 @@ export function createModule<
     return pathParts.reduce((s, key) => (s ? s[key] : undefined), rootState);
   }
 
+  // State management
   let loaded = false;
+  let store: Store<State> | undefined;
   const loaded$ = createReplaySubject<void>();
   const destroyed$ = createSubject<void>();
 
-  // Handle actions
-  const processedActions = {} as Actions;
-  const dispatchableActions = {} as Actions;
+  // Process actions once at creation time
+  const processedActions = processActions(config.actions ?? {}, slice);
+  const processedSelectors = processSelectors(config.selectors ?? {}, selectSlice);
 
-  for (const [name, action] of Object.entries(config.actions ?? {})) {
+  // Create module interface first (without circular references)
+  const moduleInterface = {
+    slice,
+    initialState: config.initialState,
+    dependencies: config.dependencies,
+    loaded$,
+    destroyed$,
+    // These will be populated during init
+    actions: {} as Actions,
+    selectors: processedSelectors,
+    data$: {} as Streams<Selectors>,
+  };
+
+  // Add methods that don't reference the module itself
+  const moduleWithMethods = {
+    ...moduleInterface,
+
+    init(storeInstance: Store<State>) {
+      if (loaded) {
+        return moduleWithMethods; // Already initialized
+      }
+
+      loaded = true;
+      store = storeInstance;
+
+      // Load the module into the store
+      store.loadModule(moduleWithMethods);
+
+      // Initialize data streams
+      initializeDataStreams(moduleWithMethods, store, loaded$, destroyed$);
+
+      // Initialize dispatchable actions
+      initializeDispatchableActions(moduleWithMethods, processedActions, store, slice);
+
+      // Signal that module is loaded
+      loaded$.next();
+      loaded$.complete();
+
+      return moduleWithMethods;
+    },
+
+    destroy(clearState: boolean = true) {
+      if (!loaded) {
+        return moduleWithMethods; // Already destroyed
+      }
+
+      loaded = false;
+      destroyed$.next();
+      destroyed$.complete();
+
+      if (store) {
+        store.unloadModule(moduleWithMethods, clearState);
+        store = undefined;
+      }
+
+      return moduleWithMethods;
+    },
+  };
+
+  return moduleWithMethods as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
+}
+
+// Helper functions to break down the logic
+
+function processActions<Actions extends Record<string, any>>(
+  actions: Actions,
+  slice: string
+): Actions {
+  const processed = {} as Actions;
+
+  for (const [name, action] of Object.entries(actions)) {
     if (isActionCreator(action)) {
       const namespacedType = `${slice}/${action.type}`;
       const namespacedAction = (...args: any[]) => {
@@ -60,7 +132,7 @@ export function createModule<
         toString: () => namespacedType,
       });
 
-      (processedActions as any)[name] = namespacedAction;
+      (processed as any)[name] = namespacedAction;
     } else {
       const thunkWithType = (...args: any[]) => {
         const thunk = action(...args);
@@ -68,20 +140,30 @@ export function createModule<
           async (dispatch: any, getState: any, deps: any) => {
             return thunk(dispatch, getState, {
               ...deps,
-              ...config.dependencies,
+              // Note: dependencies should be passed from module context
             });
           },
           { type: `${slice}/${thunk.type}` }
         );
       };
-      (processedActions as any)[name] = thunkWithType;
+      (processed as any)[name] = thunkWithType;
     }
   }
 
-  // Wrap selectors with feature scope
-  const processedSelectors = {} as Selectors;
-  for (const [name, selectorFactory] of Object.entries(config.selectors ?? {})) {
-    (processedSelectors as any)[name] = (...args: any[]) => {
+  return processed;
+}
+
+function processSelectors<
+  State,
+  Selectors extends Record<string, (...args: any[]) => (state: State) => any>
+>(
+  selectors: Selectors,
+  selectSlice: (rootState: any) => State
+): Selectors {
+  const processed = {} as Selectors;
+
+  for (const [name, selectorFactory] of Object.entries(selectors)) {
+    (processed as any)[name] = (...args: any[]) => {
       const baseSelector = selectorFactory(...args);
       return (rootState: any) => {
         const sliceState = selectSlice(rootState);
@@ -90,77 +172,76 @@ export function createModule<
     };
   }
 
-  let store: Store<State> | undefined;
+  return processed;
+}
 
-  const module = {
-    slice,
-    initialState: config.initialState,
-    actions: dispatchableActions,
-    selectors: processedSelectors,
-    dependencies: config.dependencies,
-    data$: {} as Streams<Selectors>,
-    loaded$,
-    destroyed$,
-    init(storeInstance: Store<State>) {
-      if (!loaded) {
-        loaded = true;
-        store = storeInstance;
-        store.loadModule(module);
+function initializeDataStreams<
+  State,
+  Selectors extends Record<string, (...args: any[]) => (state: State) => any>
+>(
+  moduleInstance: any,
+  store: Store<State>,
+  loaded$: Stream<void>,
+  destroyed$: Stream<void>
+) {
+  // Create lazy stream factories
+  const streamFactories = {} as any;
 
-        // Lazily construct data$ streams
-        const streams = {} as Streams<Selectors>;
-        for (const key in module.selectors) {
-          const sel = module.selectors[key];
-          (streams as any)[key] = (...args: any[]) => {
-            const selectorFn = sel(...args);
-            return store!.select(selectorFn);
-          };
-        }
+  for (const key in moduleInstance.selectors) {
+    const selector = moduleInstance.selectors[key];
+    streamFactories[key] = (...args: any[]) => {
+      const selectorFn = selector(...args);
+      return store.select(selectorFn);
+    };
+  }
 
-        for (const key in streams) {
-          (module.data$ as any)[key] = (...args: any[]) =>
-            defer(() =>
-              loaded$.pipe(
-                first(),
-                switchMap(() => {
-                  const fn = streams[key];
-                  return fn(...args as Parameters<Selectors[keyof Selectors]>);
-                }),
-                takeUntil(destroyed$)
-              )
-            );
-        }
+  // Create deferred streams that wait for module to be loaded
+  for (const key in streamFactories) {
+    moduleInstance.data$[key] = (...args: any[]) =>
+      defer(() =>
+        loaded$.pipe(
+          first(),
+          switchMap(() => {
+            const factory = streamFactories[key];
+            return factory(...args);
+          }),
+          takeUntil(destroyed$)
+        )
+      );
+  }
+}
 
-        // Wrap dispatchable actions
-        for (const key in processedActions) {
-          const fn = (processedActions as any)[key];
-          (dispatchableActions as any)[key] = (...args: any[]) => {
-            if (!store) {
-              throw new Error(
-                `Module "${slice}" actions cannot be dispatched before registration. ` +
-                `Call module.init(store) first.`
-              );
-            }
-            const actionToDispatch = fn(...args);
-            store.dispatch(actionToDispatch);
-            return actionToDispatch;
-          };
-          Object.defineProperties((dispatchableActions as any)[key], Object.getOwnPropertyDescriptors(fn));
-        }
+function initializeDispatchableActions<
+  State,
+  Actions extends Record<string, any>
+>(
+  moduleInstance: any,
+  processedActions: Actions,
+  store: Store<State>,
+  slice: string
+) {
+  for (const key in processedActions) {
+    const actionCreator = processedActions[key];
+
+    moduleInstance.actions[key] = (...args: any[]) => {
+      if (!store) {
+        throw new Error(
+          `Module "${slice}" actions cannot be dispatched before registration. ` +
+          `Call module.init(store) first.`
+        );
       }
 
-      return module;
-    },
-    destroy(clearState: boolean = true) {
-      if (loaded) {
-        loaded = false;
-        store?.unloadModule(module, clearState);
-      }
-      return module;
-    },
-  };
+      const actionToDispatch = actionCreator(...args);
+      store.dispatch(actionToDispatch);
+      return actionToDispatch;
+    };
 
-  return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
+    // Copy properties from original action creator
+    Object.defineProperties(
+      moduleInstance.actions[key],
+      Object.getOwnPropertyDescriptors(actionCreator)
+    );
+  }
 }
 
 function isActionCreator(obj: any): obj is ActionCreator {
