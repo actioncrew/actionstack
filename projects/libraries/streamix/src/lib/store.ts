@@ -1,5 +1,10 @@
 import { actionHandlers, action } from './actions';
-import { applyMiddleware, combineEnhancers, getProperty, setProperty } from './utils';
+import {
+  applyMiddleware,
+  combineEnhancers,
+  getProperty,
+  setProperty,
+} from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
@@ -19,7 +24,7 @@ import {
   firstValueFrom,
   Stream,
   Subscription,
-  filter
+  filter,
 } from '@actioncrew/streamix';
 import { createModule } from './module';
 import { AsyncReducer, Reducer } from '@actioncrew/actionstack';
@@ -58,13 +63,13 @@ export type Store<T = any> = {
   ) => Promise<void>;
   select<R = any>(
     selector: (state: T) => R | Promise<R>,
-    defaultValue?: R,
+    defaultValue?: R
   ): Stream<R>;
   populate: (...modules: FeatureModule[]) => Promise<void>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState?: boolean) => Promise<void>;
   addReducer: (reducer: (state: T, action: Action) => T | Promise<T>) => void;
-  middlewareAPI: MiddlewareAPI;
+  getMiddlewareAPI: () => MiddlewareAPI;
   starter: Middleware;
 };
 
@@ -75,55 +80,62 @@ interface SystemState {
 }
 
 const systemModule = createModule({
-  slice: "system",
+  slice: 'system',
   initialState: {
     _initialized: false,
     _ready: false,
-    _modules: []
+    _modules: [],
   } as SystemState,
   actions: {
-    initializeState: action(
-      'INITIALIZE_STATE',
-      (state: SystemState) => ({ _modules: [], _initialized: false, _ready: false })
-    ),
+    initializeState: action('INITIALIZE_STATE', (state: SystemState) => ({
+      _modules: [],
+      _initialized: false,
+      _ready: false,
+    })),
 
     updateState: action(
       'UPDATE_STATE',
-      (state: SystemState, payload: Partial<SystemState>) => ({ ...state, ...payload })
+      (state: SystemState, payload: Partial<SystemState>) => ({
+        ...state,
+        ...payload,
+      })
     ),
 
-    storeInitialized: action(
-      'STORE_INITIALIZED',
-      (state: SystemState) => ({ ...state, _initialized: true, _ready: true })
-    ),
+    storeInitialized: action('STORE_INITIALIZED', (state: SystemState) => ({
+      ...state,
+      _initialized: true,
+      _ready: true,
+    })),
 
     moduleLoaded: action(
       'MODULE_LOADED',
       (state: SystemState, payload: { slice: string }) => ({
         ...state,
-        _modules: [...state._modules, payload.slice]
-      }),
+        _modules: [...state._modules, payload.slice],
+      })
     ),
 
     moduleUnloaded: action(
       'MODULE_UNLOADED',
       (state: SystemState, payload: { slice: string }) => ({
         ...state,
-        _modules: state._modules.filter(m => m !== payload.slice)
+        _modules: state._modules.filter((m) => m !== payload.slice),
       })
-    )
+    ),
   },
   selectors: {
     isInitialized: () => (state: SystemState) => state._initialized,
     isReady: () => (state: SystemState) => state._ready,
-    loadedModules: () => (state: SystemState) => state._modules
+    loadedModules: () => (state: SystemState) => state._modules,
   },
-  dependencies: {}
+  dependencies: {},
 });
 
 export function isSystemActionType(type: string): boolean {
-  const actions = Object.values(systemModule.actions) as Array<{ type: string }>;
-  return actions.some(a => a.type === type);
+  const actions = Object.values(systemModule.actions) as Array<{
+    type: string;
+  }>;
+  return actions.some((a) => a.type === type);
 }
 
 /**
@@ -173,14 +185,17 @@ export function createStore<T = any>(
    * After validation, the action is processed by the reducer, and the global state is updated accordingly.
    */
   let dispatch = async (action: Action | any): Promise<void> => {
-    let newState = state;  // start with current state
+    let newState = state; // start with current state
 
     const handler = actionHandlers.get(action.type);
 
     if (handler) {
       const slicePath = action.type.split('/').slice(0, -1); // handles 'foo/bar/ACTION'
       const currentSliceState = getProperty(newState, slicePath);
-      const updatedSliceState = await handler(currentSliceState, action.payload);
+      const updatedSliceState = await handler(
+        currentSliceState,
+        action.payload
+      );
       newState = setProperty(newState, slicePath, updatedSliceState);
     }
 
@@ -301,17 +316,17 @@ export function createStore<T = any>(
    *
    * @param module - The feature module containing actions with associated handlers.
    */
-  const registerActionHandlers = (
-    module: FeatureModule
-  ) => {
+  const registerActionHandlers = (module: FeatureModule) => {
     Object.values(module.actions).forEach((action: any) => {
       if (action.type && actionHandlers.has(action.type)) {
-        console.warn(`Action handler for "${action.type}" already registered - overwriting`);
+        console.warn(
+          `Action handler for "${action.type}" already registered - overwriting`
+        );
       } else if (action.type) {
         actionHandlers.set(action.type, action.handler);
       }
-    })
-  }
+    });
+  };
 
   /**
    * Unregisters all action handlers associated with a feature module.
@@ -321,84 +336,76 @@ export function createStore<T = any>(
    *
    * @param module - The feature module whose action handlers should be removed.
    */
-  const unregisterActionHandlers = (
-    module: FeatureModule
-  ) => {
+  const unregisterActionHandlers = (module: FeatureModule) => {
     Object.values(module.actions).forEach((action: any) => {
       if (action.type && actionHandlers.has(action.type)) {
         actionHandlers.delete(action.type);
       }
-    })
-  }
+    });
+  };
 
   /**
    * Populates the store with an array of feature modules.
    * This method ensures modules are initialized and loaded into the store.
    */
   const populate = async (...moduleList: FeatureModule[]): Promise<void> => {
-      try {
-        await lock.acquire();
+    try {
+      await lock.acquire();
 
-        // Load modules sequentially within the same queue operation
-        for (const module of moduleList) {
-          // Don't call loadModule() here - it would double-queue
-          // Instead, do the loading logic directly
-
-          if (modules.some((m) => m.slice === module.slice)) {
-            console.log(`Module ${module.slice} already loaded, skipping`);
-            continue; // Already loaded
-          }
-
-          try {
-            console.log(`Loading module: ${module.slice}`);
-
-            // Register the module first
-            modules = [...modules, module];
-
-            // Configure the module (this sets up data$ streams and actions)
-            module.configure(store);
-
-            // Register action handlers
-            registerActionHandlers(module);
-
-            // Inject dependencies
-            injectDependencies();
-
-            // Initialize state if not already present
-            const slicePath = (module.slice || 'main').split('/');
-            if (getProperty(state, slicePath) === undefined) {
-              state = setProperty(state, slicePath, module.initialState);
-            }
-
-            // Update current state
-            currentState.next(state);
-
-            // Dispatch system action
-            sysActions.moduleLoaded(module);
-
-            // Signal that module is loaded (this should be the last step)
-            module.loaded$.next();
-
-            console.log(`Module ${module.slice} loaded successfully`);
-
-          } catch (error) {
-            console.error(`Failed to load module ${module.slice}:`, error);
-
-            // Clean up on failure
-            const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
-            if (moduleIndex !== -1) {
-              modules.splice(moduleIndex, 1);
-            }
-
-            // Signal error on loaded$ subject
-            module.loaded$.error(error);
-
-            throw error; // Re-throw to let caller handle
-          }
+      // Load modules sequentially within the same queue operation
+      for (const module of moduleList) {
+        if (modules.some((m) => m.slice === module.slice)) {
+          console.warn(`Module ${module.slice} already loaded, skipping`);
+          continue;
         }
-    } finally {
-        lock.release(); // Release lock regardless of success or failure
+
+        try {
+          // Register the module first
+          modules = [...modules, module];
+
+          // Configure the module (this sets up data$ streams and actions)
+          module.configure(store);
+
+          // Register action handlers
+          registerActionHandlers(module);
+
+          // Inject dependencies
+          injectDependencies();
+
+          // Initialize state if not already present
+          const slicePath = (module.slice || 'main').split('/');
+          if (getProperty(state, slicePath) === undefined) {
+            state = setProperty(state, slicePath, module.initialState);
+          }
+
+          // Update current state
+          currentState.next(state);
+
+          // Dispatch system action
+          sysActions.moduleLoaded(module);
+
+          // Signal that module is loaded (this should be the last step)
+          module.loaded$.next();
+        } catch (error) {
+          console.warn(`Failed to load module ${module.slice}:`, error);
+
+          // Clean up on failure
+          const moduleIndex = modules.findIndex(
+            (m) => m.slice === module.slice
+          );
+          if (moduleIndex !== -1) {
+            modules.splice(moduleIndex, 1);
+          }
+
+          // Signal error on loaded$ subject
+          module.loaded$.error(error);
+
+          throw error; // Re-throw to let caller handle
+        }
       }
+    } finally {
+      lock.release(); // Release lock regardless of success or failure
+    }
   };
 
   /**
@@ -407,37 +414,35 @@ export function createStore<T = any>(
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
    */
   const loadModule = async (module: FeatureModule): Promise<void> => {
+    if (modules.some((m) => m.slice === module.slice)) {
+      return Promise.resolve(); // Already loaded
+    }
+
     module.configure(store);
 
     try {
-        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+      await lock.acquire();
+      // Register the module
+      modules = [...modules, module];
 
-        if (modules.some((m) => m.slice === module.slice)) {
-          return Promise.resolve(); // Already loaded
-        }
+      // module.configure(store);
+      registerActionHandlers(module);
 
-        // Register the module
-        modules = [...modules, module];
+      // Inject dependencies
+      injectDependencies();
 
-
-        // module.configure(store);
-        registerActionHandlers(module);
-
-        // Inject dependencies
-        injectDependencies();
-
-        const slicePath = (module.slice || 'main').split('/');
-        if (getProperty(state, slicePath) === undefined) {
-          state = setProperty(state, slicePath, module.initialState);
-        }
-
-        currentState.next(state);
-
-        sysActions.moduleLoaded(module);
-        module.loaded$.next();
-    } finally {
-        lock.release(); // Release lock regardless of success or failure
+      const slicePath = (module.slice || 'main').split('/');
+      if (getProperty(state, slicePath) === undefined) {
+        state = setProperty(state, slicePath, module.initialState);
       }
+
+      currentState.next(state);
+
+      sysActions.moduleLoaded(module);
+      module.loaded$.next();
+    } finally {
+      lock.release(); // Release lock regardless of success or failure
+    }
   };
 
   /**
@@ -450,7 +455,7 @@ export function createStore<T = any>(
     clearState: boolean = false
   ): Promise<void> => {
     try {
-        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+      await lock.acquire();
 
       // Find the module index in the modules array
       const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
@@ -461,28 +466,26 @@ export function createStore<T = any>(
         return Promise.resolve(); // Module not found, nothing to unload
       }
 
+      module.destroyed$.next();
+      // Remove the module from the internal state
+      modules.splice(moduleIndex, 1);
 
-        module.destroyed$.next();
-        module.destroyed$.complete();
-        // Remove the module from the internal state
-        modules.splice(moduleIndex, 1);
+      unregisterActionHandlers(module);
 
-        unregisterActionHandlers(module);
+      // Eject dependencies
+      ejectDependencies(module);
 
-        // Eject dependencies
-        ejectDependencies(module);
-
-        const slicePath = normalizePath(module.slice || 'main');
-        if (clearState) {
-          state = setProperty(state, slicePath, undefined)
-        }
-        currentState.next(state);
-
-        // Dispatch module unloaded action
-        sysActions.moduleUnloaded(module);
-      } finally {
-        lock.release(); // Release lock regardless of success or failure
+      const slicePath = normalizePath(module.slice || 'main');
+      if (clearState) {
+        state = setProperty(state, slicePath, undefined);
       }
+      currentState.next(state);
+
+      // Dispatch module unloaded action
+      sysActions.moduleUnloaded(module);
+    } finally {
+      lock.release(); // Release lock regardless of success or failure
+    }
   };
 
   /**
@@ -514,7 +517,10 @@ export function createStore<T = any>(
     const promise = (async () => {
       try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
-        const stateRead = await getProperty(state, normalizePath(slice)) as any; // Get state after acquiring lock
+        const stateRead = (await getProperty(
+          state,
+          normalizePath(slice)
+        )) as any; // Get state after acquiring lock
         callback(stateRead);
       } finally {
         lock.release(); // Release lock regardless of success or failure
@@ -538,7 +544,7 @@ export function createStore<T = any>(
    */
   const select = <R = any>(
     selector: (state: T) => R | Promise<R>,
-    defaultValue?: R,
+    defaultValue?: R
   ): Stream<R> => {
     const subject = createSubject<R>();
     let subscription: Subscription | null = null;
@@ -550,7 +556,8 @@ export function createStore<T = any>(
     subject.subscribe = (...args: any[]) => {
       if (subscriberCount === 0) {
         subscription = currentState.subscribe({
-          next: async (state: T) => { // Use `state` from emitted value
+          next: async (state: T) => {
+            // Use `state` from emitted value
             if (state === undefined || state === null) {
               if (defaultValue !== undefined) {
                 subject.next(defaultValue);
@@ -624,7 +631,9 @@ export function createStore<T = any>(
   ) => {
     return queue.enqueue(async () => {
       if (!settings.enableGlobalReducers) {
-        console.warn('Global reducers are disabled; this reducer will not be used unless "enableGlobalReducers" is true.');
+        console.warn(
+          'Global reducers are disabled; this reducer will not be used unless "enableGlobalReducers" is true.'
+        );
         return;
       }
       reducers.push(reducer);
@@ -634,14 +643,15 @@ export function createStore<T = any>(
   /**
    * Creates the middleware API object for use in the middleware pipeline.
    */
-  const middlewareAPI = {
-      getState: (slice?: string | string[]) => getProperty(state, slice ? normalizePath(slice) : "*"),
-      dispatch: (action: Action | AsyncAction) => dispatch(action),
-      dependencies: () => pipeline.dependencies,
-      strategy: () => pipeline.strategy,
-      lock: lock,
-      stack: stack,
-    } as MiddlewareAPI;
+  const getMiddlewareAPI = () => ({
+    getState: (slice?: string | string[]) =>
+      getProperty(state, slice ? normalizePath(slice) : '*'),
+    dispatch: (action: Action | AsyncAction) => dispatch(action),
+    dependencies: () => pipeline.dependencies,
+    strategy: () => pipeline.strategy,
+    lock: lock,
+    stack: stack,
+  }) as MiddlewareAPI;
 
   let store = {
     starter,
@@ -651,8 +661,8 @@ export function createStore<T = any>(
     populate,
     loadModule,
     unloadModule,
-    middlewareAPI,
-    addReducer
+    getMiddlewareAPI,
+    addReducer,
   } as Store<any>;
 
   /**
@@ -674,7 +684,7 @@ export function createStore<T = any>(
 
     injectDependencies();
     sysActions.storeInitialized();
-  }
+  };
 
   // Apply enhancer if provided
   if (typeof enhancer === 'function') {

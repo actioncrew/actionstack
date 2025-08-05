@@ -54,11 +54,7 @@ function createModule<
     destroyed$,
 
     init(storeInstance: Store<State>) {
-      // Prevent double initialization
-      if (!loaded) {
-        loaded = true;
-        storeInstance.loadModule(this);
-      }
+      storeInstance.loadModule(this);
       return this;
     },
 

@@ -2,7 +2,7 @@
 
 ## 3.0.7
 
-Added support for reducer registration via addReducer, removed the MainModule type definition to simplify the API, and adjusted createStore to eliminate the need for explicitly passing mainModule.reducers.
+Removed MainModule type — no longer required by createStore. Added addReducer method to support dynamic reducer registration. module.init(store) and store.loadModule(module) are equivalents. Replaced middlewareAPI property with a getter to defer access and ensure correct store context.
 
 ## 3.0.6
 
