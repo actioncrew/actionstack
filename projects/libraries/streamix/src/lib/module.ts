@@ -1,4 +1,3 @@
-import { action } from '@actioncrew/actionstack';
 import {
   createReplaySubject,
   createSubject,
@@ -58,12 +57,7 @@ function createModule<
       // Prevent double initialization
       if (!loaded) {
         loaded = true;
-        // Configure first, then load
-        this.configure(storeInstance);
         storeInstance.loadModule(this);
-        // Signal that module is loaded AFTER everything is set up
-        loaded$.next();
-        loaded$.complete();
       }
       return this;
     },
@@ -87,7 +81,6 @@ function createModule<
         loaded = false;
         configured = false;
         destroyed$.next();
-        destroyed$.complete();
         store?.unloadModule(this, clearState);
         store = undefined;
       }

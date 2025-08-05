@@ -16,8 +16,10 @@ import {
   createBehaviorSubject,
   createQueue,
   createSubject,
+  firstValueFrom,
   Stream,
   Subscription,
+  filter
 } from '@actioncrew/streamix';
 import { createModule } from './module';
 import { AsyncReducer, Reducer } from '@actioncrew/actionstack';
@@ -333,12 +335,70 @@ export function createStore<T = any>(
    * Populates the store with an array of feature modules.
    * This method ensures modules are initialized and loaded into the store.
    */
-  const populate = (...modules: FeatureModule[]): Promise<void> => {
-    return queue.enqueue(async () => {
-      for (const module of modules) {
-        store.loadModule(module);
+  const populate = async (...moduleList: FeatureModule[]): Promise<void> => {
+      try {
+        await lock.acquire();
+
+        // Load modules sequentially within the same queue operation
+        for (const module of moduleList) {
+          // Don't call loadModule() here - it would double-queue
+          // Instead, do the loading logic directly
+
+          if (modules.some((m) => m.slice === module.slice)) {
+            console.log(`Module ${module.slice} already loaded, skipping`);
+            continue; // Already loaded
+          }
+
+          try {
+            console.log(`Loading module: ${module.slice}`);
+
+            // Register the module first
+            modules = [...modules, module];
+
+            // Configure the module (this sets up data$ streams and actions)
+            module.configure(store);
+
+            // Register action handlers
+            registerActionHandlers(module);
+
+            // Inject dependencies
+            injectDependencies();
+
+            // Initialize state if not already present
+            const slicePath = (module.slice || 'main').split('/');
+            if (getProperty(state, slicePath) === undefined) {
+              state = setProperty(state, slicePath, module.initialState);
+            }
+
+            // Update current state
+            currentState.next(state);
+
+            // Dispatch system action
+            sysActions.moduleLoaded(module);
+
+            // Signal that module is loaded (this should be the last step)
+            module.loaded$.next();
+
+            console.log(`Module ${module.slice} loaded successfully`);
+
+          } catch (error) {
+            console.error(`Failed to load module ${module.slice}:`, error);
+
+            // Clean up on failure
+            const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
+            if (moduleIndex !== -1) {
+              modules.splice(moduleIndex, 1);
+            }
+
+            // Signal error on loaded$ subject
+            module.loaded$.error(error);
+
+            throw error; // Re-throw to let caller handle
+          }
+        }
+    } finally {
+        lock.release(); // Release lock regardless of success or failure
       }
-    });
   };
 
   /**
@@ -346,19 +406,21 @@ export function createStore<T = any>(
    * It ensures that dependencies are injected, the global state is updated,
    * and a `moduleLoaded` action is dispatched once the module is successfully loaded.
    */
-  const loadModule = (module: FeatureModule): Promise<void> => {
-    (module as any).store = store;
-    return queue.enqueue(async () => {
-      if (modules.some((m) => m.slice === module.slice)) {
-        return Promise.resolve(); // Already loaded
-      }
+  const loadModule = async (module: FeatureModule): Promise<void> => {
+    module.configure(store);
 
-      try {
+    try {
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+
+        if (modules.some((m) => m.slice === module.slice)) {
+          return Promise.resolve(); // Already loaded
+        }
+
         // Register the module
         modules = [...modules, module];
-      
-        module.configure(store);
+
+
+        // module.configure(store);
         registerActionHandlers(module);
 
         // Inject dependencies
@@ -373,12 +435,9 @@ export function createStore<T = any>(
 
         sysActions.moduleLoaded(module);
         module.loaded$.next();
-        module.loaded$.complete();
-
-      } finally {
+    } finally {
         lock.release(); // Release lock regardless of success or failure
       }
-    })
   };
 
   /**
@@ -386,11 +445,13 @@ export function createStore<T = any>(
    * It removes the module, ejects its dependencies, and updates the global state.
    * A `moduleUnloaded` action is dispatched after the module is unloaded.
    */
-  const unloadModule = (
+  const unloadModule = async (
     module: FeatureModule,
     clearState: boolean = false
   ): Promise<void> => {
-    return queue.enqueue(async () => {
+    try {
+        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
+
       // Find the module index in the modules array
       const moduleIndex = modules.findIndex((m) => m.slice === module.slice);
 
@@ -400,8 +461,6 @@ export function createStore<T = any>(
         return Promise.resolve(); // Module not found, nothing to unload
       }
 
-      try {
-        await lock.acquire(); //Potentially we can check here for an idle of the pipeline
 
         module.destroyed$.next();
         module.destroyed$.complete();
@@ -424,7 +483,6 @@ export function createStore<T = any>(
       } finally {
         lock.release(); // Release lock regardless of success or failure
       }
-    });
   };
 
   /**
