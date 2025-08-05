@@ -27,7 +27,7 @@ import {
   filter,
 } from '@actioncrew/streamix';
 import { createModule } from './module';
-import { AsyncReducer, Reducer } from '@actioncrew/actionstack';
+import { AsyncReducer, Reducer } from './types';
 
 /**
  * Class representing configuration options for a store.
