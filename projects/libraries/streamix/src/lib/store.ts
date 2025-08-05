@@ -21,10 +21,8 @@ import {
   createBehaviorSubject,
   createQueue,
   createSubject,
-  firstValueFrom,
   Stream,
   Subscription,
-  filter,
 } from '@actioncrew/streamix';
 import { createModule } from './module';
 import { AsyncReducer, Reducer } from './types';
