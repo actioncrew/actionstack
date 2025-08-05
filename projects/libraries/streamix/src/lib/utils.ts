@@ -280,9 +280,9 @@ function applyChange(initialState: any, path: string[], value: any, objTree: Tre
  * @returns A store enhancer that applies the middleware to the store.
  */
 const applyMiddleware = (...middlewares: Function[]): StoreEnhancer => {
-  const enhancer: StoreEnhancer = (next) => (mainModule, settings, enhancer) => {
+  const enhancer: StoreEnhancer = (next) => (settings, enhancer) => {
     // Create the store with the original reducer and enhancer
-    const store = next(mainModule, settings, enhancer);
+    const store = next(settings, enhancer);
 
     // Define starter and middleware APIs
     const middlewareAPI = store.middlewareAPI;

@@ -1,7 +1,6 @@
 import {
   Action,
   action,
-  MainModule,
   Instruction,
   Store,
   StoreSettings,
@@ -132,8 +131,8 @@ export const sagasModule = createModule({
  * @returns {Function} - A function that takes the main module, settings, and an optional enhancer,
  * and returns an enhanced store with saga management capabilities.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): SagaStore => {
-  const store = createStore(module, settings, enhancer) as SagaStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (settings?: StoreSettings, enhancer?: StoreEnhancer): SagaStore => {
+  const store = createStore(settings, enhancer) as SagaStore;
 
   /**
    * Spawns the given sagas.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.7
+
+Added support for reducer registration via addReducer, removed the MainModule type definition to simplify the API, and adjusted createStore to eliminate the need for explicitly passing mainModule.reducers.
+
 ## 3.0.6
 
 Introduced populate() method to initialize and register multiple static modules at once.

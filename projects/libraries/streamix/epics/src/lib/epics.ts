@@ -4,7 +4,6 @@ import {
   createInstruction,
   ExecutionStack,
   isAction,
-  MainModule,
   Store,
   StoreSettings,
   StoreEnhancer,
@@ -279,8 +278,8 @@ export const epicsModule = createModule({
  * @returns {Function} - A function that takes the main module, optional settings, and an optional enhancer,
  * and returns an enhanced store with epic capabilities.
  */
-export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
-  const store = createStore(module, settings, enhancer) as EpicStore;
+export const storeEnhancer: StoreEnhancer = (createStore) => (settings?: StoreSettings, enhancer?: StoreEnhancer): EpicStore => {
+  const store = createStore(settings, enhancer) as EpicStore;
 
   store.spawn = <U>(...epics: Epic[]): Stream<U> => {
     const effects$ = createStream<U>('spawn', async function* () {

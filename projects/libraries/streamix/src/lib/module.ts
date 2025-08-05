@@ -1,21 +1,20 @@
+import { action } from '@actioncrew/actionstack';
 import {
   createReplaySubject,
   createSubject,
   defer,
   first,
   switchMap,
-  takeUntil,
-  Stream,
+  takeUntil
 } from '@actioncrew/streamix';
 import {
   ActionCreator,
   FeatureModule,
-  featureSelector,
   Store,
   Streams,
 } from '../lib';
 
-export function createModule<
+function createModule<
   State,
   ActionTypes extends string,
   Actions extends Record<string, ActionCreator<ActionTypes> | ((...args: any[]) => any)>,
@@ -36,83 +35,75 @@ export function createModule<
     return pathParts.reduce((s, key) => (s ? s[key] : undefined), rootState);
   }
 
-  // State management
   let loaded = false;
-  let store: Store<State> | undefined;
+  let configured = false;
   const loaded$ = createReplaySubject<void>();
   const destroyed$ = createSubject<void>();
 
-  // Process actions once at creation time
-  const processedActions = processActions(config.actions ?? {}, slice);
+  const processedActions = processActions(config.actions ?? {}, slice, config.dependencies);
   const processedSelectors = processSelectors(config.selectors ?? {}, selectSlice);
+  let store: Store<State> | undefined;
 
-  // Create module interface first (without circular references)
-  const moduleInterface = {
+  const module = {
     slice,
     initialState: config.initialState,
+    actions: {} as Actions, // Will be populated in configure()
+    selectors: processedSelectors,
     dependencies: config.dependencies,
+    data$: {} as Streams<Selectors>,
     loaded$,
     destroyed$,
-    // These will be populated during init
-    actions: {} as Actions,
-    selectors: processedSelectors,
-    data$: {} as Streams<Selectors>,
-  };
-
-  // Add methods that don't reference the module itself
-  const moduleWithMethods = {
-    ...moduleInterface,
 
     init(storeInstance: Store<State>) {
-      if (loaded) {
-        return moduleWithMethods; // Already initialized
+      // Prevent double initialization
+      if (!loaded) {
+        loaded = true;
+        // Configure first, then load
+        this.configure(storeInstance);
+        storeInstance.loadModule(this);
+        // Signal that module is loaded AFTER everything is set up
+        loaded$.next();
+        loaded$.complete();
       }
+      return this;
+    },
 
-      loaded = true;
+    configure(storeInstance: Store<State>) {
+      if (configured) return this;
+      configured = true;
       store = storeInstance;
 
-      // Load the module into the store
-      store.loadModule(moduleWithMethods);
-
-      // Initialize data streams
-      initializeDataStreams(moduleWithMethods, store, loaded$, destroyed$);
+      // Initialize data$ streams first
+      initializeDataStreams(this, store, processedSelectors, loaded$, destroyed$);
 
       // Initialize dispatchable actions
-      initializeDispatchableActions(moduleWithMethods, processedActions, store, slice);
+      initializeActions(this, processedActions, store, slice);
 
-      // Signal that module is loaded
-      loaded$.next();
-      loaded$.complete();
-
-      return moduleWithMethods;
+      return this;
     },
 
     destroy(clearState: boolean = true) {
-      if (!loaded) {
-        return moduleWithMethods; // Already destroyed
-      }
-
-      loaded = false;
-      destroyed$.next();
-      destroyed$.complete();
-
-      if (store) {
-        store.unloadModule(moduleWithMethods, clearState);
+      if (loaded) {
+        loaded = false;
+        configured = false;
+        destroyed$.next();
+        destroyed$.complete();
+        store?.unloadModule(this, clearState);
         store = undefined;
       }
-
-      return moduleWithMethods;
-    },
+      return this;
+    }
   };
 
-  return moduleWithMethods as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
+  return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
 // Helper functions to break down the logic
 
 function processActions<Actions extends Record<string, any>>(
   actions: Actions,
-  slice: string
+  slice: string,
+  dependencies: Record<string, any> = {}
 ): Actions {
   const processed = {} as Actions;
 
@@ -140,7 +131,7 @@ function processActions<Actions extends Record<string, any>>(
           async (dispatch: any, getState: any, deps: any) => {
             return thunk(dispatch, getState, {
               ...deps,
-              // Note: dependencies should be passed from module context
+              ...dependencies, // Include module dependencies
             });
           },
           { type: `${slice}/${thunk.type}` }
@@ -181,49 +172,46 @@ function initializeDataStreams<
 >(
   moduleInstance: any,
   store: Store<State>,
-  loaded$: Stream<void>,
-  destroyed$: Stream<void>
+  processedSelectors: Selectors,
+  loaded$: any,
+  destroyed$: any
 ) {
-  // Create lazy stream factories
+  // Create immediate stream factories (not deferred)
   const streamFactories = {} as any;
 
-  for (const key in moduleInstance.selectors) {
-    const selector = moduleInstance.selectors[key];
+  for (const key in processedSelectors) {
+    const selector = processedSelectors[key];
     streamFactories[key] = (...args: any[]) => {
       const selectorFn = selector(...args);
       return store.select(selectorFn);
     };
   }
 
-  // Create deferred streams that wait for module to be loaded
+  // Create the data$ functions that return deferred streams
   for (const key in streamFactories) {
-    moduleInstance.data$[key] = (...args: any[]) =>
-      defer(() =>
+    const factory = streamFactories[key];
+    (moduleInstance.data$ as any)[key] = (...args: any[]) => {
+      return defer(() =>
         loaded$.pipe(
-          first(),
-          switchMap(() => {
-            const factory = streamFactories[key];
-            return factory(...args);
-          }),
-          takeUntil(destroyed$)
+          first(), // wait until load completes
+          switchMap(() => factory(...args)),
+          takeUntil(destroyed$) // stop emitting if module is destroyed
         )
       );
+    };
   }
 }
 
-function initializeDispatchableActions<
-  State,
-  Actions extends Record<string, any>
->(
+function initializeActions<Actions extends Record<string, any>>(
   moduleInstance: any,
   processedActions: Actions,
-  store: Store<State>,
+  store: Store<any>,
   slice: string
 ) {
   for (const key in processedActions) {
     const actionCreator = processedActions[key];
 
-    moduleInstance.actions[key] = (...args: any[]) => {
+    (moduleInstance.actions as any)[key] = (...args: any[]) => {
       if (!store) {
         throw new Error(
           `Module "${slice}" actions cannot be dispatched before registration. ` +
@@ -236,9 +224,9 @@ function initializeDispatchableActions<
       return actionToDispatch;
     };
 
-    // Copy properties from original action creator
+    // Preserve metadata from original function (e.g. type)
     Object.defineProperties(
-      moduleInstance.actions[key],
+      (moduleInstance.actions as any)[key],
       Object.getOwnPropertyDescriptors(actionCreator)
     );
   }
@@ -247,3 +235,5 @@ function initializeDispatchableActions<
 function isActionCreator(obj: any): obj is ActionCreator {
   return obj && typeof obj.type === 'string' && obj?.isThunk !== true;
 }
+
+export { createModule };

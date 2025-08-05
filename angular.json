@@ -252,32 +252,32 @@
         }
       }
     },
-    "app3": {
+    "app": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
           "style": "scss"
         }
       },
-      "root": "projects/apps/app3",
-      "sourceRoot": "projects/apps/app3/src",
+      "root": "projects/apps/app",
+      "sourceRoot": "projects/apps/app/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/app3",
-            "index": "projects/apps/app3/src/index.html",
-            "main": "projects/apps/app3/src/main.ts",
-            "polyfills": "projects/apps/app3/src/polyfills.ts",
-            "tsConfig": "projects/apps/app3/tsconfig.app.json",
+            "outputPath": "dist/app",
+            "index": "projects/apps/app/src/index.html",
+            "main": "projects/apps/app/src/main.ts",
+            "polyfills": "projects/apps/app/src/polyfills.ts",
+            "tsConfig": "projects/apps/app/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/apps/app3/src/favicon.ico",
-              "projects/apps/app3/src/assets"
+              "projects/apps/app/src/favicon.ico",
+              "projects/apps/app/src/assets"
             ],
             "styles": [
-              "projects/apps/app3/src/styles.scss"
+              "projects/apps/app/src/styles.scss"
             ],
             "scripts": []
           },
@@ -312,10 +312,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "app3:build:production"
+              "browserTarget": "app:build:production"
             },
             "development": {
-              "browserTarget": "app3:build:development"
+              "browserTarget": "app:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -323,23 +323,23 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "app3:build"
+            "browserTarget": "app:build"
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/apps/app3/src/test.ts",
-            "polyfills": "projects/apps/app3/src/polyfills.ts",
-            "tsConfig": "projects/apps/app3/tsconfig.spec.json",
-            "karmaConfig": "projects/apps/app3/karma.conf.js",
+            "main": "projects/apps/app/src/test.ts",
+            "polyfills": "projects/apps/app/src/polyfills.ts",
+            "tsConfig": "projects/apps/app/tsconfig.spec.json",
+            "karmaConfig": "projects/apps/app/karma.conf.js",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/apps/app3/src/favicon.ico",
-              "projects/apps/app3/src/assets"
+              "projects/apps/app/src/favicon.ico",
+              "projects/apps/app/src/assets"
             ],
             "styles": [
-              "projects/apps/app3/src/styles.scss"
+              "projects/apps/app/src/styles.scss"
             ],
             "scripts": []
           }

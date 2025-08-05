@@ -1,4 +1,4 @@
-import { actionHandlers, createAction } from './actions';
+import { actionHandlers, action } from './actions';
 import { applyMiddleware, combineEnhancers, getProperty, setProperty } from './utils';
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
@@ -7,9 +7,7 @@ import { createTracker } from './tracker';
 import {
   Action,
   AsyncAction,
-  defaultMainModule,
   FeatureModule,
-  MainModule,
   Middleware,
   MiddlewareAPI,
   StoreEnhancer,
@@ -22,6 +20,7 @@ import {
   Subscription,
 } from '@actioncrew/streamix';
 import { createModule } from './module';
+import { AsyncReducer, Reducer } from '@actioncrew/actionstack';
 
 /**
  * Class representing configuration options for a store.
@@ -62,6 +61,7 @@ export type Store<T = any> = {
   populate: (...modules: FeatureModule[]) => Promise<void>;
   loadModule: (module: FeatureModule) => Promise<void>;
   unloadModule: (module: FeatureModule, clearState?: boolean) => Promise<void>;
+  addReducer: (reducer: (state: T, action: Action) => T | Promise<T>) => void;
   middlewareAPI: MiddlewareAPI;
   starter: Middleware;
 };
@@ -80,22 +80,22 @@ const systemModule = createModule({
     _modules: []
   } as SystemState,
   actions: {
-    initializeState: createAction(
+    initializeState: action(
       'INITIALIZE_STATE',
       (state: SystemState) => ({ _modules: [], _initialized: false, _ready: false })
     ),
 
-    updateState: createAction(
+    updateState: action(
       'UPDATE_STATE',
       (state: SystemState, payload: Partial<SystemState>) => ({ ...state, ...payload })
     ),
 
-    storeInitialized: createAction(
+    storeInitialized: action(
       'STORE_INITIALIZED',
       (state: SystemState) => ({ ...state, _initialized: true, _ready: true })
     ),
 
-    moduleLoaded: createAction(
+    moduleLoaded: action(
       'MODULE_LOADED',
       (state: SystemState, payload: { slice: string }) => ({
         ...state,
@@ -103,7 +103,7 @@ const systemModule = createModule({
       }),
     ),
 
-    moduleUnloaded: createAction(
+    moduleUnloaded: action(
       'MODULE_UNLOADED',
       (state: SystemState, payload: { slice: string }) => ({
         ...state,
@@ -132,14 +132,12 @@ export function isSystemActionType(type: string): boolean {
  * The `storeSettings` parameter defaults to `defaultStoreSettings` if not provided.
  */
 export function createStore<T = any>(
-  mainModule: MainModule,
   storeSettingsOrEnhancer?: StoreSettings | StoreEnhancer,
   enhancer?: StoreEnhancer
 ): Store<T> {
-  let main = { ...defaultMainModule, ...mainModule };
   let modules: FeatureModule[] = [];
-
   let sysActions = systemModule.actions;
+  let reducers: (Reducer | AsyncReducer)[] = [];
 
   // Determine if the second argument is storeSettings or enhancer
   let settings: StoreSettings;
@@ -184,10 +182,10 @@ export function createStore<T = any>(
       newState = setProperty(newState, slicePath, updatedSliceState);
     }
 
-    if (settings.enableGlobalReducers && mainModule.reducers?.length) {
-      for (let i = mainModule.reducers.length - 1; i >= 0; i--) {
+    if (reducers?.length) {
+      for (let i = reducers.length - 1; i >= 0; i--) {
         try {
-          const reducer = mainModule.reducers[i];
+          const reducer = reducers[i];
           const maybeUpdatedState = await reducer(newState, action);
           if (maybeUpdatedState !== undefined) {
             newState = maybeUpdatedState;
@@ -338,7 +336,7 @@ export function createStore<T = any>(
   const populate = (...modules: FeatureModule[]): Promise<void> => {
     return queue.enqueue(async () => {
       for (const module of modules) {
-        module.init(store);
+        store.loadModule(module);
       }
     });
   };
@@ -359,7 +357,8 @@ export function createStore<T = any>(
         await lock.acquire(); //Potentially we can check here for an idle of the pipeline
         // Register the module
         modules = [...modules, module];
-
+      
+        module.configure(store);
         registerActionHandlers(module);
 
         // Inject dependencies
@@ -560,6 +559,21 @@ export function createStore<T = any>(
   };
 
   /**
+   * Registers a global reducer that runs on every dispatched action.
+   */
+  const addReducer = (
+    reducer: (state: T, action: Action) => T | Promise<T>
+  ) => {
+    return queue.enqueue(async () => {
+      if (!settings.enableGlobalReducers) {
+        console.warn('Global reducers are disabled; this reducer will not be used unless "enableGlobalReducers" is true.');
+        return;
+      }
+      reducers.push(reducer);
+    });
+  };
+
+  /**
    * Creates the middleware API object for use in the middleware pipeline.
    */
   const middlewareAPI = {
@@ -580,6 +594,7 @@ export function createStore<T = any>(
     loadModule,
     unloadModule,
     middlewareAPI,
+    addReducer
   } as Store<any>;
 
   /**
@@ -618,7 +633,7 @@ export function createStore<T = any>(
     enhancer = combineEnhancers(applyMiddleware());
   }
 
-  store = enhancer(() => store)(main, settings);
+  store = enhancer(() => store)(settings);
   let originalDispatch = store.dispatch;
   store.dispatch = (action) => queue.enqueue(() => originalDispatch(action));
   initializeStore(store);

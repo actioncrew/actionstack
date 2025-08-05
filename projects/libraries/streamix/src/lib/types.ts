@@ -227,7 +227,6 @@ export type SelectorFunction<S = any, R = any> = (state: S, props?: any) => Prom
  */
 export type ProjectionFunction<R = any, P = any> = (results: any[], props?: P) => R;
 
-
 /**
  * Type alias representing a recursive tree structure.
  *
@@ -302,41 +301,19 @@ export interface FeatureModule<
   readonly selectors: Selectors;
   readonly [key: string]: any;
   init: (store: Store<any>) => FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
+  configure: (store: Store<State>) => FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
   destroy: (clearState?: boolean) => FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
-
-/**
- * Interface defining the structure of the main application module.
- *
- * The main application module serves as the entry point for configuring the Actionstack store.
- * This interface defines the expected properties for the main application module.
- *
- * @property metaReducers?: MetaReducer[] (optional) - An array of meta-reducer functions to be applied to the reducers.
- *                  - Meta-reducers are higher-order functions that can wrap and potentially modify reducers,
- *                    adding additional logic or middleware functionality.
- */
-export type MainModule = {
-  reducers?: (Reducer | AsyncReducer)[];
-}
-
-/**
- * Default configuration for the main module.
- * Includes a slice name, a basic reducer, an empty list of metaReducers, and no dependencies.
- */
-export const defaultMainModule = {
-  reducers: []
-};
 
 /**
  * Type definition for a function that creates a store instance.
  *
  * @template T - The type of the state managed by the store.
- * @param {MainModule} module - The main module configuration, defining the initial state, reducers, middleware, and other store properties.
  * @param {StoreSettings} [settings] - Optional settings for the store, such as dispatch behavior or feature toggles.
  * @param {StoreEnhancer} [enhancer] - Optional enhancer function to extend or modify the store's functionality.
  * @returns {Store<T>} The created store instance with methods for managing state and actions.
  */
-export type StoreCreator<T = any> = (module: MainModule, settings?: StoreSettings, enhancer?: StoreEnhancer) => Store<T>;
+export type StoreCreator<T = any> = (settings?: StoreSettings, enhancer?: StoreEnhancer) => Store<T>;
 
 /**
  * Type alias for a store enhancer function.
