@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.8
+
+ActionStack V3 replaces epics and sagas with callable thunks — simpler async handlers triggered directly or by actions. This reduces middleware complexity and boilerplate while improving type safety and modular side-effect management.
+
 ## 3.0.7
 
 Removed MainModule type — no longer required by createStore. Added addReducer method to support dynamic reducer registration. module.init(store) and store.loadModule(module) are equivalents. Replaced middlewareAPI property with a getter to defer access and ensure correct store context.
