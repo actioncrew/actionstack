@@ -1,10 +1,9 @@
-import { epicsModule } from '@actioncrew/actionstack/epics';
-import { Component, OnDestroy, OnInit } from '@angular/core';
 
+import { Component, OnDestroy, OnInit } from '@angular/core';
 
 import { Hero } from '../hero';
 import { HeroService } from './../hero.service';
-import { getHeroesRequest, loadHeroes, selectHeroes, heroesModule } from './heroes.slice';
+import { heroesModule } from './heroes.slice';
 import { store } from '../app.module';
 import { Subscription } from '@actioncrew/streamix';
 
@@ -19,7 +18,6 @@ export class HeroesComponent implements OnInit, OnDestroy {
 
 
   constructor(private heroService: HeroService) {
-    epicsModule.init(store);
     heroesModule.init(store);
   }
 
@@ -37,7 +35,6 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    epicsModule.destroy();
     heroesModule.destroy();
   }
 }
