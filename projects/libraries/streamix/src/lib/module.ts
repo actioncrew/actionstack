@@ -9,6 +9,7 @@ import {
 import {
   ActionCreator,
   FeatureModule,
+  isAction,
   Store,
   Streams,
 } from '../lib';
@@ -114,18 +115,34 @@ function processActions<Actions extends Record<string, any>>(
 
       (processed as any)[name] = namespacedAction;
     } else {
-      const thunkWithType = (...args: any[]) => {
-        const thunk = action(...args);
-        return Object.assign(
-          async (dispatch: any, getState: any, deps: any) => {
-            return thunk(dispatch, getState, {
-              ...deps,
-              ...dependencies, // Include module dependencies
-            });
-          },
-          { type: `${slice}/${thunk.type}` }
-        );
-      };
+      let thunkWithType = (...args: any[]) => {
+      const thunk = action(...args);
+      return Object.assign(
+        async (dispatch: any, getState: any, deps: any) => {
+          return thunk(dispatch, getState, {
+            ...deps,
+            ...dependencies,
+          });
+        },
+        {
+          type: `${slice}/${name}`,
+          isThunk: true,
+          toString: () => `${slice}/${name}`,
+          match: (action: any) => isAction(action) && action.type === `${slice}/${name}`
+        }
+      );
+    };
+
+    thunkWithType = Object.assign(thunkWithType, {
+      type: `${slice}/${action.type}`,
+      isThunk: true,
+      toString: () => `${slice}/${action.type}`,
+      match: (action: any) => isAction(action) && action.type === `${slice}/${name}`,
+      triggers: action.triggers?.map((t: string) =>
+        t.includes('/') ? t : `${slice}/${t}`
+      )
+    });
+
       (processed as any)[name] = thunkWithType;
     }
   }

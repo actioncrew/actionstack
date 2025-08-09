@@ -8,10 +8,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MessagesModule } from './messages/messages.module';
 import { applyMiddleware } from '@actioncrew/actionstack';
-import { epics } from '@actioncrew/actionstack/epics';
 
 
-export const store = createStore({ exclusiveActionProcessing: true }, applyMiddleware(logger, epics));
+export const store = createStore({ exclusiveActionProcessing: true }, applyMiddleware(logger));
 
 
 @NgModule({

@@ -1,3 +1,4 @@
+import { registeredThunks } from './actions';
 import { createLock, SimpleLock } from './lock';
 import { createInstruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
@@ -37,23 +38,22 @@ export function createActionHandler(config: MiddlewareConfig) {
    * @param {SimpleLock} lock - The lock instance to manage concurrency for this action.
    * @returns {Promise<void> | void} - A promise if the action is asynchronous, otherwise void.
    */
-  const handleAction = async (action: Action | AsyncAction, next: Function, lock: SimpleLock): Promise<void> => {
+  const handleAction = async (
+    action: Action | AsyncAction,
+    next: Function,
+    lock: SimpleLock
+  ): Promise<void> => {
     await lock.acquire();
-
     const op = createInstruction.action(action);
     stack.add(op);
-
     try {
       if (typeof action === 'function') {
         const innerLock = createLock();
-
         // Process async actions asynchronously and track them
         await (action as AsyncAction)(
-          // This function is the `dispatch` argument being passed *into* the AsyncAction.
-          // It must be able to accept both Action and AsyncAction.
+          // dispatch function passed into thunk
           async (dispatchedAction: Action | AsyncAction) => {
-            // Here, `handleAction` itself is being used as the internal dispatch mechanism.
-            // Make sure `handleAction` itself can accept both types too (which it already does).
+            // recursively handle dispatched actions with its own lock
             await handleAction(dispatchedAction, next, innerLock);
           },
           getState,
@@ -62,6 +62,27 @@ export function createActionHandler(config: MiddlewareConfig) {
       } else {
         // Process regular synchronous actions
         await next(action);
+        // After passing action, check registered thunks for triggers
+        for (const thunk of registeredThunks.values()) {
+          const triggers = (thunk as any).triggers;
+          if (!Array.isArray(triggers) || triggers.length === 0) continue;
+          const matches = triggers.some((t: any) => {
+            if (typeof t === 'string') return t === action.type;
+            if (typeof t === 'function') {
+              try {
+                return Boolean(t(action));
+              } catch {
+                return false;
+              }
+            }
+            return false;
+          });
+
+          if (matches) {
+            const innerLock = createLock();
+            await handleAction(thunk, next, innerLock);
+          }
+        }
       }
     } finally {
       stack.remove(op);

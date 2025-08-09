@@ -1,7 +1,7 @@
 import { messagesModule } from './../messages/messages.slice';
-import { action, createModule, selector } from '@actioncrew/actionstack';
+import { action, createModule, createThunk, selector } from '@actioncrew/actionstack';
 import { ofType } from '@actioncrew/actionstack/epics';
-import { concatMap, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
+import { concatMap, firstValueFrom, from, Stream, take, withLatestFrom } from '@actioncrew/streamix';
 
 import { Hero } from '../hero';
 import { Action } from '@actioncrew/actionstack';
@@ -37,27 +37,22 @@ export const getHeroesSuccess = action(
   (heroes: Hero[]) => ({ heroes })
 );
 
-
-// --- Epic (side-effect logic)
-export const loadHeroes = (action$: Stream<Action<any>>, state$: Stream<any>, { heroService }: any): Stream<Action<any>> => {
-  return action$.pipe(
-    ofType(heroesModule.actions.getHeroesRequest.type),
-    withLatestFrom(state$!),
-    concatMap<Array<any>, Action<any>>(([action, state]) =>
-      heroService.getHeroes().pipe(
-        concatMap((heroes) => from([
-          heroesModule.actions.getHeroesSuccess(heroes as Hero[]),
-          messagesModule.actions.addMessage('HeroService: fetched heroes')  // Dispatch addMessage action
-        ]))
-      ) as Stream<Action<any>>
-    ),
-    take(2)
-  );
-};
-
-
 // --- Selectors
 export const selectHeroes = selector((state) => state.heroes);
+
+// --- Epic (side-effect logic)
+export const loadHeroes = createThunk(
+  "LOAD_HEROES",
+  () => async (dispatch, getState, { heroService }) => {
+    const heroes: Hero[] = await firstValueFrom(heroService.getHeroes());
+
+    heroesModule.actions.getHeroesSuccess(heroes);
+    messagesModule.actions.addMessage('HeroService: fetched heroes');
+  },
+  [
+    getHeroesRequest.type
+  ]
+);
 
 // --- Module export
 export const heroesModule = createModule({
@@ -66,6 +61,7 @@ export const heroesModule = createModule({
   actions: {
     getHeroesRequest,
     getHeroesSuccess,
+    loadHeroes
   },
   selectors: {
     selectHeroes,
@@ -74,3 +70,4 @@ export const heroesModule = createModule({
     heroService: new HeroService()
   }
 });
+

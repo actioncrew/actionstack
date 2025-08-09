@@ -78,6 +78,7 @@ export type ThunkCreator<T extends string = string, Thunk extends AsyncAction = 
   toString: () => T;
   match: (action: Action<any> | AsyncAction) => boolean;
   isThunk: boolean;
+  triggers?: string[]
 };
 
 /**

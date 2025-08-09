@@ -1,4 +1,4 @@
-import { actionHandlers, action } from './actions';
+import { actionHandlers, action, registeredThunks } from './actions';
 import {
   applyMiddleware,
   combineEnhancers,
@@ -343,6 +343,50 @@ export function createStore<T = any>(
   };
 
   /**
+   * Registers all thunks defined in a feature module into the global thunk registry.
+   *
+   * This allows the store's middleware to automatically invoke thunks
+   * when their `triggers` match a dispatched action.
+   *
+   * If a thunk is already registered under the same type, a warning is logged and the
+   * existing thunk is overwritten.
+   *
+   * @param module - The feature module containing thunks to be registered.
+   */
+  const registerThunks = (module: FeatureModule) => {
+    Object.values(module.actions || {}).forEach((thunk: any) => {
+      if (thunk.isThunk && thunk.type) {
+        if (registeredThunks.has(thunk.type)) {
+          console.warn(
+            `Thunk "${thunk.type}" already registered - overwriting`
+          );
+          return;
+        }
+
+        registeredThunks.set(thunk.type, thunk);
+      }
+
+    });
+  };
+
+  /**
+   * Unregisters all thunks associated with a feature module.
+   *
+   * This removes the module's thunks from the internal registry,
+   * preventing them from being triggered automatically after
+   * the module is destroyed.
+   *
+   * @param module - The feature module whose thunks should be removed.
+   */
+  const unregisterThunks = (module: FeatureModule) => {
+    Object.values(module.actions || {}).forEach((thunk: any) => {
+      if (thunk.isThunk && thunk.type && registeredThunks.has(thunk.type)) {
+        registeredThunks.delete(thunk.type);
+      }
+    });
+  };
+
+  /**
    * Populates the store with an array of feature modules.
    * This method ensures modules are initialized and loaded into the store.
    */
@@ -361,11 +405,9 @@ export function createStore<T = any>(
           // Register the module first
           modules = [...modules, module];
 
-          // Configure the module (this sets up data$ streams and actions)
-          module.configure(store);
-
           // Register action handlers
           registerActionHandlers(module);
+          registerThunks(module);
 
           // Inject dependencies
           injectDependencies();
@@ -423,8 +465,8 @@ export function createStore<T = any>(
       // Register the module
       modules = [...modules, module];
 
-      // module.configure(store);
       registerActionHandlers(module);
+      registerThunks(module);
 
       // Inject dependencies
       injectDependencies();
@@ -469,6 +511,7 @@ export function createStore<T = any>(
       modules.splice(moduleIndex, 1);
 
       unregisterActionHandlers(module);
+      unregisterThunks(module);
 
       // Eject dependencies
       ejectDependencies(module);

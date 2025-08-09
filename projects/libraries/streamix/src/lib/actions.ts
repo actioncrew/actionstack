@@ -4,6 +4,7 @@ export { createAction as action, createThunk as thunk };
 
 export const actionHandlers = new Map<string, ActionHandler>();
 export const actionCreators = new Map<string, (...args: any[]) => Action>();
+export const registeredThunks = new Map<string, ThunkCreator<any, any, any>>();
 
 /**
  * Creates a synchronous action creator function.
@@ -62,9 +63,30 @@ export function createAction<TType extends string, TArgs extends readonly any[] 
 /**
  * Creates an asynchronous thunk action creator function.
  *
- * @param type The action type string for the thunk.
- * @param thunkBodyCreator Function returning the thunk body (AsyncAction).
- * @returns A thunk action creator function.
+ * A thunk is a function that can perform asynchronous logic and dispatch
+ * multiple actions before and/or after its asynchronous operations complete.
+ *
+ * This version also supports "triggers" — action types or matcher functions
+ * that, when matched by any dispatched action, will cause this thunk to be
+ * executed automatically.
+ *
+ * @template T - The string literal type of the thunk's action type.
+ * @template ThunkBody - The type of the thunk function (AsyncAction).
+ * @template Args - The argument tuple type accepted by the thunk creator.
+ *
+ * @param type - The action type string for the thunk (used for matching and debugging).
+ * @param thunkBodyCreator - A factory function that receives the thunk's arguments
+ *   and returns the actual thunk body function to execute.
+ * @param triggers - Optional list of trigger definitions. Each trigger can be:
+ *   - a string action type to match exactly, or
+ *   - a matcher function that receives the dispatched action and returns `true` if the thunk should run.
+ *
+ * @returns A thunk creator function. Calling this function with arguments will
+ *   return a thunk function with attached metadata:
+ *   - `type`: the action type string
+ *   - `match(action)`: checks if the given action matches this thunk's type
+ *   - `isThunk`: `true` for identification in middleware
+ *   - `triggers`: (optional) the list of trigger definitions
  */
 export function createThunk<
   T extends string = string,
@@ -72,7 +94,8 @@ export function createThunk<
   Args extends any[] = any[]
 >(
   type: T,
-  thunkBodyCreator: (...args: Args) => ThunkBody
+  thunkBodyCreator: (...args: Args) => ThunkBody,
+  triggers?: Array<string | ((action: any) => boolean)>
 ): ThunkCreator<T, ThunkBody, Args> {
   const thunkCreator: ThunkCreator<T, ThunkBody, Args> = ((...args: Args) => {
     const actualThunk: ThunkBody = ((dispatch, getState, dependencies) => {
@@ -98,7 +121,11 @@ export function createThunk<
   thunkCreator.match = (action: any) => isAction(action) && action.type === type;
   thunkCreator.isThunk = true;
 
-  return thunkCreator;
+  if (triggers && triggers.length) {
+    (thunkCreator as any).triggers = triggers;
+  }
+
+  return thunkCreator as any;
 }
 
 /**

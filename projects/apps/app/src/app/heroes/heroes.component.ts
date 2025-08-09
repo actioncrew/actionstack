@@ -24,7 +24,6 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
-    epicsModule.actions.run(loadHeroes);
 
     heroesModule.data$.selectHeroes().subscribe(value => {
       this.heroes = value;
@@ -38,7 +37,6 @@ export class HeroesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    epicsModule.actions.stop(loadHeroes);
     epicsModule.destroy();
     heroesModule.destroy();
   }
