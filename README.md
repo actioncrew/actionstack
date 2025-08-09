@@ -152,7 +152,7 @@ todoModule.data$.selectActiveTodos().subscribe(activeTodos => {
 
 ### Static Module Loading
 ```typescript
-let store = createStore(mainModule);
+let store = createStore();
 store.populate(authModule, uiModule, settingsModule);
 ```
 
