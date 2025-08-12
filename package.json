@@ -11,7 +11,7 @@
     "bundle": "dts-bundle-generator --config bundle.config.cjs && npm run minify"
   },
   "dependencies": {
-    "@actioncrew/streamix": "^2.0.16",
+    "@actioncrew/streamix": "^2.0.15",
     "@angular/animations": "^16.2.12",
     "@angular/common": "^16.2.12",
     "@angular/compiler": "^16.2.12",
