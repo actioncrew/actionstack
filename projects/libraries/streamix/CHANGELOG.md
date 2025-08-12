@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.0.9
+
+Introduced trackable(), a stream decorator which adds trackability to applied stream. Made the tracker property publicly accessible on the Store type, enabling usage of trackable() and other tracker utilities outside the store context
+
 ## 3.0.8
 
 ActionStack V3 replaces epics and sagas with callable thunks — simpler async handlers triggered directly or by actions. This reduces middleware complexity and boilerplate while improving type safety and modular side-effect management.

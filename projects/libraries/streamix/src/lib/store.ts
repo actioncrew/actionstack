@@ -8,7 +8,7 @@ import {
 import { createLock } from './lock';
 import { createExecutionStack } from './stack';
 import { starter } from './starter';
-import { createTracker } from './tracker';
+import { createTracker, Tracker } from './tracker';
 import {
   Action,
   AsyncAction,
@@ -26,6 +26,7 @@ import {
 } from '@actioncrew/streamix';
 import { createModule } from './module';
 import { AsyncReducer, Reducer } from './types';
+import { trackable } from './trackable';
 
 /**
  * Class representing configuration options for a store.
@@ -69,6 +70,7 @@ export type Store<T = any> = {
   addReducer: (reducer: (state: T, action: Action) => T | Promise<T>) => void;
   getMiddlewareAPI: () => MiddlewareAPI;
   starter: Middleware;
+  tracker: Tracker;
 };
 
 interface SystemState {
@@ -573,15 +575,12 @@ export function createStore<T = any>(
 
   /**
    * Selects and derives a value from the store's current state using the provided selector.
-   *
-   * The selector can return either a synchronous value or a Promise. If the result is `undefined`,
-   * the `defaultValue` (if provided) will be used instead. The returned stream emits updates
-   * whenever the selected value changes.
+   * The returned stream is automatically tracked for iteration completion.
    *
    * @template R The type of the derived value.
    * @param {(state: T) => R | Promise<R>} selector - A function that selects or derives a value from the current state.
    * @param {R} [defaultValue] - A fallback value to emit when the selected value is `undefined`.
-   * @returns {Stream<R>} A stream emitting selected (and optionally transformed) values.
+   * @returns {Stream<R>} A trackable stream emitting selected values.
    */
   const select = <R = any>(
     selector: (state: T) => R | Promise<R>,
@@ -591,19 +590,18 @@ export function createStore<T = any>(
     let subscription: Subscription | null = null;
     let subscriberCount = 0;
 
-    tracker?.track(subject);
+    // Make the subject trackable if tracker exists
+    const trackedSubject = tracker ? trackable(subject, tracker) : subject;
 
-    const originalSubscribe = subject.subscribe.bind(subject);
-    subject.subscribe = (...args: any[]) => {
+    const originalSubscribe = trackedSubject.subscribe.bind(trackedSubject);
+    trackedSubject.subscribe = (...args: any[]) => {
       if (subscriberCount === 0) {
         subscription = currentState.subscribe({
           next: async (state: T) => {
-            // Use `state` from emitted value
             if (state === undefined || state === null) {
               if (defaultValue !== undefined) {
-                subject.next(defaultValue);
+                trackedSubject.next(defaultValue);
               }
-              tracker?.setStatus(subject, true);
               return;
             }
 
@@ -611,36 +609,25 @@ export function createStore<T = any>(
               const result = selector(state);
 
               if (result instanceof Promise) {
-                result
-                  .then((value) => {
-                    const v = value === undefined ? defaultValue : value;
-                    if (v !== undefined) subject.next(v);
-                    tracker?.setStatus(subject, true);
-                  })
-                  .catch((err) => {
-                    tracker?.setStatus(subject, true);
-                    subject.error(err);
-                  });
+                const value = await result;
+                const v = value === undefined ? defaultValue : value;
+                if (v !== undefined) trackedSubject.next(v);
               } else {
                 const v = result === undefined ? defaultValue : result;
-                if (v !== undefined) subject.next(v);
-                tracker?.setStatus(subject, true);
+                if (v !== undefined) trackedSubject.next(v);
               }
             } catch (err) {
-              tracker?.setStatus(subject, true);
-              subject.error(err);
+              trackedSubject.error(err);
             }
           },
           error: (err) => {
-            tracker?.setStatus(subject, true);
-            subject.error(err);
-            subscription?.unsubscribe(); // Cleanup
+            trackedSubject.error(err);
+            subscription?.unsubscribe();
           },
           complete: () => {
-            tracker?.complete(subject);
-            subject.complete();
-            subscription?.unsubscribe(); // Cleanup
-          },
+            trackedSubject.complete();
+            subscription?.unsubscribe();
+          }
         });
       }
 
@@ -661,7 +648,7 @@ export function createStore<T = any>(
       return sub;
     };
 
-    return subject;
+    return trackedSubject;
   };
 
   /**
@@ -696,6 +683,7 @@ export function createStore<T = any>(
 
   let store = {
     starter,
+    tracker,
     dispatch,
     getState,
     select,
