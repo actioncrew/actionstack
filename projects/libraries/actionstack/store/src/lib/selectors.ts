@@ -76,8 +76,8 @@ export function createSelector<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
-        let sliceState$: Observable<U | undefined>;
+      const trackable = new Observable<U>((observer: Observer<U | undefined>) => {
+        let sliceState$: Observable<U>;
         if (featureSelector$ === "@global") {
           sliceState$ = state$ as any;
         } else {
@@ -144,10 +144,10 @@ export function createSelector<U = any, T = any>(
  * @returns A function that takes optional props and projection props as arguments and returns another function that takes the state observable as input and returns an observable of the projected data.
  */
 export function createSelectorAsync<U = any, T = any>(
-  featureSelector$: ((state: Observable<T>) => Observable<U | undefined>) | "@global",
+  featureSelector$: ((state: Observable<T>) => Observable<U>) | "@global",
   selectors: SelectorFunction | SelectorFunction[],
   projectionOrOptions?: ProjectionFunction
-): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U | undefined> {
+): (props?: any[] | any, projectionProps?: any) => (state$: Observable<T>, tracker?: Tracker) => Observable<U> {
 
   const isSelectorArray = Array.isArray(selectors);
   const projection = typeof projectionOrOptions === "function" ? projectionOrOptions : undefined;
@@ -165,14 +165,14 @@ export function createSelectorAsync<U = any, T = any>(
 
     let lastSliceState: any;
     return (state$: Observable<T>, tracker?: Tracker) => {
-      const trackable = new Observable<U | undefined>((observer: Observer<U | undefined>) => {
+      const trackable = new Observable<U>((observer: Observer<U>) => {
 
         let unsubscribed = false;
         let didCancel = false;
 
         const runSelectors = async (sliceState: any) => {
           if (sliceState === undefined) {
-            observer.next(undefined);
+            observer.next(undefined as any);
             return;
           }
 

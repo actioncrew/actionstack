@@ -11,7 +11,11 @@
     "bundle": "dts-bundle-generator --config bundle.config.cjs"
   },
   "dependencies": {
-    "@actioncrew/streamix": "^2.0.6",
+    "@actionstack/store": "2.1.0",
+    "@actionstack/angular": "2.1.0",
+    "@actionstack/epics": "2.1.0",
+    "@actionstack/sagas": "2.1.0",
+    "@actionstack/tools": "2.1.0",
     "@angular/animations": "^15.2.10",
     "@angular/common": "^15.2.10",
     "@angular/compiler": "^15.2.10",

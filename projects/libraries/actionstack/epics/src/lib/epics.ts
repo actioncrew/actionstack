@@ -181,14 +181,7 @@ export const createEpicsMiddleware = () => {
   let currentState = new Subject<any>();
   let subscriptions: Subscription[] = [];
 
-  return (api: {
-    dispatch: Function;
-    getState: () => any;
-    dependencies: any;
-    strategy: () => string;
-    lock: any;
-    stack: any;
-  }) => (next: any) => async (action: any) => {
+  return ({ dispatch, getState, dependencies, strategy, stack }: any) => (next: any) => async (action: any) => {
     // Proceed to the next action
     const result = await next(action);
 
@@ -217,11 +210,11 @@ export const createEpicsMiddleware = () => {
       let subscription: Subscription;
       // Create a new subscription
       subscription = currentAction.pipe(
-        () => (api.strategy() === "concurrent" ? merge : concat)(api.stack, ...activeEpics)(currentAction, currentState, api.dependencies())
+        () => (strategy === "concurrent" ? merge : concat)(stack, ...activeEpics)(currentAction, currentState, dependencies())
       ).subscribe({
         next: (childAction: any) => {
           if (isAction(childAction)) {
-            api.dispatch(childAction);
+            dispatch(childAction);
           }
         },
         error: (err: any) => {
@@ -243,7 +236,7 @@ export const createEpicsMiddleware = () => {
     }
 
     currentAction.next(action);
-    currentState.next(api.getState());
+    currentState.next(getState());
 
     return result;
   };
@@ -290,11 +283,11 @@ export const storeEnhancer: StoreEnhancer = (createStore) => (module: MainModule
   store.spawn = <U>(...epics: Epic[]): Observable<U> => {
     const effects$ = new Observable<U>((subscriber: Observer<U>) => {
       return () => {
-        store.dispatch(stop(...epics));
+        store.dispatch(stop(epics));
       }
     });
 
-    store.dispatch(run(...epics));
+    store.dispatch(run(epics));
     return effects$;
   };
 
