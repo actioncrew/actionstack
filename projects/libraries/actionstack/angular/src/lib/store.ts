@@ -83,7 +83,7 @@ export class Store<T = any> {
   }
 
   get middlewareAPI() {
-    return this.store.middlewareAPI;
+    return this.store.getMiddlewareAPI();
   }
 
   get starter() {
