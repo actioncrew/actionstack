@@ -1,46 +1,86 @@
 module.exports = {
   entries: [
     {
-      filePath: './dist/streamix/index.d.ts',
-      outFile: './dist/streamix/@actioncrew/index.d.ts',
-      output: {
-        inlineDeclareGlobals: false,
-        noBanner: true,
-      },
-    },
-    {
-      filePath: './dist/streamix/epics/index.d.ts',
-      outFile: './dist/streamix/epics/@actioncrew/index.d.ts',
+      filePath: './dist/actionstack/store/index.d.ts',
+      outFile: './dist/actionstack/store/@actioncrew/index.d.ts',
       output: {
         inlineDeclareGlobals: false,
         noBanner: true,
       },
       libraries: {
-        importedLibraries: ['@actioncrew/streamix', '@actioncrew/actionstack'],
+        importedLibraries: ['rxjs'],
         inlinedLibraries: [],
       }
     },
     {
-      filePath: './dist/streamix/sagas/index.d.ts',
-      outFile: './dist/streamix/sagas/@actioncrew/index.d.ts',
+      filePath: './dist/actionstack/angular/index.d.ts',
+      outFile: './dist/actionstack/angular/@actioncrew/index.d.ts',
       output: {
         inlineDeclareGlobals: false,
         noBanner: true,
       },
       libraries: {
-        importedLibraries: ['@actioncrew/streamix', '@actioncrew/actionstack', 'redux-saga'],
+        importedLibraries: ['@actionstack/store', 'rxjs', '@angular/core', '@angular/common'],
         inlinedLibraries: [],
       }
     },
     {
-      filePath: './dist/streamix/tools/index.d.ts',
-      outFile: './dist/streamix/tools/@actioncrew/index.d.ts',
+      filePath: './dist/actionstack/angular/epics/index.d.ts',
+      outFile: './dist/actionstack/angular/epics/@actioncrew/index.d.ts',
       output: {
         inlineDeclareGlobals: false,
         noBanner: true,
       },
       libraries: {
-        importedLibraries: ['@actioncrew/streamix', '@actioncrew/actionstack'],
+        importedLibraries: ['@actionstack/store', 'rxjs', '@angular/core', '@angular/common'],
+        inlinedLibraries: [],
+      }
+    },
+    {
+      filePath: './dist/actionstack/angular/sagas/index.d.ts',
+      outFile: './dist/actionstack/angular/sagas/@actioncrew/index.d.ts',
+      output: {
+        inlineDeclareGlobals: false,
+        noBanner: true,
+      },
+      libraries: {
+        importedLibraries: ['@actionstack/store', 'rxjs', 'redux-saga', '@angular/core', '@angular/common'],
+        inlinedLibraries: [],
+      }
+    },
+    {
+      filePath: './dist/actionstack/epics/index.d.ts',
+      outFile: './dist/actionstack/epics/@actioncrew/index.d.ts',
+      output: {
+        inlineDeclareGlobals: false,
+        noBanner: true,
+      },
+      libraries: {
+        importedLibraries: ['@actionstack/store', 'rxjs'],
+        inlinedLibraries: [],
+      }
+    },
+    {
+      filePath: './dist/actionstack/sagas/index.d.ts',
+      outFile: './dist/actionstack/sagas/@actioncrew/index.d.ts',
+      output: {
+        inlineDeclareGlobals: false,
+        noBanner: true,
+      },
+      libraries: {
+        importedLibraries: ['@actionstack/store', 'rxjs', 'redux-saga'],
+        inlinedLibraries: [],
+      }
+    },
+    {
+      filePath: './dist/actionstack/tools/index.d.ts',
+      outFile: './dist/actionstack/tools/@actioncrew/index.d.ts',
+      output: {
+        inlineDeclareGlobals: false,
+        noBanner: true,
+      },
+      libraries: {
+        importedLibraries: ['@actionstack/store', 'rxjs'],
         inlinedLibraries: [],
       }
     }
