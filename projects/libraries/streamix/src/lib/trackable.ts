@@ -1,4 +1,4 @@
-import { Tracker } from "./tracker";
+import { Tracker } from ".";
 import { createSubscription, Stream, createReceiver, Receiver, Subscription, StrictReceiver, CallbackReturnType } from "@actioncrew/streamix";
 
 /**
