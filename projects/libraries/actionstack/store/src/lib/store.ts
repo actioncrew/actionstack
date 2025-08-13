@@ -355,7 +355,7 @@ export function createStore<T = any>(
       newState = {...currentState.value, [slice]: { ...value }};
     } else if (Array.isArray(slice)) {
       // Apply change to the state based on the provided path and value
-      newState = applyChange(currentState.value, {path: slice, value}, {});
+      newState = applyChange(currentState.value, slice, value, {});
     } else {
       // Unsupported type of slice parameter
       console.warn("Unsupported type of slice parameter");
