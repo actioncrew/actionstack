@@ -1,6 +1,6 @@
 {
-  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../../dist/actionstack/sagas",
+  "$schema": "../../../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../../../dist/actionstack/sagas",
   "lib": {
     "entryFile": "src/public-api.ts"
   }

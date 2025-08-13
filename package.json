@@ -11,11 +11,6 @@
     "bundle": "dts-bundle-generator --config bundle.config.cjs"
   },
   "dependencies": {
-    "@actionstack/store": "2.1.0",
-    "@actionstack/angular": "2.1.0",
-    "@actionstack/epics": "2.1.0",
-    "@actionstack/sagas": "2.1.0",
-    "@actionstack/tools": "2.1.0",
     "@angular/animations": "^15.2.10",
     "@angular/common": "^15.2.10",
     "@angular/compiler": "^15.2.10",

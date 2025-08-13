@@ -82,7 +82,7 @@ export class Store<T = any> {
     return this.store.unloadModule(featureModule, clearState);
   }
 
-  get middlewareAPI() {
+  getMiddlewareAPI() {
     return this.store.getMiddlewareAPI();
   }
 
