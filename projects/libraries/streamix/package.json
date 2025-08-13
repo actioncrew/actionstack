@@ -5,7 +5,7 @@
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "@actioncrew/streamix": "^2.0.6"
+    "@actioncrew/streamix": "^2.0.20"
   },
   "license": "MIT",
   "repository": {

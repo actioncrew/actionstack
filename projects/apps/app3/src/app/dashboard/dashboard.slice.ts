@@ -3,7 +3,7 @@ import { action, featureSelector, selector } from '@actioncrew/actionstack';
 import { Hero } from '../hero';
 import { addMessage } from '../messages/messages.slice';
 import { firstValueFrom } from '@actioncrew/streamix';
-import { thunk } from '@actionstack/store';
+import { thunk } from '@actioncrew/actionstack';
 
 export const slice = "dashboard";
 
