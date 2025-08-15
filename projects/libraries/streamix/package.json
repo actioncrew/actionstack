@@ -8,6 +8,7 @@
     "@actioncrew/streamix": "^2.0.15"
   },
   "license": "MIT",
+  "homepage": "https://actioncrew.github.io/actionstack",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/actioncrew/actionstack.git"
