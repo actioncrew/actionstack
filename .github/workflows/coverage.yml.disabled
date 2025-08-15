@@ -1,0 +1,30 @@
+name: test & coverage
+
+on:
+  push:
+    branches: [v3]
+  pull_request:
+    branches: [v3]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run jasmine:coverage
+
+      - name: Upload coverage to Codecov
+        run: |
+          curl -s https://codecov.io/bash | bash -s -- -f coverage/lcov.info -r actioncrew/streamix
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

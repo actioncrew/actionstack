@@ -20,7 +20,7 @@
     <img src="https://img.shields.io/npm/dm/@actioncrew/actionstack.svg?style=flat-square" alt="NPM Downloads">
   </a>
   <a href="https://bundlephobia.com/package/@actioncrew/actionstack">
-    <img src="https://img.shields.io/bundlephobia/minzip/%40actioncrew%2Factionstack" alt="Bundle Size">
+    <img src="https://raw.githubusercontent.com/actioncrew/actionstack/v3/projects/libraries/streamix/bundle-size.svg" alt="Bundle Size">
   </a>
 </p>
 

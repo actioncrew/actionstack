@@ -11,7 +11,7 @@ import { Action, AsyncAction } from './types';
  * This object provides the necessary context and utilities to each middleware function.
  * It's the `config` parameter received by middleware functions like `exclusive` and `concurrent`.
  */
-interface MiddlewareConfig<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
+export interface MiddlewareConfig<TState = any, TDependencies extends Record<string, any> = Record<string, any>> {
   dispatch: (action: Action | AsyncAction) => Promise<void>;
   getState: () => TState;
   dependencies: () => TDependencies;

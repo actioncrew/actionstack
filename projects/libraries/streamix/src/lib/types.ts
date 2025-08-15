@@ -108,12 +108,12 @@ export type Reducer<T = any> = (state: T, action: Action) => T;
 /**
  * Type alias for an asynchronous reducer function.
  *
- * An asynchronous reducer is a function that takes the current state and an action object as arguments.
- * It returns a promise that resolves to the updated state after potentially performing asynchronous operations.
+ * An asynchronous reducer takes the current state and an action object and returns a Promise
+ * that resolves to the updated state.
  *
  * @param state - The current state of the application.
  * @param action - The action object being dispatched.
- * @returns Promise<any> - A promise that resolves to the updated state after asynchronous operations (if any).
+ * @returns A Promise resolving to the updated state.
  */
 export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
 
@@ -207,10 +207,9 @@ export type AnyFn = (...args: any[]) => any;
  * Interface defining the structure of a selector function.
  *
  * Selectors are functions that extract specific data or derived values from the Actionstack store's state.
- * This interface defines the expected behavior for a selector function.
  *
  * @param state - The current state of the application.
- * @param props?: any (optional) - Optional props object that can be used by the selector for additional logic.
+ * @param props - Optional props object that can be used by the selector for additional logic.
  * @returns any - The selected value or derived data from the state.
  */
 export type SelectorFunction<S = any, R = any> = (state: S, props?: any) => Promise<R> | R;
@@ -220,10 +219,9 @@ export type SelectorFunction<S = any, R = any> = (state: S, props?: any) => Prom
  *
  * Projection functions are similar to selector functions, but they can handle projecting data from
  * either a single state object or an array of state objects.
- * This interface defines the expected behavior for a projection function.
  *
- * @param state - The current state of the application (can be a single object or an array of state objects).
- * @param props?: any (optional) - Optional props object that can be used by the projection function for additional logic.
+ * @param results - The current state(s) of the application (can be a single object or an array of state objects).
+ * @param props - Optional props object that can be used by the projection function for additional logic.
  * @returns any - The projected value or derived data from the state.
  */
 export type ProjectionFunction<R = any, P = any> = (results: any[], props?: P) => R;
@@ -501,7 +499,7 @@ function isPlainObject(obj: any): boolean {
 }
 
 /**
- * Tests to see if the object is an RxJS {@link Stream}
+ * Tests to see if the object is a streamix Stream
  * @param obj the object to test
  */
 function isStream(obj: any): obj is Stream<unknown> {

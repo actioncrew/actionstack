@@ -9,9 +9,11 @@ export const registeredThunks = new Map<string, ThunkCreator<any, any, any>>();
 /**
  * Creates a synchronous action creator function.
  *
+ * Overloaded to support different combinations of payload and handler.
+ *
  * @param type The action type string (e.g., 'ADD_USER').
- * @param handler Optional reducer handler for this action.
- * @param payloadCreator Optional function to generate payload from arguments.
+ * @param handler Optional reducer handler for this action. Used in overloads.
+ * @param payloadCreator Optional function to generate payload from arguments. Used in overloads.
  * @returns An action creator function.
  */
 export function createAction<TType extends string>(type: TType): ActionCreator<void, TType, []>;
@@ -29,6 +31,10 @@ export function createAction<TType extends string, TArgs extends readonly any[],
   payloadCreator: (...args: TArgs) => TPayload
 ): ActionCreator<TPayload, TType, TArgs>;
 
+/**
+ * Implementation of createAction.
+ * @internal
+ */
 export function createAction<TType extends string, TArgs extends readonly any[] = [], TPayload = void>(
   type: TType,
   handler: ActionHandler<any, TPayload> = (() => void 0) as ActionHandler<any, TPayload>,
