@@ -1,5 +1,3 @@
-# ActionStack V3
-
 <p align="center">
   <img src="https://github.com/actioncrew/actionstack/blob/master/LOGO.png?raw=true" alt="ActionStack Logo" width="800">
 </p>
