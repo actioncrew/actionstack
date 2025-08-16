@@ -212,7 +212,7 @@ const store = createStore({
 ---
 
 ## 📚 Resources
-- **[API Documentation](https://actioncrew/github.io/actionstack)**
+- **[API Documentation](https://actioncrew.github.io/actionstack/api)**
 - **[GitHub Repository](https://github.com/actioncrew/actionstack)**
 - **[Community support](https://github.com/actioncrew/actionstack/discussions)**
 - **[Streamix: Reactive foundation](https://www.npmjs.com/package/@actioncrew/streamix)**
