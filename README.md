@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Next-generation state management for reactive applications</strong><br>
-  Built on <a href="https://actioncrew.github.io/streamix" target="_self" rel="external">Streamix</a> for ultimate performance and simplicity
+  Built on <a href="https://actioncrew.github.io/streamix" target="_blank" rel="external">Streamix</a> for ultimate performance and simplicity
 </p>
 
 <p align="center">
