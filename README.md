@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Next-generation state management for reactive applications</strong><br>
-  Built on <a href="https://www.npmjs.com/package/@actioncrew/streamix">Streamix</a> for ultimate performance and simplicity
+  Built on <a href="https://actioncrew.github.io/streamix">Streamix</a> for ultimate performance and simplicity
 </p>
 
 <p align="center">
@@ -212,10 +212,10 @@ const store = createStore({
 ---
 
 ## 📚 Resources
-
-- **[GitHub](https://github.com/actioncrew/actionstack)** - Source code and issues
-- **[Discussions](https://github.com/actioncrew/actionstack/discussions)** - Community support
-- **[Streamix](https://www.npmjs.com/package/@actioncrew/streamix)** - Reactive foundation
+- **[API Documentation](https://actioncrew/github.io/actionstack)**
+- **[GitHub Repository](https://github.com/actioncrew/actionstack)**
+- **[Community support](https://github.com/actioncrew/actionstack/discussions)**
+- **[Streamix: Reactive foundation](https://www.npmjs.com/package/@actioncrew/streamix)**
 
 ---
 
