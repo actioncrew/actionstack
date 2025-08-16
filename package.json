@@ -10,7 +10,7 @@
     "minify": "node terser.mjs",
     "bundle": "dts-bundle-generator --config bundle.config.cjs && npm run minify",
     "docs:generate": "typedoc --plugin typedoc-plugin-markdown --out docs/api --hideBreadcrumbs --hidePageHeader",
-    "docs:dev": "npm run docs:generate && vitepress build docs --ignoreDeadLinks",
+    "docs:dev": "npm run docs:generate && vitepress dev docs",
     "docs:build": "npm run docs:generate && vitepress build docs"
   },
   "dependencies": {
