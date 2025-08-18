@@ -6,7 +6,6 @@ import {
   setProperty,
 } from './utils';
 import { createLock } from './lock';
-import { createExecutionStack } from './stack';
 import { starter } from './starter';
 import { createTracker, Tracker } from './tracker';
 import {
@@ -174,7 +173,6 @@ export function createStore<T = any>(
   let currentState = createBehaviorSubject<T>(state as T);
   const tracker = settings.awaitStatePropagation ? createTracker() : undefined;
   const lock = createLock();
-  const stack = createExecutionStack();
   const queue = createQueue();
 
   /**
@@ -677,8 +675,7 @@ export function createStore<T = any>(
     dispatch: (action: Action | AsyncAction) => dispatch(action),
     dependencies: () => pipeline.dependencies,
     strategy: () => pipeline.strategy,
-    lock: lock,
-    stack: stack,
+    lock: lock
   }) as MiddlewareAPI;
 
   let store = {
