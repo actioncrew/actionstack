@@ -1,8 +1,16 @@
-import { Tracker } from ".";
-import { createSubscription, Stream, createReceiver, Receiver, Subscription, StrictReceiver, CallbackReturnType } from "@actioncrew/streamix";
+import {
+  CallbackReturnType,
+  createReceiver,
+  createSubscription,
+  Receiver,
+  Stream,
+  StrictReceiver,
+  Subscription,
+} from '@actioncrew/streamix';
+import { Tracker } from './tracker';
 
 /**
- * Wraps a Streamix Stream so that its subscription lifecycle
+ * Wraps a particular stream so that its subscription lifecycle
  * is automatically tracked by the provided Tracker.
  *
  * When the decorated stream is subscribed to:
@@ -11,7 +19,7 @@ import { createSubscription, Stream, createReceiver, Receiver, Subscription, Str
  * When the returned subscription is unsubscribed or the stream completes:
  * - The underlying stream subscription is unsubscribed.
  * - Tracker.complete is called, removing it from the tracker and completing
- *   its status observable.
+ * its status observable.
  *
  * This prevents the need for manual tracker management in consumer code.
  *
@@ -21,8 +29,8 @@ import { createSubscription, Stream, createReceiver, Receiver, Subscription, Str
  * @param tracker - The Tracker instance used to monitor this stream's lifecycle.
  *
  * @returns The same stream instance, but with its `.subscribe()` method
- *          overridden to include tracker lifecycle handling. The subscription
- *          returned by `.subscribe()` will also handle cleanup automatically.
+ * overridden to include tracker lifecycle handling. The subscription
+ * returned by `.subscribe()` will also handle cleanup automatically.
  */
 export function trackable<S extends Stream<T>, T = any>(
   stream: S,
@@ -39,21 +47,43 @@ export function trackable<S extends Stream<T>, T = any>(
     // 1. Register with tracker
     tracker.track(enhancedStream);
 
-    // 2. Create tracked receiver
+    // 2. Create tracked receiver with robust exception handling
     const strictReceiver = createReceiver(receiver);
     const trackingReceiver: StrictReceiver<T> = {
       ...strictReceiver,
       next: async (value: T) => {
-        await strictReceiver.next(value);
-        tracker.setStatus(enhancedStream, true);
+        try {
+          await strictReceiver.next(value);
+          tracker.setStatus(enhancedStream, true);
+        } catch (err) {
+          // If next() throws an error, we treat it as a stream error
+          try {
+            await strictReceiver.error(err as Error);
+          } catch (errorInError) {
+            console.error('An error occurred in the receiver\'s error handler:', errorInError);
+          }
+          tracker.complete(enhancedStream);
+        }
       },
       error: async (err: Error) => {
-        await strictReceiver.error(err);
-        tracker.complete(enhancedStream);
+        // Ensure tracker is completed even if strictReceiver.error fails
+        try {
+          await strictReceiver.error(err);
+        } catch (errorInError) {
+          console.error('An error occurred in the receiver\'s error handler:', errorInError);
+        } finally {
+          tracker.complete(enhancedStream);
+        }
       },
       complete: async () => {
-        await strictReceiver.complete();
-        tracker.complete(enhancedStream);
+        // Ensure tracker is completed even if strictReceiver.complete fails
+        try {
+          await strictReceiver.complete();
+        } catch (errorInComplete) {
+          console.error('An error occurred in the receiver\'s complete handler:', errorInComplete);
+        } finally {
+          tracker.complete(enhancedStream);
+        }
       },
       get completed() {
         return strictReceiver.completed;
