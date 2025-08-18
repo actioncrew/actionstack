@@ -1,5 +1,5 @@
 import { Stream, Subject } from '@actioncrew/streamix';
-import { ExecutionStack, SimpleLock, Store, StoreSettings } from '../lib';
+import { SimpleLock, Store, StoreSettings } from '../lib';
 
 /**
  * Describes a standard action object used to signal state changes.
@@ -127,7 +127,6 @@ export type AsyncReducer<T = any> = (state: T, action: Action) => Promise<T>;
  * @property {function(): any} dependencies - Retrieves the current dependencies in the pipeline.
  * @property {function(): ProcessingStrategy} strategy - Retrieves the current processing strategy.
  * @property {SimpleLock} lock - A lock to synchronize or prevent concurrent access to resources.
- * @property {ExecutionStack} stack - The execution stack tracking the sequence of actions or operations.
  */
 export type MiddlewareAPI = {
   getState: (slice?: string[]) => any;
@@ -135,7 +134,6 @@ export type MiddlewareAPI = {
   dependencies: () => any;
   strategy: () => ProcessingStrategy;
   lock: SimpleLock;
-  stack: ExecutionStack;
 }
 
 /**
