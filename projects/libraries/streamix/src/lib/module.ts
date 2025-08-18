@@ -79,10 +79,10 @@ function createModule<
   };
 
   // Initialize data$ streams first
-  initializeDataStreams(module, processedSelectors, loaded$, destroyed$);
+  initializeDataStreams(store, module, processedSelectors, loaded$, destroyed$);
 
   // Initialize dispatchable actions
-  initializeActions(module, processedActions, slice);
+  initializeActions(store, module, processedActions, slice);
   
   return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
@@ -175,6 +175,7 @@ function initializeDataStreams<
   State,
   Selectors extends Record<string, (...args: any[]) => (state: State) => any>
 >(
+  store: Store<any>,
   moduleInstance: any,
   processedSelectors: Selectors,
   loaded$: any,
@@ -197,6 +198,7 @@ function initializeDataStreams<
 }
 
 function initializeActions<Actions extends Record<string, any>>(
+  store: Store<any>,
   moduleInstance: any,
   processedActions: Actions,
   slice: string
