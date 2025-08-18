@@ -39,6 +39,7 @@ export default defineConfig({
           text: 'Articles',
           items: [
             { text: 'README', link: '/' },
+            { text: 'WHY', link: '/WHY.md'},
             { text: 'Changelog', link: '/CHANGELOG.md' }
           ]
         }
