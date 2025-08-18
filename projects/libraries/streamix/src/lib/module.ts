@@ -175,7 +175,7 @@ function initializeDataStreams<
   State,
   Selectors extends Record<string, (...args: any[]) => (state: State) => any>
 >(
-  store: Store<any>,
+  store: Store<State>,
   moduleInstance: any,
   processedSelectors: Selectors,
   loaded$: any,
@@ -198,7 +198,7 @@ function initializeDataStreams<
 }
 
 function initializeActions<Actions extends Record<string, any>>(
-  store: Store<any>,
+  store: Store<State>,
   moduleInstance: any,
   processedActions: Actions,
   slice: string
