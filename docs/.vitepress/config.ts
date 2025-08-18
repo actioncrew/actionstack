@@ -36,7 +36,7 @@ export default defineConfig({
       ],
       '/': [
         {
-          text: 'Project Files',
+          text: 'Articles',
           items: [
             { text: 'README', link: '/' },
             { text: 'Changelog', link: '/CHANGELOG.md' }
