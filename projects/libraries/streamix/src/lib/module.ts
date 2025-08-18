@@ -185,13 +185,12 @@ function initializeDataStreams<
     const factory = processedSelectors[key];
     (moduleInstance.data$ as any)[key] = (...args: any[]) => {
       return loaded$.pipe(
-          first(), // wait until load completes
-          switchMap(() => defer(() => {
-            const selectorFn = selector(...args);
-            return store.select(selectorFn);
-          })),
-          takeUntil(destroyed$) // stop emitting if module is destroyed
-        )
+        first(), // wait until load completes
+        switchMap(() => defer(() => {
+          const selectorFn = factory(...args);
+          return store.select(selectorFn);
+        })),
+        takeUntil(destroyed$) // stop emitting if module is destroyed
       );
     };
   }
