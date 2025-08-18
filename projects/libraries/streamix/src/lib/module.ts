@@ -42,13 +42,6 @@ function createModule<
 
   const processedActions = processActions(config.actions ?? {}, slice, config.dependencies);
   const processedSelectors = processSelectors(config.selectors ?? {}, selectSlice);
-
-  // Initialize data$ streams first
-  initializeDataStreams(this, processedSelectors, loaded$, destroyed$);
-
-  // Initialize dispatchable actions
-  initializeActions(this, processedActions, slice);
-  
   let store: Store<State> | undefined;
 
   const module = {
@@ -85,6 +78,12 @@ function createModule<
     }
   };
 
+  // Initialize data$ streams first
+  initializeDataStreams(module, processedSelectors, loaded$, destroyed$);
+
+  // Initialize dispatchable actions
+  initializeActions(module, processedActions, slice);
+  
   return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
