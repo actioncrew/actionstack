@@ -1,6 +1,5 @@
 import { registeredThunks } from './actions';
 import { createLock, SimpleLock } from './lock';
-import { createInstruction, ExecutionStack } from './stack';
 import { Action, AsyncAction } from './types';
 
 /**
@@ -16,7 +15,6 @@ export interface MiddlewareConfig<TState = any, TDependencies extends Record<str
   getState: () => TState;
   dependencies: () => TDependencies;
   lock: SimpleLock;
-  stack: ExecutionStack;
 }
 
 /**
@@ -26,7 +24,6 @@ export interface MiddlewareConfig<TState = any, TDependencies extends Record<str
  * @returns {Function} - A function to handle actions.
  */
 export function createActionHandler(config: MiddlewareConfig) {
-  const stack = config.stack;
   const getState = config.getState;
   const dependencies = config.dependencies;
 
@@ -44,8 +41,7 @@ export function createActionHandler(config: MiddlewareConfig) {
     lock: SimpleLock
   ): Promise<void> => {
     await lock.acquire();
-    const op = createInstruction.action(action);
-    stack.add(op);
+
     try {
       if (typeof action === 'function') {
         const innerLock = createLock();
@@ -85,7 +81,6 @@ export function createActionHandler(config: MiddlewareConfig) {
         }
       }
     } finally {
-      stack.remove(op);
       lock.release();
     }
   };
