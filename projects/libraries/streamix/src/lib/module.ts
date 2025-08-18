@@ -42,6 +42,13 @@ function createModule<
 
   const processedActions = processActions(config.actions ?? {}, slice, config.dependencies);
   const processedSelectors = processSelectors(config.selectors ?? {}, selectSlice);
+
+  // Initialize data$ streams first
+  initializeDataStreams(this, processedSelectors, loaded$, destroyed$);
+
+  // Initialize dispatchable actions
+  initializeActions(this, processedActions, slice);
+  
   let store: Store<State> | undefined;
 
   const module = {
@@ -63,13 +70,6 @@ function createModule<
       if (configured) return this;
       configured = true;
       store = storeInstance;
-
-      // Initialize data$ streams first
-      initializeDataStreams(this, store, processedSelectors, loaded$, destroyed$);
-
-      // Initialize dispatchable actions
-      initializeActions(this, processedActions, store, slice);
-
       return this;
     },
 
@@ -177,30 +177,20 @@ function initializeDataStreams<
   Selectors extends Record<string, (...args: any[]) => (state: State) => any>
 >(
   moduleInstance: any,
-  store: Store<State>,
   processedSelectors: Selectors,
   loaded$: any,
   destroyed$: any
 ) {
-  // Create immediate stream factories (not deferred)
-  const streamFactories = {} as any;
-
-  for (const key in processedSelectors) {
-    const selector = processedSelectors[key];
-    streamFactories[key] = (...args: any[]) => {
-      const selectorFn = selector(...args);
-      return store.select(selectorFn);
-    };
-  }
-
   // Create the data$ functions that return deferred streams
-  for (const key in streamFactories) {
-    const factory = streamFactories[key];
+  for (const key in processedSelectors) {
+    const factory = processedSelectors[key];
     (moduleInstance.data$ as any)[key] = (...args: any[]) => {
-      return defer(() =>
-        loaded$.pipe(
+      return loaded$.pipe(
           first(), // wait until load completes
-          switchMap(() => factory(...args)),
+          switchMap(() => defer(() => {
+            const selectorFn = selector(...args);
+            return store.select(selectorFn);
+          })),
           takeUntil(destroyed$) // stop emitting if module is destroyed
         )
       );
@@ -211,7 +201,6 @@ function initializeDataStreams<
 function initializeActions<Actions extends Record<string, any>>(
   moduleInstance: any,
   processedActions: Actions,
-  store: Store<any>,
   slice: string
 ) {
   for (const key in processedActions) {
