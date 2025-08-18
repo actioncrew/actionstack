@@ -47,7 +47,7 @@ function createModule<
   const module = {
     slice,
     initialState: config.initialState,
-    actions: {} as Actions, // Will be populated in configure()
+    actions: {} as Actions, // Will be populated immediately
     selectors: processedSelectors,
     dependencies: config.dependencies,
     data$: {} as Streams<Selectors>,
@@ -78,11 +78,9 @@ function createModule<
     }
   };
 
-  // Initialize data$ streams first
-  initializeDataStreams(store, module, processedSelectors, loaded$, destroyed$);
-
-  // Initialize dispatchable actions
-  initializeActions(store, module, processedActions, slice);
+  // Initialize data$ streams and actions immediately, but they'll defer to store availability
+  initializeDataStreams(module, processedSelectors, loaded$, destroyed$, () => store);
+  initializeActions(module, processedActions, slice, () => store);
   
   return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
@@ -115,32 +113,32 @@ function processActions<Actions extends Record<string, any>>(
       (processed as any)[name] = namespacedAction;
     } else {
       let thunkWithType = (...args: any[]) => {
-      const thunk = action(...args);
-      return Object.assign(
-        async (dispatch: any, getState: any, deps: any) => {
-          return thunk(dispatch, getState, {
-            ...deps,
-            ...dependencies,
-          });
-        },
-        {
-          type: `${slice}/${name}`,
-          isThunk: true,
-          toString: () => `${slice}/${name}`,
-          match: (action: any) => isAction(action) && action.type === `${slice}/${name}`
-        }
-      );
-    };
+        const thunk = action(...args);
+        return Object.assign(
+          async (dispatch: any, getState: any, deps: any) => {
+            return thunk(dispatch, getState, {
+              ...deps,
+              ...dependencies,
+            });
+          },
+          {
+            type: `${slice}/${name}`,
+            isThunk: true,
+            toString: () => `${slice}/${name}`,
+            match: (action: any) => isAction(action) && action.type === `${slice}/${name}`
+          }
+        );
+      };
 
-    thunkWithType = Object.assign(thunkWithType, {
-      type: `${slice}/${action.type}`,
-      isThunk: true,
-      toString: () => `${slice}/${action.type}`,
-      match: (action: any) => isAction(action) && action.type === `${slice}/${name}`,
-      triggers: action.triggers?.map((t: string) =>
-        t.includes('/') ? t : `${slice}/${t}`
-      )
-    });
+      thunkWithType = Object.assign(thunkWithType, {
+        type: `${slice}/${name}`,
+        isThunk: true,
+        toString: () => `${slice}/${name}`,
+        match: (action: any) => isAction(action) && action.type === `${slice}/${name}`,
+        triggers: action.triggers?.map((t: string) =>
+          t.includes('/') ? t : `${slice}/${t}`
+        )
+      });
 
       (processed as any)[name] = thunkWithType;
     }
@@ -175,11 +173,11 @@ function initializeDataStreams<
   State,
   Selectors extends Record<string, (...args: any[]) => (state: State) => any>
 >(
-  store: Store<State>,
   moduleInstance: any,
   processedSelectors: Selectors,
   loaded$: any,
-  destroyed$: any
+  destroyed$: any,
+  getStore: () => Store<State> | undefined
 ) {
   // Create the data$ functions that return deferred streams
   for (const key in processedSelectors) {
@@ -188,6 +186,11 @@ function initializeDataStreams<
       return loaded$.pipe(
         first(), // wait until load completes
         switchMap(() => defer(() => {
+          // Access store via getter at runtime
+          const store = getStore();
+          if (!store) {
+            throw new Error(`Module "${moduleInstance.slice}" store not available for data$ streams`);
+          }
           const selectorFn = factory(...args);
           return store.select(selectorFn);
         })),
@@ -198,19 +201,21 @@ function initializeDataStreams<
 }
 
 function initializeActions<Actions extends Record<string, any>>(
-  store: Store<State>,
   moduleInstance: any,
   processedActions: Actions,
-  slice: string
+  slice: string,
+  getStore: () => Store<any> | undefined
 ) {
   for (const key in processedActions) {
     const actionCreator = processedActions[key];
 
     (moduleInstance.actions as any)[key] = (...args: any[]) => {
+      // Access store via getter at runtime
+      const store = getStore();
       if (!store) {
         throw new Error(
-          `Module "${slice}" actions cannot be dispatched before registration. ` +
-          `Call module.init(store) first.`
+          `Module "${slice}" actions cannot be dispatched before configuration. ` +
+          `Call module.configure(store) first.`
         );
       }
 
