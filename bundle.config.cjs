@@ -1,22 +1,22 @@
 module.exports = {
   entries: [
     {
-      filePath: './dist/streamix/index.d.ts',
-      outFile: './dist/streamix/@actioncrew/index.d.ts',
+      filePath: './dist/actionstack/index.d.ts',
+      outFile: './dist/actionstack/@actioncrew/index.d.ts',
       output: {
         inlineDeclareGlobals: false,
         noBanner: true,
       },
     },
     {
-      filePath: './dist/streamix/tools/index.d.ts',
-      outFile: './dist/streamix/tools/@actioncrew/index.d.ts',
+      filePath: './dist/actionstack/tools/index.d.ts',
+      outFile: './dist/actionstack/tools/@actioncrew/index.d.ts',
       output: {
         inlineDeclareGlobals: false,
         noBanner: true,
       },
       libraries: {
-        importedLibraries: ['@actioncrew/streamix', '@actioncrew/actionstack'],
+        importedLibraries: ['@actioncrew/actionstack', '@actioncrew/actionstack'],
         inlinedLibraries: [],
       }
     }
