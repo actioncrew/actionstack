@@ -26,9 +26,9 @@ Type safety isn't an afterthought – it's the main event. Your IDE becomes your
 ### 🔄 **Actions That Actually Make Sense**
 No more dispatching objects with mysterious type strings. Actions in ActionStack are functions that do what they say they'll do. Revolutionary concept, we know.
 
-## Building the To-Do List That Launched a Thousand Dreams
+## A To-Do List That Doesn’t Fight You
 
-Let's build something together – a to-do list so sophisticated it could run a small government, yet so simple your cat could maintain it.
+Instead of showing off with a complex example, ActionStack starts simple. You define your state, write a few actions, and boom — you’ve got a working module. Want async? Add a thunk. Want reactive updates? Subscribe to a selector stream. It’s all there, but it doesn’t demand a blood sacrifice to get started.
 
 ### Phase 1: The Foundation (Where Dreams Begin)
 
