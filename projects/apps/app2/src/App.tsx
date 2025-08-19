@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { store } from '../main';
+import { store } from './main';
 import { incrementClicks$, decrementClicks$, resetClicks$ } from './streams';
 
 function useStore<T>(selector: (s: any) => T): T | undefined {

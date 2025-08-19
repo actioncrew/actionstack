@@ -1,23 +1,37 @@
 {
   "compilerOptions": {
-    "baseUrl": "./src",
-    "jsx": "react-jsx",
-    "module": "esnext",
-    "target": "es2022",
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "allowJs": true,
-    "esModuleInterop": true,
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
     "paths": {
       "@actioncrew/actionstack/tools": [
-        "../../../../dist/actionstack/tools",
-        "../../../../projects/libraries/actionstack/tools/src/public-api.ts"
+        "../../../dist/actionstack/tools",
+        "../../../projects/libraries/actionstack/tools/src/public-api.ts"
       ],
       "@actioncrew/actionstack": [
-        "../../../../dist/actionstack",
-        "../../../../projects/libraries/actionstack/src/public-api.ts"
+        "../../../dist/actionstack",
+        "../../../projects/libraries/actionstack/src/public-api.ts"
       ]
-    },
-  }
+    }
+  },
+  "include": ["src"]
 }
