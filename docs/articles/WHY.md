@@ -1,4 +1,5 @@
 # ActionStack: A Saner Way to Handle State
+
 Let’s be real — managing state in a frontend app shouldn’t feel like assembling IKEA furniture blindfolded. But if you’ve spent any time wrangling Redux, you know the pain: endless boilerplate, confusing async flows, and that creeping feeling that maybe you’re overengineering a glorified counter.
 
 That’s where ActionStack comes in. It’s a state management library built by folks who’ve clearly had their share of late-night Redux regrets. It’s modular, reactive, and actually pleasant to use — like someone finally decided to clean up the mess without reinventing the wheel.
