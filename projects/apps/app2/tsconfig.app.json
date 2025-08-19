@@ -1,14 +1,23 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "../../out-tsc/app",
-    "types": []
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "isolatedModules": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-  "files": [
-    "src/main.ts"
-  ],
-  "include": [
-    "src/**/*.d.ts"
-  ]
+  "paths": {
+    "@actioncrew/actionstack/tools": [
+      "./dist/actionstack/tools",
+      "./projects/libraries/actionstack/tools/src/public-api.ts"
+    ],
+    "@actioncrew/actionstack": [
+      "dist/actionstack",
+      "./projects/libraries/actionstack/src/public-api.ts"
+    ]
+  },
+  "include": ["src"]
 }

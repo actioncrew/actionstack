@@ -114,7 +114,7 @@
           "options": {
             "outputPath": "dist/apps/app2",
             "index": "projects/apps/app2/src/index.html",
-            "browser": "projects/apps/app2/src/main.ts",
+            "browser": "projects/apps/app2/src/main.tsx",
             "polyfills": [
               "zone.js"
             ],
@@ -125,7 +125,7 @@
               "projects/apps/app2/src/assets"
             ],
             "styles": [
-              "projects/apps/app2/src/styles.scss"
+              "projects/apps/app2/src/index.scss"
             ],
             "scripts": []
           },
@@ -185,7 +185,7 @@
               "projects/apps/app2/src/assets"
             ],
             "styles": [
-              "projects/apps/app2/src/styles.scss"
+              "projects/apps/app2/src/index.scss"
             ],
             "scripts": []
           }
