@@ -9,16 +9,19 @@ import {
   withLatestFrom,
   defer,
   switchMap,
+  combineLatest,
+  shareReplay,
 } from '@actioncrew/streamix';
 import { counter } from './store';
 
 // UI intents
 export const incrementClicks$ = createSubject<number>();
 export const decrementClicks$ = createSubject<number>();
-export const resetClicks$ = createSubject<void>();
+export const resetClicks$ = createSubject<number>();
 
 // Streamed side effects (throttled/derived logic)
 export let subscriptions: Subscription[] = [];
+
 // Batch increment clicks within 200ms windows
 subscriptions.push(
   incrementClicks$
@@ -30,10 +33,11 @@ subscriptions.push(
     )
     .subscribe(),
 
+
+
   // Only allow decrement if count > 9
   decrementClicks$
     .pipe(
-      map(() => -1),
       withLatestFrom(counter.data$.count()),
       filter(([, value]) => value > 9),
       tap(() => counter.actions.decrement(1))

@@ -70,7 +70,7 @@ export default function App() {
           >
             -{step}
           </button>
-          <button onClick={() => resetClicks$.next()}>Reset</button>
+          <button onClick={() => resetClicks$.next(1)}>Reset</button>
           <label style={{ marginLeft: 'auto' }}>
             Step:
             <input

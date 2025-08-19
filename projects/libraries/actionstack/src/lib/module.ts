@@ -4,7 +4,8 @@ import {
   defer,
   first,
   switchMap,
-  takeUntil
+  takeUntil,
+  tap
 } from '@actioncrew/streamix';
 import {
   ActionCreator,
@@ -81,7 +82,7 @@ function createModule<
   // Initialize data$ streams and actions immediately, but they'll defer to store availability
   initializeDataStreams(module, processedSelectors, loaded$, destroyed$, () => store);
   initializeActions(module, processedActions, slice, () => store);
-  
+
   return module as FeatureModule<State, ActionTypes, Actions, Selectors, Dependencies>;
 }
 
@@ -184,8 +185,9 @@ function initializeDataStreams<
     const factory = processedSelectors[key];
     (moduleInstance.data$ as any)[key] = (...args: any[]) => {
       return loaded$.pipe(
-        first(), // wait until load completes
-        switchMap(() => defer(() => {
+        tap(console.log),
+        switchMap(() => {
+          console.log(getStore());
           // Access store via getter at runtime
           const store = getStore();
           if (!store) {
@@ -193,7 +195,7 @@ function initializeDataStreams<
           }
           const selectorFn = factory(...args);
           return store.select(selectorFn);
-        })),
+        }),
         takeUntil(destroyed$) // stop emitting if module is destroyed
       );
     };
