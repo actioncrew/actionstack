@@ -4,7 +4,7 @@ Let’s be real — managing state in a frontend app shouldn’t feel like assem
 
 That’s where ActionStack comes in. It’s a state management library built by folks who’ve clearly had their share of late-night Redux regrets. It’s modular, reactive, and actually pleasant to use — like someone finally decided to clean up the mess without reinventing the wheel.
 
-## The Great Redux Exodus: Why Developers Are Fleeing
+## Why Developers are Looking Beyond Redux
 
 Redux had good intentions. Predictable state, clear data flow, and a solid ecosystem. But somewhere along the way, it got... heavy. You want to add a todo? Cool, now go write five separate files and a reducer switch statement that looks like a legal contract. Async logic? Better hope you enjoy writing nested thunks and debugging middleware chains.
 
