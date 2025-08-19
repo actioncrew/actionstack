@@ -30,7 +30,7 @@ jobs:
 
       # 3️⃣ Build library (so dist files exist)
       - name: Build library
-        run: npm ci && npm run build @actioncrew/actionstack
+        run: npm ci && npm run build actionstack
 
       # 4️⃣ Calculate gzipped bundle size
       - name: Calculate gzipped bundle size
