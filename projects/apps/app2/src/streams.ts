@@ -34,13 +34,8 @@ subscriptions.push(
   decrementClicks$
     .pipe(
       map(() => -1),
-      withLatestFrom(
-        counter.loaded$.pipe(
-          filter(Boolean),
-          switchMap(() => defer(() => counter.data$.count()))
-        )
-      ),
-      // filter(([, value]) => value > 9),
+      withLatestFrom(counter.data$.count()),
+      filter(([, value]) => value > 9),
       tap(() => counter.actions.decrement(1))
     )
     .subscribe(),
