@@ -97,23 +97,23 @@
         }
       }
     },
-    "@actioncrew/actionstack": {
+    "actionstack": {
       "projectType": "library",
-      "root": "projects/libraries/streamix",
-      "sourceRoot": "projects/libraries/streamix/src",
+      "root": "projects/libraries/actionstack",
+      "sourceRoot": "projects/libraries/actionstack/src",
       "prefix": "lib",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "project": "projects/libraries/streamix/ng-package.json"
+            "project": "projects/libraries/actionstack/ng-package.json"
           },
           "configurations": {
             "production": {
-              "tsConfig": "projects/libraries/streamix/tsconfig.lib.prod.json"
+              "tsConfig": "projects/libraries/actionstack/tsconfig.lib.prod.json"
             },
             "development": {
-              "tsConfig": "projects/libraries/streamix/tsconfig.lib.json"
+              "tsConfig": "projects/libraries/actionstack/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"
@@ -121,9 +121,9 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/libraries/streamix/src/test.ts",
-            "tsConfig": "projects/libraries/streamix/tsconfig.spec.json",
-            "karmaConfig": "projects/libraries/streamix/karma.conf.js"
+            "main": "projects/libraries/actionstack/src/test.ts",
+            "tsConfig": "projects/libraries/actionstack/tsconfig.spec.json",
+            "karmaConfig": "projects/libraries/actionstack/karma.conf.js"
           }
         }
       }

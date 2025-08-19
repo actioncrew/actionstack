@@ -42,7 +42,7 @@ async function deleteFiles(filePaths) {
   }
 }
 
-let allFiles = getAllFiles("./dist/streamix");
+let allFiles = getAllFiles("./dist/actionstack");
 
 let maps = allFiles.filter(path => path.match(/\.map$/));
 await deleteFiles(maps);
@@ -53,10 +53,10 @@ await minifyFiles(js);
 let definitions = allFiles.filter(path => !path.includes('@actioncrew') && path.match(/\.d\.ts$/));
 await deleteFiles(definitions);
 
-fs.rmSync('./dist/streamix/esm2022', {recursive: true, force: true});
-fs.rmSync('./dist/streamix/lib', {recursive: true, force: true});
-fs.rmSync('./dist/streamix/tools/lib', {recursive: true, force: true});
-fs.copyFileSync('./dist/streamix/@actioncrew/index.d.ts', './dist/streamix/index.d.ts');
-fs.copyFileSync('./dist/streamix/tools/@actioncrew/index.d.ts', './dist/streamix/tools/index.d.ts');
-fs.rmSync('./dist/streamix/@actioncrew', {recursive: true, force: true});
-fs.rmSync('./dist/streamix/tools/@actioncrew', {recursive: true, force: true});
+fs.rmSync('./dist/actionstack/esm2022', {recursive: true, force: true});
+fs.rmSync('./dist/actionstack/lib', {recursive: true, force: true});
+fs.rmSync('./dist/actionstack/tools/lib', {recursive: true, force: true});
+fs.copyFileSync('./dist/actionstack/@actioncrew/index.d.ts', './dist/actionstack/index.d.ts');
+fs.copyFileSync('./dist/actionstack/tools/@actioncrew/index.d.ts', './dist/actionstack/tools/index.d.ts');
+fs.rmSync('./dist/actionstack/@actioncrew', {recursive: true, force: true});
+fs.rmSync('./dist/actionstack/tools/@actioncrew', {recursive: true, force: true});

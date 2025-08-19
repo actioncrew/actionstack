@@ -21,49 +21,13 @@
     "target": "ES2022",
     "module": "ES2022",
     "paths": {
-      "@actionstack/store": [
-        "./dist/actionstack/store",
-        "./projects/libraries/actionstack/store/src/public-api.ts"
-      ],
-      "@actionstack/epics": [
-        "./dist/actionstack/epics",
-        "./projects/libraries/actionstack/epics/src/public-api.ts"
-      ],
-      "@actionstack/sagas": [
-        "./dist/actionstack/sagas",
-        "./projects/libraries/actionstack/sagas/src/public-api.ts"
-      ],
-      "@actionstack/tools": [
+      "@actioncrew/actionstack/tools": [
         "./dist/actionstack/tools",
         "./projects/libraries/actionstack/tools/src/public-api.ts"
       ],
-      "@actionstack/angular/epics": [
-        "./dist/actionstack/angular/epics",
-        "./projects/libraries/actionstack/angular/epics/src/public-api.ts"
-      ],
-      "@actionstack/angular/sagas": [
-        "./dist/actionstack/angular/sagas",
-        "./projects/libraries/actionstack/angular/sagas/src/public-api.ts"
-      ],
-      "@actionstack/angular": [
-        "./dist/actionstack/angular",
-        "./projects/libraries/actionstack/angular/src/public-api.ts"
-      ],
-      "@actioncrew/actionstack/epics": [
-        "./dist/streamix/epics",
-        "./projects/libraries/streamix/epics/src/public-api.ts"
-      ],
-      "@actioncrew/actionstack/sagas": [
-        "./dist/streamix/sagas",
-        "./projects/libraries/streamix/sagas/src/public-api.ts"
-      ],
-      "@actioncrew/actionstack/tools": [
-        "./dist/streamix/tools",
-        "./projects/libraries/streamix/tools/src/public-api.ts"
-      ],
       "@actioncrew/actionstack": [
-        "dist/streamix",
-        "./projects/libraries/streamix/src/public-api.ts"
+        "dist/actionstack",
+        "./projects/libraries/actionstack/src/public-api.ts"
       ]
     },
     "useDefineForClassFields": false,
