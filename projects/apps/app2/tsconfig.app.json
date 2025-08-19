@@ -1,23 +1,23 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",
     "jsx": "react-jsx",
     "module": "esnext",
     "target": "es2022",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "isolatedModules": true,
     "allowJs": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
-  },
-  "paths": {
-    "@actioncrew/actionstack/tools": [
-      "./dist/actionstack/tools",
-      "./projects/libraries/actionstack/tools/src/public-api.ts"
-    ],
-    "@actioncrew/actionstack": [
-      "dist/actionstack",
-      "./projects/libraries/actionstack/src/public-api.ts"
-    ]
-  },
-  "include": ["src"]
+    "skipLibCheck": true,
+    "paths": {
+      "@actioncrew/actionstack/tools": [
+        "../../../../dist/actionstack/tools",
+        "../../../../projects/libraries/actionstack/tools/src/public-api.ts"
+      ],
+      "@actioncrew/actionstack": [
+        "../../../../dist/actionstack",
+        "../../../../projects/libraries/actionstack/src/public-api.ts"
+      ]
+    },
+  }
 }

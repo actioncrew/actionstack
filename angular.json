@@ -112,11 +112,17 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "allowedCommonJsDependencies": [
+              "react",
+              "react-dom",
+              "react-dom/client",
+              "react/jsx-runtime"
+            ],
             "outputPath": "dist/apps/app2",
             "index": "projects/apps/app2/src/index.html",
             "browser": "projects/apps/app2/src/main.tsx",
             "polyfills": [
-              "zone.js"
+              "projects/apps/app2/src/polyfills.ts"
             ],
             "tsConfig": "projects/apps/app2/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -175,8 +181,7 @@
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
             "polyfills": [
-              "zone.js",
-              "zone.js/testing"
+              "projects/apps/app2/src/polyfills.ts"
             ],
             "tsConfig": "projects/apps/app2/tsconfig.spec.json",
             "inlineStyleLanguage": "scss",

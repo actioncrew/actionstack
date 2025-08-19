@@ -27,7 +27,7 @@
         "./projects/libraries/actionstack/tools/src/public-api.ts"
       ],
       "@actioncrew/actionstack": [
-        "dist/actionstack",
+        "./dist/actionstack",
         "./projects/libraries/actionstack/src/public-api.ts"
       ]
     },

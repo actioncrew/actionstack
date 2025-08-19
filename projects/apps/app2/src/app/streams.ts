@@ -10,7 +10,7 @@ import {
   defer,
   switchMap,
 } from '@actioncrew/streamix';
-import { counter } from './store';
+import { counter } from './counter';
 
 // UI intents
 export const incrementClicks$ = createSubject<number>();
