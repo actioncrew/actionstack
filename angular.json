@@ -3,32 +3,32 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "app": {
+    "app1": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
           "style": "scss"
         }
       },
-      "root": "projects/apps/app",
-      "sourceRoot": "projects/apps/app/src",
+      "root": "projects/apps/app1",
+      "sourceRoot": "projects/apps/app1/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/app",
-            "index": "projects/apps/app/src/index.html",
-            "main": "projects/apps/app/src/main.ts",
-            "polyfills": "projects/apps/app/src/polyfills.ts",
-            "tsConfig": "projects/apps/app/tsconfig.app.json",
+            "outputPath": "dist/app1",
+            "index": "projects/apps/app1/src/index.html",
+            "main": "projects/apps/app1/src/main.ts",
+            "polyfills": "projects/apps/app1/src/polyfills.ts",
+            "tsConfig": "projects/apps/app1/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/apps/app/src/favicon.ico",
-              "projects/apps/app/src/assets"
+              "projects/apps/app1/src/favicon.ico",
+              "projects/apps/app1/src/assets"
             ],
             "styles": [
-              "projects/apps/app/src/styles.scss"
+              "projects/apps/app1/src/styles.scss"
             ],
             "scripts": []
           },
@@ -63,10 +63,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "app:build:production"
+              "buildTarget": "app1:build:production"
             },
             "development": {
-              "buildTarget": "app:build:development"
+              "buildTarget": "app1:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -74,23 +74,118 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "app:build"
+            "buildTarget": "app1:build"
           }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "main": "projects/apps/app/src/test.ts",
-            "polyfills": "projects/apps/app/src/polyfills.ts",
-            "tsConfig": "projects/apps/app/tsconfig.spec.json",
-            "karmaConfig": "projects/apps/app/karma.conf.js",
+            "main": "projects/apps/app1/src/test.ts",
+            "polyfills": "projects/apps/app1/src/polyfills.ts",
+            "tsConfig": "projects/apps/app1/tsconfig.spec.json",
+            "karmaConfig": "projects/apps/app1/karma.conf.js",
             "inlineStyleLanguage": "scss",
             "assets": [
-              "projects/apps/app/src/favicon.ico",
-              "projects/apps/app/src/assets"
+              "projects/apps/app1/src/favicon.ico",
+              "projects/apps/app1/src/assets"
             ],
             "styles": [
-              "projects/apps/app/src/styles.scss"
+              "projects/apps/app1/src/styles.scss"
+            ],
+            "scripts": []
+          }
+        }
+      }
+    }
+    ,
+    "app2": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:component": {
+          "style": "scss"
+        }
+      },
+      "root": "projects/apps/app2",
+      "sourceRoot": "projects/apps/app2/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:application",
+          "options": {
+            "outputPath": "dist/apps/app2",
+            "index": "projects/apps/app2/src/index.html",
+            "browser": "projects/apps/app2/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "projects/apps/app2/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/apps/app2/src/favicon.ico",
+              "projects/apps/app2/src/assets"
+            ],
+            "styles": [
+              "projects/apps/app2/src/styles.scss"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "app2:build:production"
+            },
+            "development": {
+              "buildTarget": "app2:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "buildTarget": "app2:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "projects/apps/app2/tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "projects/apps/app2/src/favicon.ico",
+              "projects/apps/app2/src/assets"
+            ],
+            "styles": [
+              "projects/apps/app2/src/styles.scss"
             ],
             "scripts": []
           }
