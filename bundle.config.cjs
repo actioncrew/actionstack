@@ -16,7 +16,7 @@ module.exports = {
         noBanner: true,
       },
       libraries: {
-        importedLibraries: ['@actioncrew/actionstack', '@actioncrew/actionstack'],
+        importedLibraries: ['@actioncrew/actionstack'],
         inlinedLibraries: [],
       }
     }

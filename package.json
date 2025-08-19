@@ -16,7 +16,7 @@
     "docs:build": "npm run docs:generate && vitepress build docs"
   },
   "dependencies": {
-    "@actioncrew/streamix": "^2.0.20",
+    "@actioncrew/streamix": "^2.0.21",
     "@angular/animations": "^17.3.12",
     "@angular/common": "^17.3.12",
     "@angular/compiler": "^17.3.12",
