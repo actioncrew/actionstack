@@ -185,9 +185,7 @@ function initializeDataStreams<
     const factory = processedSelectors[key];
     (moduleInstance.data$ as any)[key] = (...args: any[]) => {
       return loaded$.pipe(
-        tap(console.log),
         switchMap(() => {
-          console.log(getStore());
           // Access store via getter at runtime
           const store = getStore();
           if (!store) {

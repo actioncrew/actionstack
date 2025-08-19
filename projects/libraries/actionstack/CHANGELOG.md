@@ -1,8 +1,12 @@
 # Changelog
 
+## 3.0.10
+
+Removed `ExecutionStack`, previously eliminated epics and sagas to simplify the architecture and focus on a more straightforward approach. Continued emphasis on using only thunks and callable thunks for handling asynchronous logic and side effects, enhancing simplicity and predictability. Small fixes in `module` implementation. Introduced a minimal React application to test and verify the workability of ActionStack in real environment.
+
 ## 3.0.9
 
-Introduced trackable(), a stream decorator which adds trackability to applied stream. Made the tracker property publicly accessible on the Store type, enabling usage of trackable() and other tracker utilities outside the store context
+Introduced `trackable()`, a stream decorator which adds trackability to applied stream. Made the tracker property publicly accessible on the Store type, enabling usage of `trackable()` and other tracker utilities outside the store context
 
 ## 3.0.8
 
