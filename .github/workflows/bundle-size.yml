@@ -36,14 +36,14 @@ jobs:
       - name: Calculate gzipped bundle size
         id: gzip
         run: |
-          if [ ! -f "dist/streamix/fesm2022/actioncrew-actionstack.mjs" ]; then
+          if [ ! -f "dist/actionstack/fesm2022/actioncrew-actionstack.mjs" ]; then
             echo "❌ Bundle file not found!"
-            ls -la dist/streamix/fesm2022/ || echo "Directory doesn't exist"
+            ls -la dist/actionstack/fesm2022/ || echo "Directory doesn't exist"
             exit 1
           fi
 
-          gzip -c dist/streamix/fesm2022/actioncrew-actionstack.mjs > dist/streamix/fesm2022/actioncrew-actionstack.mjs.gz
-          SIZE=$(stat -c%s dist/streamix/fesm2022/actioncrew-actionstack.mjs.gz)
+          gzip -c dist/actionstack/fesm2022/actioncrew-actionstack.mjs > dist/actionstack/fesm2022/actioncrew-actionstack.mjs.gz
+          SIZE=$(stat -c%s dist/actionstack/fesm2022/actioncrew-actionstack.mjs.gz)
           SIZE_KB=$((SIZE / 1024))
           echo "BUNDLE_SIZE=${SIZE_KB}" >> $GITHUB_ENV
           echo "✅ Gzipped bundle size: ${SIZE_KB} KB"
@@ -51,17 +51,17 @@ jobs:
       # 5️⃣ Generate badge
       - name: Generate badge
         run: |
-          mkdir -p projects/libraries/streamix
+          mkdir -p projects/libraries/actionstack
           COLOR="brightgreen"
           if [ $BUNDLE_SIZE -gt 200 ]; then COLOR="red"; fi
           if [ $BUNDLE_SIZE -gt 100 ] && [ $BUNDLE_SIZE -le 200 ]; then COLOR="yellow"; fi
 
           echo "🎯 Creating badge with ${BUNDLE_SIZE}KB and color ${COLOR}"
-          curl -s -o projects/libraries/streamix/bundle-size.svg \
+          curl -s -o projects/libraries/actionstack/bundle-size.svg \
             "https://img.shields.io/badge/bundle-${BUNDLE_SIZE}KB-${COLOR}.svg"
 
           # Verify badge was created
-          if [ -f "projects/libraries/streamix/bundle-size.svg" ]; then
+          if [ -f "projects/libraries/actionstack/bundle-size.svg" ]; then
             echo "✅ Badge created successfully"
           else
             echo "❌ Badge creation failed"
@@ -82,7 +82,7 @@ jobs:
           git pull origin v3
 
           # Add the badge file
-          git add projects/libraries/streamix/bundle-size.svg
+          git add projects/libraries/actionstack/bundle-size.svg
 
           # Check if there are changes to commit
           if git diff --staged --quiet; then
