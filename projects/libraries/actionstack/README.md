@@ -205,11 +205,11 @@ const store = createStore({
 ## 🔗 Why Query + Thunks = Perfect Match
 The combination of Streamix's `query()` method and ActionStack's thunks creates a uniquely powerful and streamlined approach:
 
-Reactive by default — Subscribe to streams for UI updates
-Imperative when needed — Use query() for instant access in business logic
-Consistent API — Same selectors work for both reactive and imperative use
-Type-safe — Full TypeScript inference across reactive and sync access patterns
-Performance optimized — Query avoids subscription overhead for one-time reads
+- **Reactive by default** — Subscribe to streams for UI updates
+- **Imperative when needed** — Use query() for instant access in business logic
+- **Consistent API** — Same selectors work for both reactive and imperative use
+- **Type-safe** — Full TypeScript inference across reactive and sync access patterns
+- **Performance optimized** — Query avoids subscription overhead for one-time reads
 
 ---
 
