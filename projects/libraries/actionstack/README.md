@@ -36,7 +36,6 @@
 - **🔒 Safe Concurrency** — Built-in locking and execution control
 - **📦 Dynamic Loading** — Load/unload modules at runtime
 - **🎯 Type Safety** — Full TypeScript support with intelligent inference
-- **🔌 Redux Ecosystem** — Works with existing middlewares from Redux ecosystem
 
 ---
 
