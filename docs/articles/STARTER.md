@@ -5,7 +5,7 @@ Starter middleware in **@actioncrew/actionstack** is the backbone of your store�
 ## 🧩 What It Does
 
 - **Concurrency Control**: Supports exclusive (serial) or concurrent (parallel) action processing to manage side effects and prevent race conditions.
-- **Thunk Orchestration**: Executes asynchronous thunks with access to `dispatch`, `getState`, and injected dependencies for complex workflows like API calls.
+- **Thunk Orchestration**: Executes asynchronous thunks with access to `getState` and injected dependencies for complex workflows like API calls.
 
 ## 🏗️ Architecture
 
@@ -23,7 +23,7 @@ The starter middleware is automatically included as the first middleware in ever
 
 ## ⚙️ Using Thunks
 
-Thunks are the primary way to handle complex async logic. They support dependency injection, state access, nested dispatching, and error handling. Here’s a concise example:
+Thunks are the primary way to handle complex async logic, invoked as methods with access to `getState` and dependencies. Actions are also methods that trigger state updates without returning state. Here’s a concise example:
 
 ```javascript
 import { createStore, applyMiddleware, createModule, action, thunk } from '@actioncrew/actionstack';
@@ -50,14 +50,13 @@ const userModule = createModule({
     setError: action('setError', (state, error) => ({ ...state, loading: false, error })),
     loginUser: thunk(
       'loginUser',
-      (credentials) => async (dispatch, getState, dependencies) => {
-        dispatch(userModule.actions.setLoading(true));
+      (credentials) => async (getState, dependencies) => {
+        userModule.actions.setLoading(true);
         try {
           const user = await dependencies.userAPI.authenticate(credentials);
-          dispatch(userModule.actions.setUser(user));
-          return user;
+          userModule.actions.setUser(user);
         } catch (error) {
-          dispatch(userModule.actions.setError(error.message));
+          userModule.actions.setError(error.message);
           throw error;
         }
       }
@@ -76,10 +75,10 @@ userModule.data$.subscribe({
   next: (state) => console.log('User state:', state)
 });
 
-// Dispatch thunk
+// Call thunk method
 try {
-  const user = await store.dispatch(userModule.actions.loginUser({ username: 'jane', password: 'secret123' }));
-  console.log('Logged in:', user);
+  await userModule.actions.loginUser({ username: 'jane', password: 'secret123' });
+  console.log('Logged in successfully');
 } catch (error) {
   console.error('Login failed:', error);
 }
@@ -89,12 +88,12 @@ try {
 
 - **Dependency Injection**: Access module dependencies (e.g., `userAPI`) in thunks.
 - **State Access**: Use `getState()` to read the current state.
-- **Nested Dispatching**: Dispatch other actions or thunks with proper concurrency control.
+- **Method-Based Actions**: Actions and thunks are called as methods, triggering state updates without returning state.
 - **Error Handling**: Catch and handle errors gracefully, as shown in the `loginUser` thunk.
 
 ### Thunk Composition
 
-Thunks can be composed to chain operations. For example, a thunk could call `loginUser` and then dispatch another thunk to fetch additional data, ensuring modular and reusable logic.
+Thunks can be composed by calling other thunks or actions as methods. For example, a thunk could call `loginUser` followed by another thunk to fetch additional data, ensuring modular and reusable logic.
 
 ## 🧠 Why It Matters
 
@@ -108,4 +107,4 @@ Starter middleware enables proactive state management with:
 
 ## 🧵 Final Thoughts
 
-Starter middleware in **@actioncrew/actionstack** provides a powerful foundation for state management. By leveraging thunks, dependency injection, and concurrency control, you can build scalable, maintainable applications with predictable async workflows.
+Starter middleware in **@actioncrew/actionstack** provides a powerful foundation for state management. By leveraging method-based thunks, dependency injection, and concurrency control, you can build scalable, maintainable applications with predictable async workflows.
