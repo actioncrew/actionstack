@@ -213,7 +213,7 @@ The combination of Streamix's `query()` method and ActionStack's thunks creates 
 
 ---
 
-## 🆚 vs Other Solutions
+## 🆚 ActionStack vs Other Solutions
 
 | Feature | ActionStack V3 | Redux + RTK | Zustand |
 |---------|----------------|-------------|---------|
