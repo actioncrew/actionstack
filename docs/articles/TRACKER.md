@@ -87,6 +87,28 @@ This pattern is especially useful in workflows that depend on stream completion 
 | ✅ Robust Error Handling    | Ensures tracker cleanup even if receiver logic fails                           |
 | ✅ Scalable Integration     | Works seamlessly with Streamix, Actionstack, and custom reactive flows          |
 
+## 🚀 Beyond Tracking: Measuring with Perfmon
+
+While Tracker and trackable give you visibility into when streams start, finish, or get cleaned up, sometimes you also need to know how much impact each action has on performance.
+
+That’s where perfmon
+ from **@actioncrew/actionstack/tools** comes in.
+
+## 🧭 What is Perfmon?
+**perfmon** is a lightweight performance monitor built into Actionstack. It measures execution time, frequency, and impact of every dispatched action, so you can correlate which actions are slow with how streams are behaving.
+
+## 🔗 How it Works with Tracker
+
+- **Tracker** → Observes current action lifecycle (who’s completed, who’s done).
+
+- **Perfmon** → Observes the cost of actions (how long updates and side-effects take).
+
+Together, they give you a full observability story:
+
+Perfmon tells you *Action X took 75ms and triggered 12 selectors”*.
+
+Tracker tells you “*These 12 streams have now all completed*.
+
 ## 🧵 Final Thoughts
 
 The combination of **Tracker** and **trackable** brings structure and observability to reactive systems. Whether you're managing UI state, coordinating async workflows, or building complex stream pipelines, these utilities help ensure that every stream is accounted for — and that your application remains predictable, performant, and easy to debug.
