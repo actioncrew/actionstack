@@ -71,7 +71,7 @@ const store = createStore({ exclusiveActionProcessing: false });
 await store.populate(userModule);
 
 // Subscribe to state changes
-userModule.data$.subscribe({
+userModule.data$.getUser().subscribe({
   next: (state) => console.log('User state:', state)
 });
 
