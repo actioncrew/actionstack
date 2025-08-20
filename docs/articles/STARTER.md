@@ -90,7 +90,7 @@ userModule.data$.getUser().subscribe({
 
 // Call thunk method
 try {
-  userModule.actions.loginUser({ username: 'jane', password: 'secret123' });
+  await userModule.actions.loginUser({ username: 'jane', password: 'secret123' });
   console.log('Logged in successfully');
 } catch (error) {
   console.error('Login failed:', error);
