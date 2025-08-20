@@ -107,7 +107,7 @@ Together, they give you a full observability story:
 
 Perfmon tells you *"Action X took 75ms and triggered 12 selectors"*.
 
-Tracker tells you *"These 12 streams already have emitted and emission payload has accepted by related subscribers"*.
+Tracker tells you *"These 12 streams already have emitted and emission payload has been accepted by related subscribers"*.
 
 ## 🧵 Final Thoughts
 
