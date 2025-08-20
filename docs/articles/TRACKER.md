@@ -44,10 +44,6 @@ const trackedStream = trackable(originalStream, tracker);
 
 This ensures that every stream’s lifecycle is fully observable — without manual intervention.
 
-You're right to point out that this is not fully correct. The logic is accurate, but its description is misleading. That code isn't typically part of a user's direct dispatch() call; it's an internal part of the starter middleware's design.
-
-Here is the corrected section that accurately reflects the middleware's role.
-
 ## 🔁 Tracker-Aware State Propagation
 Within the store state updates are synchronized with the Tracker's status. This ensures that all reactive side effects, such as selectors and data updates, are executed before the store's state is considered stable and ready for the next action. This prevents race conditions and ensures a predictable data flow.
 
