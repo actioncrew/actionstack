@@ -29,7 +29,7 @@ The module design is like the perfect city planner, keeping your app organized a
 - **Reusability**: Modules are like prefab buildings—use them across your app or even in other projects!
 - **Flexibility**: Dynamically load or unload modules to keep your app lean, like turning off the lights in empty skyscrapers.
 
-## 🧵 Final Thoughts & Optimistic Motto
+## 🧵 Final Thoughts
 
 Modules in **@actioncrew/actionstack** are the superheroes your app deserves, bringing order, scalability, and a dash of flair to your state management. Whether you’re building a small startup or a sprawling enterprise city, modules provide the structure to keep your code organized and your dreams big. So grab your cape, assemble your modules, and build apps that soar to new heights!
 
