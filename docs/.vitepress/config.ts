@@ -40,6 +40,9 @@ export default defineConfig({
           items: [
             { text: 'README', link: '/' },
             { text: 'WHY', link: '/WHY.md' },
+            { text: 'Modules', link: '/MODULES.md' },
+            { text: 'Starter', link: '/STARTER.md' },
+            { text: 'Tracker', link: '/TRACKER.md' },
             { text: 'Changelog', link: '/CHANGELOG.md' }
           ]
         }
