@@ -1,66 +1,66 @@
-# 🛠️ ActionStack Tools: Your App’s Wingmen
+# 🛠️ ActionStack Tools: Your App’s Rad Crew
 
-ActionStack’s got your back with its built-in tools—Logger, Performance Monitor, and State Freezer. They’re like your app’s trusty sidekicks, handling debugging, keeping things speedy, and locking down your state so nothing weird sneaks in.
+ActionStack packs a punch with its built-in tools—Logger, Performance Monitor, and State Freezer. They’re like your app’s personal hype squad: one’s sniffing out bugs, another’s keeping things speedy, and the last one’s guarding your state like it’s the VIP lounge.
 
-## 🧩 Middleware: The ActionStack Gatekeepers
+## 🧩 Middleware: The ActionStack Checkpoint
 
-These tools are all **middleware**, basically the cool bouncers at the club:
+These tools roll as **middleware**, acting like bouncers at the club:
 
     action → starter → middleware chain → store.dispatch → new state
 
-Every **action** has to pass through these guys before hitting the reducers to update your app’s state.
+Every **action** gets a quick vibe check before it can slide into the dispatch and update your app’s state.
 
 ### Why Middleware?
 
-Middleware wraps around your dispatch like a warm hug. Set it up like this:
+Middleware hooks into your dispatch to keep things tight. Set it up like this:
 
 ```ts
 import { createStore, applyMiddleware } from '@actioncrew/actionstack';
-import { perfmon } from '@actioncrew/actionstack/tools';
+import { logger, perfmon, storeFreeze } from '@actioncrew/actionstack/tools';
 
-export const store = createStore(applyMiddleware(perfmon));
+export const store = createStore(applyMiddleware(logger, perfmon, storeFreeze));
 ```
 
-Here’s the deal when you dispatch an action:
-1. **Logger** jots down what’s going on in the console.
-2. **Performance Monitor** clocks how fast everything’s moving.
-3. **State Freezer** makes sure nobody’s messing with your state.
-4. Then, the action slides into the reducers to do its thing.
+When an action hits:
+1. **Logger** scribbles what’s up in the console.
+2. **Performance Monitor** clocks the speed.
+3. **State Freezer** locks down any shady state changes.
+4. Then, the action cruises to the dispatch method.
 
-These tools can let the action roll through, tweak it, or (super rarely) stop it. Mostly, they’re just watching and keeping things chill.
+Middleware can pass, tweak, or (rarely) block actions, but these tools mostly just watch and keep things smooth.
 
-## ⚡ Meet the Team
+## ⚡ The Lineup
 
 ### 1. Logger
-Your go-to for debugging, like a friend who remembers every detail.
+Your debugging wingman, catching every move.
 
-- Spills the beans on state before and after actions (names, types, payloads).
-- Spots sneaky bugs or weird changes.
-- Lets you pick log vibes—quiet `info` or loud `error`.
+- Logs action details (name, type, payload) and state changes.
+- Spots bugs or weird side effects.
+- Offers log levels—chill `info` or loud `error`.
 
 ### 2. Performance Monitor
-The speed nerd who’s all about keeping your app zippy.
+The speed junkie making sure your app doesn’t lag.
 
-- Tracks how long actions and state updates take.
-- Calls out anything dragging its feet.
-- Hands you the data to make your app run like a dream.
+- Times actions and state updates.
+- Flags anything slowing down the party.
+- Drops metrics to boost performance.
 
 ### 3. State Freezer
-The no-nonsense guard keeping your state untouchable.
+The state’s bodyguard, keeping it untouchable.
 
-- Stops anyone from tweaking state on the sly.
-- Throws warnings if someone tries to mess with it.
-- Keeps your app steady and predictable, like your favorite coffee order.
+- Blocks sneaky state edits.
+- Throws errors if someone tries to mess with it.
+- Ensures your app stays predictable.
 
 ## ⚙️ Getting Started
 
-Grab ActionStack if you haven’t yet:
+Snag ActionStack:
 
 ```bash
 npm install @actioncrew/actionstack
 ```
 
-Then, hook up the tools:
+Then, plug in the tools:
 
 ```ts
 import { createStore, applyMiddleware } from '@actioncrew/actionstack';
@@ -71,6 +71,6 @@ export const store = createStore(applyMiddleware(logger, storeFreeze));
 
 ## 🎬 Wrap-Up
 
-Logger, Performance Monitor, and State Freezer are your app’s dream team, chilling between actions and `store.dispatch`. They’ve got your back—tracking, timing, and guarding your app so it stays smooth, fast, and drama-free.
+Logger, Performance Monitor, and State Freezer are your app’s all-star crew, posted up between actions and `store.dispatch`. They track, time, and protect, so your app stays slick and stress-free. 
 
-*Remember: You won’t lose your mind if you use the right tools in the right place. So, keep calm and let ActionStack save your sanity. 🌟🚀*
+*“You won’t lose your mind if you use the right tools in the right place. Because, seriously, who needs the chaos of a buggy app when you’ve got this squad?” 🌟🚀*
