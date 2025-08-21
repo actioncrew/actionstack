@@ -44,10 +44,6 @@ const trackedStream = trackable(originalStream, tracker);
 
 This ensures that every stream’s lifecycle is fully observable — without manual intervention.
 
-You're right to point out that this is not fully correct. The logic is accurate, but its description is misleading. That code isn't typically part of a user's direct dispatch() call; it's an internal part of the starter middleware's design.
-
-Here is the corrected section that accurately reflects the middleware's role.
-
 ## 🔁 Tracker-Aware State Propagation
 Within the store state updates are synchronized with the Tracker's status. This ensures that all reactive side effects, such as selectors and data updates, are executed before the store's state is considered stable and ready for the next action. This prevents race conditions and ensures a predictable data flow.
 
@@ -90,6 +86,28 @@ This pattern is especially useful in workflows that depend on stream completion 
 | ✅ Synchronization          | Await all streams before dispatching or updating state                         |
 | ✅ Robust Error Handling    | Ensures tracker cleanup even if receiver logic fails                           |
 | ✅ Scalable Integration     | Works seamlessly with Streamix, ActionStack, and custom reactive flows          |
+
+## 🚀 Beyond Tracking: Measuring with Perfmon
+
+While Tracker and trackable give you visibility into when streams start, finish, or get cleaned up, sometimes you also need to know how much impact each action has on performance.
+
+That’s where perfmon
+ from **@actioncrew/actionstack/tools** comes in.
+
+## 🧭 What is Perfmon?
+**perfmon** is a lightweight performance monitor built into Actionstack. It measures execution time, frequency, and impact of every dispatched action, so you can correlate which actions are slow with how streams are behaving.
+
+## 🔗 How it Works with Tracker
+
+- **Tracker** → Observes current action lifecycle (who’s completed, who’s done).
+
+- **Perfmon** → Observes the cost of actions (how long updates and side-effects take).
+
+Together, they give you a full observability story:
+
+Perfmon tells you *"Action X took 75ms and triggered 12 selectors"*.
+
+Tracker tells you *"These 12 streams already have emitted and emission payload has been accepted by related subscribers"*.
 
 ## 🧵 Final Thoughts
 
