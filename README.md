@@ -198,14 +198,9 @@ const store = createStore({
   exclusiveActionProcessing: false
 }, applyMiddleware(logger, devtools));
 ```
----
-
-## 📦 Tooling
-ActionStack includes several tools to aid development and debugging: **logger**, **perfmon** and **storeFreeze**. In addition, it is compatible with any middleware available for Redux, but with caution. Middleware can add powerful functionalities to your application, but improper usage may lead to unintended side effects or performance issues.
-
-> Note: Redux Thunk-like functionality is already integrated into ActionStack with **starter** middleware, so there's no need to add it separately for handling asynchronous actions.
 
 ---
+
 ## 🔗 Why Query + Thunks = Perfect Match
 The combination of Streamix's `query()` method and ActionStack's thunks creates a uniquely powerful and streamlined approach:
 
