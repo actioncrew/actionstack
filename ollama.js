@@ -66,7 +66,7 @@ async function getGitDiff(commit1, commit2) {
 // Generate a description for a tag using the LLM
 async function generateTagDescription(tagName, commits) {
   const prompt = `
-    You are an expert software engineer summarizing changes for a release of a state management library Actionstack written in TypeScript.
+    You are an expert software engineer summarizing changes for a release of a state management library ActionStack written in TypeScript.
     It is a powerful and flexible state management library designed to provide a scalable and maintainable approach
     for managing application state in modern JavaScript and TypeScript applications. It seamlessly integrates
     with your project, offering advanced features such as handling asynchronous actions, reducers, and side

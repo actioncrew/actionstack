@@ -89,7 +89,7 @@ This pattern is especially useful in workflows that depend on stream completion 
 | ✅ Status Visibility        | Inspect whether a stream is active or completed                                 |
 | ✅ Synchronization          | Await all streams before dispatching or updating state                         |
 | ✅ Robust Error Handling    | Ensures tracker cleanup even if receiver logic fails                           |
-| ✅ Scalable Integration     | Works seamlessly with Streamix, Actionstack, and custom reactive flows          |
+| ✅ Scalable Integration     | Works seamlessly with Streamix, ActionStack, and custom reactive flows          |
 
 ## 🧵 Final Thoughts
 

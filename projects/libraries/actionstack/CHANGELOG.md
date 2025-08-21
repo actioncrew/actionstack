@@ -43,7 +43,7 @@ Corrected the initialization logic of the store enhancer to ensure it receives t
 
 ## 2.2.0
 
-Support for Streamix `v2.0.1`. Actionstack now fully integrates with the updated async iterator–based operators introduced in Streamix 2.0.1, improving compatibility, performance, and debugging clarity.
+Support for Streamix `v2.0.1`. ActionStack now fully integrates with the updated async iterator–based operators introduced in Streamix 2.0.1, improving compatibility, performance, and debugging clarity.
 
 ## 2.1.5
 
@@ -59,7 +59,7 @@ The new version includes several important improvements and fixes, including upd
 
 ## 2.0.9
 
-In version 2.0.9 of Actionstack, we've integrated the streamix project into our codebase, enhancing our state management capabilities with asynchronous actions and reducers. We also updated our documentation to reflect these changes and added a test app for streamix usage.
+In version 2.0.9 of ActionStack, we've integrated the streamix project into our codebase, enhancing our state management capabilities with asynchronous actions and reducers. We also updated our documentation to reflect these changes and added a test app for streamix usage.
 
 ## 2.0.8
 
@@ -67,7 +67,7 @@ This release introduces several key improvements, including a restructured packa
 
 ## 2.0.0
 
-The Actionstack v2.0.0 release introduces several significant improvements and new features, enhancing both functionality and maintainability. Key updates include renamed 'lock' to 'simpleLock' to prevent name collisions, added jsdocs for store methods, and corrections in package imports. The documentation was also updated to reflect these changes, ensuring users have access to the latest information. Additionally, functional tests were implemented for actionHandler, tracker, executionStack, and other core components, improving test coverage and reliability. Dependencies were streamlined by removing those from Angular, contributing to a cleaner and more efficient dependency management system.
+The ActionStack v2.0.0 release introduces several significant improvements and new features, enhancing both functionality and maintainability. Key updates include renamed 'lock' to 'simpleLock' to prevent name collisions, added jsdocs for store methods, and corrections in package imports. The documentation was also updated to reflect these changes, ensuring users have access to the latest information. Additionally, functional tests were implemented for actionHandler, tracker, executionStack, and other core components, improving test coverage and reliability. Dependencies were streamlined by removing those from Angular, contributing to a cleaner and more efficient dependency management system.
 
 ## v1.3.2
 
@@ -91,7 +91,7 @@ In this release, several improvements and bug fixes were implemented. The `get` 
 
 ## v1.0.12
 
-This release introduces several important bug fixes and minor improvements, enhancing stability and user experience with Actionstack v1.0.12.
+This release introduces several important bug fixes and minor improvements, enhancing stability and user experience with ActionStack v1.0.12.
 
 ## v1.0.11
 
@@ -99,7 +99,7 @@ In v1.0.11, we made several important improvements to enhance functionality and 
 
 ## v1.0.9
 
-This release introduces several improvements to the Actionstack library, including the addition of a new tools entry point and package-lock updates for better integration and compatibility.
+This release introduces several improvements to the ActionStack library, including the addition of a new tools entry point and package-lock updates for better integration and compatibility.
 
 ## v1.0.7
 
@@ -107,7 +107,7 @@ Various bug fixes and improvements to stabilize the v1.0.x branch, with some new
 
 ## v1.0.5
 
-In this release, several important improvements and bug fixes were implemented to enhance Actionstack's stability and usability. The 'merge' action was added as a new feature, allowing developers to handle merging of different stateful operations seamlessly. Additionally, the documentation was significantly improved with more detailed comments and examples, making it easier for users to understand and utilize the library effectively.
+In this release, several important improvements and bug fixes were implemented to enhance ActionStack's stability and usability. The 'merge' action was added as a new feature, allowing developers to handle merging of different stateful operations seamlessly. Additionally, the documentation was significantly improved with more detailed comments and examples, making it easier for users to understand and utilize the library effectively.
 
 ## v1.0.4
 
@@ -119,5 +119,5 @@ Corrections were made to fix issues and improve functionality. The version was r
 
 ## v1.0.1
 
-Initial commit to establish the foundation for Actionstack v1.0.1, introducing core state management features and setting up initial functionality.
+Initial commit to establish the foundation for ActionStack v1.0.1, introducing core state management features and setting up initial functionality.
 

@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   base: '/actionstack/',
-  title: 'Actionstack',
+  title: 'ActionStack',
   description: 'Documentation for state-management library',
 
   // Clean URLs
@@ -43,6 +43,7 @@ export default defineConfig({
             { text: 'Modules', link: '/MODULES.md' },
             { text: 'Starter', link: '/STARTER.md' },
             { text: 'Tracker', link: '/TRACKER.md' },
+            { text: 'Middleware', link: '/MIDDLEWARE.md' },
             { text: 'Changelog', link: '/CHANGELOG.md' }
           ]
         }

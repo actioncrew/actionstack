@@ -33,4 +33,4 @@ The module design is like the perfect city planner, keeping your app organized a
 
 Modules in **@actioncrew/actionstack** are the superheroes your app deserves, bringing order, scalability, and a dash of flair to your state management. Whether you’re building a small startup or a sprawling enterprise city, modules provide the structure to keep your code organized and your dreams big.
 
-*With modules as your foundation, build bold, scale big, and let your app fly! 🌆🚀*
+*With modules as your foundation, build bold, scale big, and let your app fly! 🌟🚀*
