@@ -1,5 +1,7 @@
 # 🛰️ Tracking Stream Execution with Tracker and trackable
 
+> ⚠️ **Warning**: Subscribers will not receive notifications for values that are filtered or suppressed by pipeline operators, so tracker status method will be not called as expected, and will hang indefinitely. We are actively working to support these cases.
+
 Reactive systems thrive on observability. But when streams become deeply nested or asynchronous, tracking their execution status can quickly spiral into complexity. That’s where **Tracker** and **trackable** come in — two utilities designed to bring clarity, control, and lifecycle awareness to your reactive workflows.
 
 ## 🕵️‍♂️ What Is a Tracker?
