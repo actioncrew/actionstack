@@ -2,7 +2,7 @@
 
 ## 3.0.10
 
-Removed `ExecutionStack`, previously eliminated epics and sagas to simplify the architecture and focus on a more straightforward approach. Continued emphasis on using only thunks and callable thunks for handling asynchronous logic and side effects, enhancing simplicity and predictability. Small fixes in `module` implementation. Introduced a minimal React application to test and verify the workability of ActionStack in custom environment.
+Removed `ExecutionStack`, due to previously eliminated epics and sagas middlewares. Continued emphasis on using only thunks and callable thunks for handling asynchronous logic and side effects, enhancing simplicity and predictability. Small fixes in `module` implementation.
 
 ## 3.0.9
 
